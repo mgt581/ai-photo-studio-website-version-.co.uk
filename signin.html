@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In • AI Photo Studio</title>
+  <style>
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:#f9fafb; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+    .box { width:100%; max-width:400px; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); text-align:center; }
+    h2 { margin-top:0; color:#111827; }
+    input { width:100%; padding:12px; margin-bottom:12px; border:1px solid #e5e7eb; border-radius:8px; box-sizing:border-box; font-size:16px; }
+    
+    .btn { width:100%; padding:12px; border:0; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; justify-content:center; }
+    .btn-primary { background:#4f46e5; color:white; }
+    .btn-primary:hover { background:#4338ca; }
+    
+    .btn-google { background:white; color:#374151; border:1px solid #d1d5db; }
+    .btn-google:hover { background:#f9fafb; }
+    
+    .or { margin: 15px 0; color:#9ca3af; font-size:14px; position: relative; }
+    .or::before, .or::after { content: ""; display: block; height: 1px; background: #e5e7eb; position: absolute; top: 50%; width: 42%; }
+    .or::before { left: 0; }
+    .or::after { right: 0; }
+
+    .links { display:flex; justify-content:space-between; font-size:14px; margin-top:15px; }
+    .link { color:#4f46e5; text-decoration:none; font-weight:600; cursor:pointer; }
+    .link:hover { text-decoration:underline; }
+    .back { display:block; margin-top:30px; color:#6b7280; text-decoration:none; font-size:14px; }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h2>Sign In</h2>
+    <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Welcome back to AI Photo Studio</p>
+
+    <button class="btn btn-google" onclick="googleLogin()">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" height="20" style="margin-right:8px;">
+      Sign in with Google
+    </button>
+
+    <div class="or">OR</div>
+
+    <input type="email" id="email" placeholder="Email Address" required>
+    <input type="password" id="password" placeholder="Password" required>
+
+    <button class="btn btn-primary" onclick="signIn()">Sign In</button>
+
+    <div class="links">
+      <a href="signup.html" class="link">Create Account</a>
+      <span class="link" onclick="forgotPassword()">Forgot Password?</span>
+    </div>
+
+    <a href="index.html" class="back">← Back to Studio</a>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
+      authDomain: "ai-photo-studio-24354.firebaseapp.com",
+      projectId: "ai-photo-studio-24354",
+      // UPDATED BUCKET NAME BELOW:
+      storageBucket: "ai-photo-studio-24354.firebasestorage.app",
+      messagingSenderId: "411346648650",
+      appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
+      measurementId: "G-R3G160W8BQ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function signIn() {
+      const e = document.getElementById('email').value;
+      const p = document.getElementById('password').value;
+      if (!e || !p) return alert("Please enter email and password");
+
+      auth.signInWithEmailAndPassword(e, p)
+        .then(() => window.location.href = "/")
+        .catch(err => alert("Error: " + err.message));
+    }
+
+    function googleLogin() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then(() => window.location.href = "/")
+        .catch(err => alert("Error: " + err.message));
+    }
+
+    function forgotPassword() {
+      const e = document.getElementById('email').value;
+      const emailToReset = prompt("Please enter your email address to reset your password:", e);
+      
+      if (emailToReset) {
+        auth.sendPasswordResetEmail(emailToReset)
+          .then(() => alert("✅ Reset link sent! Check your email inbox."))
+          .catch(err => alert("Error: " + err.message));
+      }
+    }
+  </script>
+
+</body>
+</html>

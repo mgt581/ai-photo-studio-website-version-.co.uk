@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Photo Studio – Editor</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- ONNX RUNTIME -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+    
+    <header class="header">
+        <h1>AI Editor</h1>
+        <p id="activeToolLabel">Loading tool…</p>
+    </header>
+
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+
+    <div class="upload-box" onclick="document.getElementById('imageInput').click()">
+        <input type="file" id="imageInput" accept="image/*">
+        <p>Tap to upload an image</p>
+    </div>
+
+    <div class="image-preview">
+        <img id="editorImage" src="">
+        <div id="watermark" class="watermark">AI Photo Studio</div>
+    </div>
+
+    <div class="mode-switcher">
+        <button onclick="setMode('remove')">Remove Background</button>
+        <button onclick="setMode('change')">Change Background</button>
+        <button onclick="setMode('choose')">Choose Background</button>
+        <button onclick="setMode('eraser')">Magic Eraser</button>
+        <button onclick="setMode('person')">Remove Person</button>
+    </div>
+
+    <div id="toolControls" class="tool-controls"></div>
+
+    <button class="download-btn" onclick="downloadFinalImage()">Download Image</button>
+
+</div>
+
+<div id="loadingOverlay" class="loading-overlay" style="display:none;">
+    <div class="loader"></div>
+    <p>Processing…</p>
+</div>
+
+<script src="editor.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

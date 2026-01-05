@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Photo Studio</title>
+  <meta name="theme-color" content="#4f46e5">
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
+  <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=3">
+
+  <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/background-removal.min.js"></script>
+
+  <style>
+    :root{--grad:linear-gradient(90deg,#6366f1,#8b5cf6)}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f9fafb;color:#111827}
+    
+    /* Header & Nav */
+    header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #e5e7eb;background:#fff}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand-img{width:28px;height:28px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+    .brand-text{font-size:20px;font-weight:800;letter-spacing:.2px}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .ghost{background:#eef2ff;color:#4338ca;border:0;padding:8px 12px;border-radius:10px;font-weight:700;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px}
+    .muted{color:#6b7280;font-size:13px}
+    
+    /* Pricing Buttons */
+    .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-price { padding: 8px 12px; border-radius: 99px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s; }
+    .btn-price:active { transform: scale(0.97); }
+    
+    /* Layout */
+    .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
+    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+    .btn{height:44px;padding:0 16px;border-radius:10px;border:0;cursor:pointer;font-size:15px;font-weight:700;background:#e5e7eb;color:#111827}
+    .btn.primary{background:var(--grad);color:#fff}
+    .btn.warn{background:#fee2e2;color:#991b1b}
+    .btn:disabled{opacity:.65;cursor:not-allowed}
+
+    /* BETA TAG STYLE */
+    .tag-beta {
+      background: #f59e0b; /* Orange */
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+    }
+    
+    /* Canvas */
+    .stage{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative}
+    canvas#stage{width:100%;height:auto;display:block;background:#f3f4f6}
+    canvas#mask{position:absolute;left:0;top:0;width:100%;height:100%;display:none;cursor:crosshair}
+    
+    .actions{display:grid;gap:12px}
+    .hint{font-size:13px;color:#6b7280;text-align:center}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:9999}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="/apple-touch-icon.png?v=3" alt="Logo" width="28" height="28" class="brand-img" onerror="this.remove()">
+      <span class="brand-text">AI Photo Studio</span>
+    </div>
+
+    <div class="row">
+      <a href="gallery.html" class="ghost">Gallery</a>
+      <a href="settings.html" class="ghost">Settings</a>
+      
+      <a href="signin.html" class="ghost" id="navSignIn">Sign In</a>
+      <a href="signup.html" class="ghost" id="navSignUp">Sign Up</a>
+      
+      <span id="authStatus" class="muted" style="display:none"></span>
+      <button id="btnLogout" class="ghost" style="display:none; background:#fee2e2; color:#991b1b;">Sign out</button>
+    </div>
+
+    <div class="pricing-row">
+       <button id="btnDaily" class="btn-price" style="background: #6b7280;">Day Pass £1</button>
+       <button id="btnMonthly" class="btn-price" style="background: #2563eb;">Monthly £4.99</button>
+       <button id="btnTrialStart" class="btn-price" style="background: #16a34a;">Start Free Trial (Yearly)</button>
+       
+       <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
+    <div class="card">
+      <p class="status" id="status">Upload a photo to begin.</p>
+      <div class="actions">
+        <div class="toolbar">
+          <button class="btn primary" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
+          
+          <input id="mainInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadMain(this.files[0]); this.value=''" />
+          
+          <input id="bgInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadBg(this.files[0]); this.value=''" />
+
+          <button id="btnRemove" class="btn" disabled onclick="Studio.removeBg()">Remove Background</button>
+          <button id="btnChange" class="btn" disabled onclick="Studio.changeBg()">Change Background</button>
+          <button class="btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
+
+          <button id="btnBrush" class="btn" disabled onclick="Studio.startBrush()">
+            Remove Person <span class="tag-beta">Beta</span>
+          </button>
+
+          <button id="btnApply" class="btn warn" style="display:none" onclick="Studio.applyInpaint()">Apply Removal</button>
+          <button id="btnCancel" class="btn" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="stage card" id="stageWrap">
+      <canvas id="stage" width="960" height="600"></canvas>
+      <canvas id="mask" width="960" height="600"></canvas>
+    </div>
+
+     <div class="card actions">
+  <div class="toolbar">
+    <!-- ✅ One button to rule them all -->
+    <button class="btn" id="btnSaveGallery">Save to Gallery</button>
+  </div>
+  <p class="hint">When signed in, your downloaded images are also saved to your gallery and downloaded to your device.</p>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <script>
+    // 1. FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
+      authDomain: "ai-photo-studio-24354.firebaseapp.com",
+      projectId: "ai-photo-studio-24354",
+      // UPDATED TO CORRECT BUCKET NAME:
+      storageBucket: "ai-photo-studio-24354.firebasestorage.app",
+      messagingSenderId: "411346648650",
+      appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
+      measurementId: "G-R3G160W8BQ"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const auth      = firebase.auth();
+    const db        = firebase.firestore();
+    const storage   = firebase.storage();
+    const functions = firebase.functions ? firebase.functions() : null;
+
+    // 2. PAYMENT LINKS
+    const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
+    const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
+    const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08"; // Trial/Yearly link
+    
+    const btnDaily      = document.getElementById("btnDaily");
+    const btnMonthly    = document.getElementById("btnMonthly");
+    const btnTrialStart = document.getElementById("btnTrialStart");
+
+    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY;
+    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY;
+    // UPDATED: Now points to the yearly Stripe link as requested
+    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY;
+
+    // --- CHECK FOR PAYMENT RETURN (Simulates Backend) ---
+    // User must set Stripe redirect to: https://aiphotostudio.co.uk/?paid=true
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('paid') === 'true' || urlParams.get('payment') === 'success') {
+        auth.onAuthStateChanged(user => {
+          if (user) {
+            activatePro('Paid Plan (Stripe)');
+            // Clean URL
+            window.history.replaceState({}, document.title, "/");
+          }
+        });
+      }
+      
+      if (urlParams.get("payment") === "cancel") {
+        toast("Payment cancelled");
+        window.history.replaceState({}, document.title, "/");
+      }
+    };
+
+    async function activatePro(type) {
+      const user = auth.currentUser;
+      if(!user) return;
+      
+      const ref = db.collection('users').doc(user.uid);
+      await ref.set({
+        tier: 'pro',
+        planType: type,
+        activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      toast(`✅ Plan activated! Pro features unlocked.`);
+      await refreshUserPlan();
+    }
+
+    // 3. APP VARIABLES & DOM
+    const elStatus    = document.getElementById('authStatus');
+    const btnLogout   = document.getElementById('btnLogout');
+    const elTrialLeft = document.getElementById('trialLeft');
+    const navSignIn   = document.getElementById('navSignIn');
+    const navSignUp   = document.getElementById('navSignUp');
+    let proEnabled    = false;
+
+    const $status = document.getElementById('status');
+    const stage   = document.getElementById('stage');
+    const ctx     = stage.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = true; 
+    ctx.imageSmoothingQuality = 'high';
+
+    const maskCanvas = document.getElementById('mask');
+    const mctx       = maskCanvas.getContext('2d');
+    let brushing = false, brushDown = false, brushSize = 24;
+
+
+    const btnRemove = document.getElementById('btnRemove');
+    const btnChange = document.getElementById('btnChange');
+    const btnBrush  = document.getElementById('btnBrush');
+    const btnApply  = document.getElementById('btnApply');
+    const btnCancel = document.getElementById('btnCancel');
+
+   
+// 4. HELPER FUNCTIONS
+function toast(msg) { 
+  const el = document.createElement('div'); 
+  el.className = 'toast'; 
+  el.textContent = msg; 
+  document.body.appendChild(el); 
+  setTimeout(() => el.remove(), 2200); 
+}
+
+function setStatus(t) { $status.textContent = t; }
+
+function drawChecker() { 
+  const s = 20; 
+  for (let y = 0; y < stage.height; y += s) { 
+    for (let x = 0; x < stage.width; x += s) { 
+      ctx.fillStyle = ((x / s + y / s) % 2 === 0) ? '#e5e7eb' : '#fff'; 
+      ctx.fillRect(x, y, s, s); 
+    } 
+  } 
+}
+
+function stampWatermark() {
+  // ✅ IMPORTANT: Uses window.proEnabled to catch Owner Mode & Subscriptions
+  if (window.proEnabled) return;
+
+  const text = "AI Photo Studio — FREE";
+  ctx.save();
+  ctx.font = "bold 34px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial";
+  
+  const w = ctx.measureText(text).width;
+  const x = (stage.width - w) / 2;
+  const y = stage.height / 2 + 12;
+  const padX = 14, r = 10, bx = x - padX, by = y - 34, bw = w + padX * 2, bh = 44;
+
+  // Background Box
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by); ctx.lineTo(bx + bw - r, by); ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+  ctx.lineTo(bx + bw, by + bh - r); ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+  ctx.lineTo(bx + r, by + bh); ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+  ctx.lineTo(bx, by + r); ctx.quadraticCurveTo(bx, by, bx + r, by); 
+  ctx.closePath(); 
+  ctx.fill();
+
+  // Text
+  ctx.fillStyle = "#111827"; 
+  ctx.fillText(text, x, y); 
+  ctx.restore();
+}
+
+const readFileURL = (f) => new Promise((res, rej) => { 
+  if (!f) return res(null); 
+  const r = new FileReader(); 
+  r.onload = () => res(r.result); 
+  r.onerror = rej; 
+  r.readAsDataURL(f); 
+});
+
+const loadImage = (src) => new Promise((res, rej) => { 
+  const im = new Image(); 
+  im.onload = () => res(im); 
+  im.onerror = rej; 
+  im.src = src; 
+});
+    let selfieLoader = null;
+    function ensureSelfieSegmentation(){
+      if (window.SelfieSegmentation) return Promise.resolve();
+      if (selfieLoader) return selfieLoader;
+      selfieLoader = new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1/selfie_segmentation.js';
+        s.onload=()=>resolve(); 
+        s.onerror=()=>reject(new Error('mediapipe-load-failed'));
+        document.head.appendChild(s);
+      });
+      return selfieLoader;
+    }
+    
+    async function maskWithSelfie(img){
+      await ensureSelfieSegmentation();
+      const ss = new SelfieSegmentation({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}` });
+      ss.setOptions({ modelSelection: 1 });
+      const mc = document.createElement('canvas'); 
+      mc.width = img.width; 
+      mc.height = img.height;
+      await new Promise((resolve)=>{ 
+        ss.onResults((r)=>{ 
+          const m = mc.getContext('2d'); 
+          m.drawImage(r.segmentationMask,0,0,img.width,img.height); 
+          resolve(); 
+        }); 
+        ss.send({ image: img }); 
+      });
+      return mc;
+    }
+
+    // 5. AUTH & STATE
+    function updatePlanUI() {
+      // Re-draw the canvas to apply/remove watermark based on window.proEnabled
+      if (typeof Studio !== 'undefined' && Studio.redraw) {
+        Studio.redraw();
+      }
+    }
+
+    function setPro(on) {
+      window.proEnabled = !!on;
+      updatePlanUI();
+      if (on) console.log("✅ Pro features active.");
+    }
+
+    async function refreshUserPlan() {
+      const user = auth.currentUser;
+      
+      // 1. Not signed in
+      if (!user) { 
+        elTrialLeft.style.display = 'none'; 
+        setPro(false); 
+        return; 
+      }
+      
+      // 2. 👑 OWNER MODE BYPASS (Your Master Key)
+      if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
+        elTrialLeft.textContent = '👑 Owner Mode';
+        elTrialLeft.style.display = 'inline-block';
+        setPro(true); 
+        return;
+      }
+
+      // 3. Normal Subscription Check
+      try {
+        const snap = await db.collection('users').doc(user.uid).get();
+        let isPro = false;
+        let trialEndMillis = null;
+
+        if (snap.exists) {
+          const d = snap.data() || {};
+          isPro = !!d.isPro || d.tier === 'pro';
+          
+          if (d.trial?.endsAt?.toMillis) {
+            trialEndMillis = d.trial.endsAt.toMillis();
+          }
+        }
+        
+        if (isPro) {
+          elTrialLeft.textContent = 'Pro Active';
+          elTrialLeft.style.display = 'inline-block';
+          setPro(true);
+          return;
+        }
+        
+        // 4. Trial Check
+        if (trialEndMillis) {
+          const leftMs = trialEndMillis - Date.now();
+          if (leftMs > 0) {
+            const days = Math.ceil(leftMs / 86400000);
+            elTrialLeft.textContent = `${days} day${days === 1 ? '' : 's'} left`;
+            elTrialLeft.style.display = 'inline-block';
+            setPro(true);
+          } else {
+            elTrialLeft.textContent = 'Trial ended';
+            elTrialLeft.style.display = 'inline-block';
+            setPro(false);
+          }
+        } else {
+          elTrialLeft.style.display = 'none';
+          setPro(false);
+        }
+      } catch (e) {
+        console.error("Plan check error:", e);
+        setPro(false);
+      }
+    }
+
+    // Main Auth Listener
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        elStatus.style.display = 'none';
+        btnLogout.style.display = 'none';
+        if(navSignIn) navSignIn.style.display = 'inline-block';
+        if(navSignUp) navSignUp.style.display = 'inline-block';
+        setPro(false);
+        return;
+      }
+
+      // UI Setup for Logged In User
+      const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
+      elStatus.style.display = 'inline-block';
+      elStatus.textContent = `Signed in as ${who}`;
+      btnLogout.style.display = 'inline-block';
+      if(navSignIn) navSignIn.style.display = 'none';
+      if(navSignUp) navSignUp.style.display = 'none';
+
+      // Run the detailed plan/owner check
+      await refreshUserPlan();
+    });
+
+    if(btnLogout) btnLogout.onclick = () => auth.signOut();
+    
+    // 6. GALLERY SAVING
+    async function saveToGalleryIfSignedIn(blob, type){
+      const user = auth.currentUser;
+      if (!user) return; 
+
+      toast("☁️ Auto-saving to Gallery..."); 
+
+      try {
+        const ext   = (type === "jpeg" ? "jpg" : "png");
+        const path = `users/${user.uid}/gallery/${Date.now()}.${ext}`;
+        const ref   = storage.ref(path);
+        const snap = await ref.put(blob);
+        const url   = await snap.ref.getDownloadURL();
+        
+        await db.collection('users').doc(user.uid).collection('gallery').add({
+            url,
+            storagePath: path,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        
+        toast("✅ Image saved to Gallery!"); 
+      } catch (e) {
+        console.warn("Failed to save to gallery:", e);
+        toast("❌ Auto-save failed. Check Console.");
+      }
+    }
+
+    // 7. PROGRESS HUD
+    let _progEl = null;
+    function showProgress(text, pct = 0) {
+      if (!_progEl) {
+        _progEl = document.createElement('div');
+        _progEl.style.cssText = `
+          position:fixed;left:50%;transform:translateX(-50%);
+          bottom:16px;z-index:99999;background:#111827;color:#fff;
+          padding:10px 14px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.3);
+          font-weight:700;min-width:240px;text-align:center
+        `;
+        const label = document.createElement('div'); label.id = 'p_lbl'; label.style.marginBottom='6px';
+        const barWrap = document.createElement('div'); barWrap.style.cssText='height:6px;background:#374151;border-radius:9999px;overflow:hidden';
+        const bar = document.createElement('div'); bar.id='p_bar'; bar.style.cssText='height:100%;width:0%;background:#22c55e;transition:width .15s linear';
+        barWrap.appendChild(bar); _progEl.append(label, barWrap); document.body.appendChild(_progEl);
+      }
+      _progEl.querySelector('#p_lbl').textContent = text;
+      _progEl.querySelector('#p_bar').style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    }
+    function updateProgress(text, pct){ if (_progEl) showProgress(text, pct); }
+    function hideProgress(){ if (_progEl){ _progEl.remove(); _progEl = null; } }
+
+    // 8. APP CORE (Studio Logic)
+    const Studio = (() => {
+      let mainSrc = null, cutoutURL = null, bgSrc = null, busy = false;
+
+      function setBusy(b){
+        busy = b;
+        btnRemove.disabled = b || !mainSrc;
+        btnChange.disabled = b || !cutoutURL;
+        btnBrush.disabled  = b || (!mainSrc && !cutoutURL);
+      }
+      function updateButtons(){
+        btnRemove.disabled = busy || !mainSrc;
+        btnChange.disabled = busy || !cutoutURL;
+        btnBrush.disabled  = busy || (!mainSrc && !cutoutURL);
+      }
+
+      async function downscaleToMax(dataUrl, maxSide = 1400){
+        const img = await loadImage(dataUrl);
+        const max = Math.max(img.width, img.height);
+        if (max <= maxSide) return img;
+        const ratio = maxSide / max, w = Math.round(img.width * ratio), h = Math.round(img.height * ratio);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const cx = c.getContext('2d'); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+        cx.drawImage(img, 0, 0, w, h);
+        const out = new Image(); out.src = c.toDataURL('image/png', 0.92);
+        await (out.decode ? out.decode() : new Promise(r => out.onload = r));
+        return out;
+      }
+
+      async function draw({img, bg=null}){
+        ctx.clearRect(0,0,stage.width,stage.height);
+        if (bg){
+          const b = await loadImage(bg);
+          const s = Math.max(stage.width/b.width, stage.height/b.height);
+          const bw=b.width*s, bh=b.height*s;
+          ctx.drawImage(b,(stage.width-bw)/2,(stage.height-bh)/2,bw,bh);
+        } else { 
+          drawChecker(); 
+        }
+        const im = await loadImage(img);
+        const sc = Math.min(stage.width/im.width, stage.height/im.height);
+        const w = im.width*sc, h = im.height*sc;
+        ctx.drawImage(im,(stage.width-w)/2,(stage.height-h)/2,w,h);
+        stampWatermark(); // Watermark check uses the global proEnabled flag
+      }
+      
+      function redraw() {
+        if (mainSrc) draw({ img: cutoutURL || mainSrc, bg: bgSrc });
+      }
+
+      async function onUploadMain(file){
+        mainSrc = await readFileURL(file);
+        if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL=null; }
+        await draw({img: mainSrc});
+        setStatus("Photo loaded — tap Remove Background or Remove Person.");
+        updateButtons();
+        document.getElementById('btnBrush').disabled = false;
+      }
+
+      async function onUploadBg(file){
+        bgSrc = await readFileURL(file);
+        if (cutoutURL){ 
+          await draw({img: cutoutURL, bg: bgSrc}); 
+          setStatus("Background selected."); 
+        }
+      }
+
+      async function ensureHdAllowed(){
+        // Simple client-side check is good enough for a client-side app
+        // You can keep the functions check if you require a server-side gate
+        return proEnabled; 
+      }
+
+      async function removeBg(){
+        if(!mainSrc) return alert("Upload a photo first.");
+        setBusy(true);
+        try{
+          setStatus("Removing background… (on your device)");
+          const safeImg = await downscaleToMax(mainSrc, 1400);
+          let blob;
+          try {
+            blob = await removeBackground(safeImg, { model:"u2net", output:"image/png" });
+          } catch {
+            const maskC = await maskWithSelfie(safeImg);
+            const out = document.createElement('canvas'); 
+            out.width  = safeImg.width; 
+            out.height = safeImg.height;
+            const ox = out.getContext('2d'); 
+            ox.drawImage(safeImg,0,0);
+            ox.globalCompositeOperation='destination-in'; 
+            ox.drawImage(maskC,0,0);
+            blob = await new Promise(r => out.toBlob(r,'image/png',0.95));
+          }
+          if (cutoutURL) URL.revokeObjectURL(cutoutURL);
+          cutoutURL = URL.createObjectURL(blob);
+          await draw({img: cutoutURL, bg: bgSrc});
+          setStatus("Background removed. Choose a background, then press Change Background.");
+        }catch(e){
+          console.error(e); 
+          alert("Remove BG failed. Try a smaller image.");
+          setStatus("Remove BG failed.");
+        }finally{ 
+          setBusy(false); 
+          updateButtons(); 
+        }
+      }
+
+      async function changeBg(){
+        if(!cutoutURL){ 
+          alert("Remove background first."); 
+          return; 
+        }
+        if(!bgSrc){ 
+          document.getElementById('bgInput').click(); 
+          return; 
+        }
+        setBusy(true);
+        try{ 
+          await draw({img: cutoutURL, bg: bgSrc}); 
+          setStatus("Background changed. You can download now."); 
+        }
+        finally{ 
+          setBusy(false); 
+          updateButtons(); 
+        }
+      }
+
+      async function download(type="png", hd=false){
+        if(hd){
+          const allowed = await ensureHdAllowed();
+          if(!allowed){ 
+            alert("HD download requires an active Trial or Pro."); 
+            return; 
+          }
+        }
+        const mime = type==="jpeg" ? "image/jpeg" : "image/png";
+        stage.toBlob(async (b)=>{
+          if(!b) return;
+          const filename = `photo-studio.${type==="jpeg"?"jpg":"png"}`;
+          const url = URL.createObjectURL(b);
+          const a   = document.createElement('a'); 
+          a.href = url; 
+          a.download = filename; 
+          a.click(); 
+          URL.revokeObjectURL(url);
+          // Auto-save logic triggers here
+          saveToGalleryIfSignedIn(b, type);
+        }, mime, .95);
+      }
+
+      // Inject HD+ button
+      let btnHDPlus = null;
+      (function injectHDPlusButton() {
+        const bar = document.querySelector('.toolbar');
+        if (!bar) return;
+        btnHDPlus = document.createElement('button');
+        btnHDPlus.id = 'btnHDPlus';
+        btnHDPlus.className = 'btn primary';
+        btnHDPlus.textContent = 'Apply Removal (HD+ Beta)';
+        btnHDPlus.style.display = 'none';
+        btnHDPlus.onclick = () => Studio.applyInpaintHDPlus();
+        bar.insertBefore(btnHDPlus, document.getElementById('btnCancel') || null);
+      })();
+
+      function startBrush(){
+        if (!mainSrc && !cutoutURL){ 
+          alert("Load an image first."); 
+          return; 
+        }
+        brushing = true;
+        maskCanvas.style.display = 'block';
+        btnApply.style.display   = btnCancel.style.display = 'inline-block';
+        if (btnHDPlus) btnHDPlus.style.display = 'inline-block';
+        mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+        mctx.lineCap = 'round'; mctx.lineJoin = 'round'; mctx.strokeStyle = 'rgba(255,0,0,0.95)'; mctx.lineWidth = brushSize;
+        setStatus("Paint over the person to remove, then choose Apply or HD+ (Beta).");
+      }
+      function cancelBrush(){
+        brushing = false; brushDown = false;
+        maskCanvas.style.display = 'none';
+        btnApply.style.display   = btnCancel.style.display = 'none';
+        if (btnHDPlus) btnHDPlus.style.display = 'none';
+        mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+        setStatus("Brush canceled.");
+      }
+
+      // ---- OpenCV HD inpaint (quality upgrade) ----
+      async function applyInpaint() {
+        try {
+          setBusy(true);
+          setStatus("Removing selected area…");
+          await ensureOpenCVReady();
+
+          const baseSrc = mainSrc || cutoutURL;
+          if (!baseSrc) { alert("Load an image first."); return; }
+
+          const img = await loadImage(baseSrc);
+          const stageW = stage.width, stageH = stage.height;
+          const scale = Math.min(stageW / img.width, stageH / img.height);
+          const drawW = Math.round(img.width * scale);
+          const drawH = Math.round(img.height * scale);
+          const drawX = Math.round((stageW - drawW) / 2);
+          const drawY = Math.round((stageH - drawH) / 2);
+
+          const maskImg = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+          let painted = 0; 
+          for (let i=0;i<maskImg.data.length;i+=4) 
+            if (maskImg.data[i+3] > 0) painted++;
+          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return; }
+
+          const MAX_SIDE = 2048;
+          const maxSide  = Math.max(img.width, img.height);
+          const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
+          const hdW = Math.max(1, Math.round(img.width * rHD));
+          const hdH = Math.max(1, Math.round(img.height * rHD));
+
+          const off = document.createElement('canvas'); 
+          off.width = hdW; off.height = hdH;
+          const oc  = off.getContext('2d', { willReadFrequently:true });
+          oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
+          oc.drawImage(img, 0, 0, hdW, hdH);
+
+          const maskHD = document.createElement('canvas'); 
+          maskHD.width = hdW; maskHD.height = hdH;
+          const mhd = maskHD.getContext('2d');
+          mhd.fillStyle = 'black'; mhd.fillRect(0,0,hdW,hdH);
+          mhd.drawImage(maskCanvas, drawX, drawY, drawW, drawH, 0, 0, hdW, hdH);
+          try {
+            mhd.globalCompositeOperation = 'source-in';
+            mhd.filter = 'blur(0.8px)'; mhd.drawImage(maskHD, 0, 0);
+            mhd.filter = 'none'; mhd.globalCompositeOperation = 'source-over';
+          } catch(_) {}
+
+          const srcHD_RGBA  = oc.getImageData(0, 0, hdW, hdH);
+          const maskHD_RGBA = mhd.getImageData(0, 0, hdW, hdH);
+
+          const src4 = cv.matFromImageData(srcHD_RGBA);
+          const src3 = new cv.Mat();
+          cv.cvtColor(src4, src3, cv.COLOR_RGBA2RGB);
+
+          const mask = new cv.Mat.zeros(hdH, hdW, cv.CV_8UC1);
+          for (let i = 0; i < maskHD_RGBA.data.length; i += 4) {
+            if (maskHD_RGBA.data[i+3] > 0) {
+              const id = i / 4, y = (id / hdW) | 0, x = id % hdW;
+              mask.ucharPtr(y, x)[0] = 255;
+            }
+          }
+          const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+          const maskDil = new cv.Mat();
+          cv.dilate(mask, maskDil, kernel, new cv.Point(-1,-1), 1);
+
+          const pass1 = new cv.Mat(), pass2 = new cv.Mat();
+          cv.inpaint(src3, maskDil, pass1, 3, cv.INPAINT_TELEA);
+          cv.inpaint(src3, maskDil, pass2, 6, cv.INPAINT_TELEA);
+          const blended = new cv.Mat();
+          cv.addWeighted(pass1, 0.6, pass2, 0.4, 0.0, blended);
+
+          const out4  = new cv.Mat();
+          cv.cvtColor(blended, out4, cv.COLOR_RGB2RGBA);
+          const outImg = new ImageData(new Uint8ClampedArray(out4.data), hdW, hdH);
+          oc.putImageData(outImg, 0, 0);
+
+          ctx.clearRect(0,0,stageW,stageH);
+          drawChecker();
+          ctx.drawImage(off, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
+
+          src4.delete(); src3.delete(); mask.delete();
+          kernel.delete(); maskDil.delete(); pass1.delete(); pass2.delete();
+          blended.delete(); out4.delete();
+
+          cancelBrush(); stampWatermark(); setStatus("Person removed (HD).");
+        } catch (e) {
+          console.error('HD inpaint error:', e);
+          toast("Using basic fallback fill (OpenCV not available)");
+          await applyInpaintFallback();
+        } finally { setBusy(false); }
+      }
+
+      async function ensureOpenCVReady() {
+        if (window.cv && cv.Mat && !cv['isLoading']) return;
+        if (window.cv && cv['onRuntimeInitialized'] && !cv.Mat) {
+          await new Promise(res => { const prev = cv.onRuntimeInitialized; cv.onRuntimeInitialized = () => { prev && prev(); res(); }; });
+          return;
+        }
+        window.cv = { isLoading: true };
+        await new Promise((resolve, reject) => {
+          window.Module = window.Module || {};
+          window.Module['wasmBinaryFile'] = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv_js.wasm';
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv.js';
+          s.async = true; s.crossOrigin = 'anonymous';
+          s.onload = () => { cv.onRuntimeInitialized = () => { cv.isLoading = false; resolve(); }; };
+          s.onerror = () => reject(new Error('opencv-load-failed'));
+          document.head.appendChild(s);
+        });
+      }
+
+      // ---- HD+ (WebGPU/WASM via Transformers.js) ----
+      let _sdPipe = null;
+      async function ensureSDInpaintReady() {
+        if (_sdPipe) return;
+        if (!window.transformers) {
+          showProgress('Loading AI runtime…', 5);
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js';
+            s.async = true; s.crossOrigin = 'anonymous';
+            s.onload = res; s.onerror = () => rej(new Error('transformers-load-failed'));
+            document.head.appendChild(s);
+          });
+        }
+        const { pipeline, env } = window.transformers;
+        env.allowLocalModels = false; env.useBrowserCache = true;
+        if ('gpu' in navigator) { env.backends.onnx.wasm = undefined; env.backends.onnx.wasmNumThreads = 1; }
+
+        let lastPct = 10; 
+        showProgress('Downloading HD+ model…', lastPct);
+        _sdPipe = await pipeline('image-to-image', 'Xenova/stable-diffusion-inpainting', {
+          progress_callback: (evt) => {
+            if (evt.progress != null) {
+              lastPct = Math.max(lastPct, Math.round(evt.progress * 80) + 10);
+              updateProgress('Downloading HD+ model…', lastPct);
+            } else if (evt.status === 'ready') { updateProgress('Initializing model…', 95); }
+          }
+        });
+        updateProgress('HD+ model ready', 100); 
+        setTimeout(hideProgress, 400);
+      }
+
+async function applyInpaintHDPlus() {
+    try {
+      setBusy(true); setStatus("HD+ (Beta): preparing…");
+      await ensureSDInpaintReady();
+      if (!_sdPipe) { return await applyInpaint(); }
+
+      const baseSrc = mainSrc || cutoutURL;
+      if (!baseSrc) { alert("Load an image first."); return; }
+
+      const img = await loadImage(baseSrc);
+      const stageW = stage.width, stageH = stage.height;
+      const scale = Math.min(stageW / img.width, stageH / img.height);
+      const drawW = Math.round(img.width * scale);
+      const drawH = Math.round(img.height * scale);
+      const drawX = Math.round((stageW - drawW) / 2);
+      const drawY = Math.round((stageH - drawH) / 2);
+
+      const maskImg = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      let painted = 0; for (let i=0;i<maskImg.data.length;i+=4) if (maskImg.data[i+3]>0) painted++;
+      if (painted < 50) { alert("Paint over the person, then Apply HD+ again."); return; }
+
+      const MAX_SIDE = 2048;
+      const maxSide  = Math.max(img.width, img.height);
+      const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
+      const hdW = Math.max(1, Math.round(img.width * rHD));
+      const hdH = Math.max(1, Math.round(img.height * rHD));
+
+      const off = document.createElement('canvas'); off.width = hdW; off.height = hdH;
+      const oc  = off.getContext('2d', { willReadFrequently:true });
+      oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
+      oc.drawImage(img, 0, 0, hdW, hdH);
+
+      const maskHD = document.createElement('canvas'); maskHD.width = hdW; maskHD.height = hdH;
+      const mhd = maskHD.getContext('2d');
+      mhd.fillStyle = 'black'; mhd.fillRect(0,0,hdW,hdH);
+      mhd.drawImage(maskCanvas, drawX, drawY, drawW, drawH, 0, 0, hdW, hdH);
+      try {
+        mhd.globalCompositeOperation = 'source-in';
+        mhd.filter = 'blur(0.8px)'; mhd.drawImage(maskHD, 0, 0);
+        mhd.filter = 'none'; mhd.globalCompositeOperation = 'source-over';
+      } catch(_) {}
+
+      const inputImage = await createImageBitmap(off);
+      const maskImage  = await createImageBitmap(maskHD);
+
+      let pct = 0; showProgress('HD+ inpainting…', pct);
+      const result = await _sdPipe(inputImage, {
+        mask_image: maskImage,
+        prompt: "clean natural background, realistic textures, seamless fill, high quality, photography",
+        negative_prompt: "distortion, blur, artifacts, deformed, extra people, text",
+        strength: 1.0, guidance_scale: 7.5, num_inference_steps: 20,
+        progress_callback: (evt) => { if (evt.progress != null) { pct = Math.round(100 * evt.progress); updateProgress('HD+ inpainting…', pct); } }
+      });
+
+      updateProgress('Finalizing…', 100); setTimeout(hideProgress, 400);
+
+      ctx.clearRect(0,0,stageW,stageH); drawChecker();
+      let outBitmap = result?.imageBitmap || (result?.images && result.images[0]) || null;
+      if (!outBitmap && result?.toDataURL) {
+        const tmp = new Image(); tmp.src = result.toDataURL();
+        await (tmp.decode ? tmp.decode() : new Promise(r => tmp.onload = r));
+        outBitmap = tmp;
+      }
+      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaint(); }
+      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
+
+      cancelBrush(); stampWatermark(); setStatus("Person removed (HD+).");
+    } catch (e) {
+      console.error('HD+ inpaint error:', e);
+      hideProgress();
+      try { await applyInpaint(); } catch(_) {
+        alert("HD+ removal failed. Try the standard Apply Removal or paint a tighter area.");
+        setStatus("Removal failed.");
+      }
+    } finally { setBusy(false); }
+  }
+
+  function getPos(e){
+    const r = maskCanvas.getBoundingClientRect();
+    const x = ((e.touches? e.touches[0].clientX : e.clientX) - r.left) * (maskCanvas.width / r.width);
+    const y = ((e.touches? e.touches[0].clientY : e.clientY) - r.top) * (maskCanvas.height / r.height);
+    return {x,y};
+  }
+  
+  maskCanvas.addEventListener('mousedown', (e)=>{ if(!brushing) return; brushDown=true; const p=getPos(e); mctx.beginPath(); mctx.moveTo(p.x,p.y); });
+  maskCanvas.addEventListener('mousemove', (e)=>{ if(!brushing||!brushDown) return; const p=getPos(e); mctx.lineTo(p.x,p.y); mctx.stroke(); });
+  window.addEventListener('mouseup', ()=> brushDown=false);
+
+  maskCanvas.addEventListener('touchstart', (e)=>{ if(!brushing) return; brushDown=true; const p=getPos(e); mctx.beginPath(); mctx.moveTo(p.x,p.y); e.preventDefault(); });
+  maskCanvas.addEventListener('touchmove', (e)=>{ if(!brushing||!brushDown) return; const p=getPos(e); mctx.lineTo(p.x,p.y); mctx.stroke(); e.preventDefault(); });
+  window.addEventListener('touchend', ()=> brushDown=false);
+
+  function handleDrop(e){
+    e.preventDefault();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) onUploadMain(f);
+  }
+
+  return {
+    onUploadMain, onUploadBg, removeBg, changeBg,
+    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw
+  };
+})();
+
+// ✅ FINAL APP SETUP
+drawChecker();
+
+document.getElementById('mainInput').addEventListener('change', () => {
+  const brushBtn = document.getElementById('btnBrush');
+  if (brushBtn) brushBtn.disabled = false;
+});
+
+// ✅ REGISTERING THE CORRECT SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log("SW Registered"))
+      .catch(err => console.log("SW Error", err));
+  });
+}
+
+// ✅ Attach Save to Gallery Button
+document.getElementById('btnSaveGallery').addEventListener('click', () => {
+  stage.toBlob((blob) => {
+    if (!blob) return alert("No image to save.");
+
+    // Save to gallery (Firebase)
+    saveToGalleryIfSignedIn(blob, "jpeg");
+
+    // Also trigger device download (optional)
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "photo-studio.jpg";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, "image/jpeg", 0.95);
+});
+</script>
+</body>
+</html>

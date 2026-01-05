@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Account</title>
+  <style>
+    body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb;display:flex;justify-content:center;padding-top:50px;margin:0}
+    .card{background:white;padding:2rem;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);width:100%;max-width:400px;text-align:center}
+    .val{font-size:16px;color:#111827;font-weight:500;margin-bottom:15px;background:#f3f4f6;padding:10px;border-radius:6px}
+    .btn{display:block;width:100%;padding:12px;border:none;border-radius:6px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:10px;box-sizing:border-box}
+    .btn-primary{background:#4f46e5;color:white}
+    .btn-sec{background:#e5e7eb;color:#374151}
+    .btn-red{background:#fee2e2;color:#991b1b}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>My Profile</h1>
+  <div class="val" id="uEmail">Loading...</div>
+  <div class="val" id="uPlan">Checking Plan...</div>
+  
+  <a href="index.html" class="btn btn-primary">Back to Home</a>
+  <a href="settings.html" class="btn btn-sec">Settings</a>
+  <button id="btnSignOut" class="btn btn-red">Sign Out</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // ✅ YOUR API KEY IS RESTORED HERE
+  const firebaseConfig = {
+    apiKey: "AIzaSyDsBDuaZ_rl7ro63Fv5gPh37EwSkfh-NqM",
+    authDomain: "aiphotostudioapp.firebaseapp.com",
+    projectId: "aiphotostudioapp",
+    storageBucket: "aiphotostudioapp.appspot.com",
+    messagingSenderId: "1056724519182",
+    appId: "1:1056724519182:web:93410e1b71a292e531ef5f"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = "signin.html"; return; }
+    document.getElementById('uEmail').textContent = user.email;
+    const snap = await db.collection('users').doc(user.uid).get();
+    if(snap.exists && (snap.data().isPro || snap.data().tier === 'pro')) {
+       document.getElementById('uPlan').textContent = "✅ Pro Active";
+    } else {
+       document.getElementById('uPlan').textContent = "Free Tier";
+    }
+  });
+
+  document.getElementById('btnSignOut').onclick = () => {
+    auth.signOut().then(() => window.location.href = "signin.html");
+  };
+</script>
+</body>
+</html>

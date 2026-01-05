@@ -1,0 +1,50 @@
+{
+  "packageId": "uk.co.aiphotostudio.twa",
+  "host": "aiphotostudio.co.uk",
+  "name": "AI Photo Studio",
+  "launcherName": "Photo Studio",
+  "display": "standalone",
+  "themeColor": "#0B1120",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#0B1120",
+  "enableNotifications": true,
+  "startUrl": "/index.html",
+  "iconUrl": "https://aiphotostudio.co.uk/assets/icons/app-icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/Users/alexbryantmacm12020/Desktop/photo-static-main-3/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://aiphotostudio.co.uk/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://aiphotostudio.co.uk/",
+  "minSdkVersion": 21,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

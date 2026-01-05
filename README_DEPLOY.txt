@@ -1,0 +1,1 @@
+See README in chat instructions. Deploy with Vercel preset 'Other', empty build, output '.'.

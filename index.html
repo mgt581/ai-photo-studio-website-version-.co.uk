@@ -247,7 +247,8 @@ function drawChecker() {
 }
 
 function stampWatermark() {
-  // ✅ IMPORTANT: Uses window.proEnabled to catch Owner Mode & Subscriptions
+  // ✅ IMPORTANT: Uses window.proEnabled to skip watermark for Owner Mode, Free Trials & Paid Subscriptions
+  // Watermark only appears for free users (no subscription, no active trial)
   if (window.proEnabled) return;
 
   const text = "AI Photo Studio — FREE";
@@ -324,6 +325,8 @@ const loadImage = (src) => new Promise((res, rej) => {
     // 5. AUTH & STATE
     function updatePlanUI() {
       // Re-draw the canvas to apply/remove watermark based on window.proEnabled
+      // proEnabled is true for: owner mode, paid subscribers, and active trial users
+      // proEnabled is false for: free users (no subscription, no active trial)
       if (typeof Studio !== 'undefined' && Studio.redraw) {
         Studio.redraw();
       }
@@ -338,14 +341,14 @@ const loadImage = (src) => new Promise((res, rej) => {
     async function refreshUserPlan() {
       const user = auth.currentUser;
       
-      // 1. Not signed in
+      // 1. Not signed in → Free user → Show watermark
       if (!user) { 
         elTrialLeft.style.display = 'none'; 
         setPro(false); 
         return; 
       }
       
-      // 2. 👑 OWNER MODE BYPASS (Your Master Key)
+      // 2. 👑 OWNER MODE BYPASS (Your Master Key) → No watermark
       if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
         elTrialLeft.textContent = '👑 Owner Mode';
         elTrialLeft.style.display = 'inline-block';
@@ -353,7 +356,7 @@ const loadImage = (src) => new Promise((res, rej) => {
         return;
       }
 
-      // 3. Normal Subscription Check
+      // 3. Normal Subscription Check → No watermark for paid subscribers
       try {
         const snap = await db.collection('users').doc(user.uid).get();
         let isPro = false;
@@ -371,26 +374,26 @@ const loadImage = (src) => new Promise((res, rej) => {
         if (isPro) {
           elTrialLeft.textContent = 'Pro Active';
           elTrialLeft.style.display = 'inline-block';
-          setPro(true);
+          setPro(true); // Paid subscriber → No watermark
           return;
         }
         
-        // 4. Trial Check
+        // 4. Trial Check → No watermark for active trials, watermark for expired/no trial
         if (trialEndMillis) {
           const leftMs = trialEndMillis - Date.now();
           if (leftMs > 0) {
             const days = Math.ceil(leftMs / 86400000);
             elTrialLeft.textContent = `${days} day${days === 1 ? '' : 's'} left`;
             elTrialLeft.style.display = 'inline-block';
-            setPro(true);
+            setPro(true); // Active trial → No watermark
           } else {
             elTrialLeft.textContent = 'Trial ended';
             elTrialLeft.style.display = 'inline-block';
-            setPro(false);
+            setPro(false); // Expired trial → Show watermark (now free user)
           }
         } else {
           elTrialLeft.style.display = 'none';
-          setPro(false);
+          setPro(false); // No trial → Show watermark (free user)
         }
       } catch (e) {
         console.error("Plan check error:", e);

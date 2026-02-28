@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#4f46e5">
 
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
-  <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo-192.png?v=3">
+  <link rel="icon" type="image/png" href="/logo-192.png?v=3">
 
   <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/background-removal.min.js"></script>
 
@@ -26,10 +26,22 @@
     .muted{color:#6b7280;font-size:13px}
     
     /* Pricing Buttons */
-    .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
     .btn-price { padding: 8px 12px; border-radius: 99px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s; }
     .btn-price:active { transform: scale(0.97); }
-    
+
+    /* Upgrade Message */
+    #upgradeMsg {
+      background: #eef2ff;
+      color: #4f46e5;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+    }
+
     /* Layout */
     .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
     .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
@@ -66,11 +78,14 @@
 <body>
   <header>
     <div class="brand">
-      <img src="/apple-touch-icon.png?v=3" alt="Logo" width="28" height="28" class="brand-img" onerror="this.remove()">
+      <img src="/logo-192.png?v=3" alt="Logo" width="28" height="28" class="brand-img" onerror="this.remove()">
       <span class="brand-text">AI Photo Studio</span>
     </div>
 
     <div class="row">
+      <span id="upgradeMsg" onclick="window.scrollTo({top:0, behavior:'smooth'})">✨ Upgrade to remove watermark</span>
+      <span id="trialLeft" class="muted" style="display:none; background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px; font-weight:bold;"></span>
+
       <a href="gallery.html" class="ghost">Gallery</a>
       <a href="settings.html" class="ghost">Settings</a>
       
@@ -80,13 +95,15 @@
       <span id="authStatus" class="muted" style="display:none"></span>
       <button id="btnLogout" class="ghost" style="display:none; background:#fee2e2; color:#991b1b;">Sign out</button>
     </div>
+  </header>
 
-    <div class="pricing-row">
-       <button id="btnDaily" class="btn-price" style="background: #6b7280;">Day Pass £1</button>
-       <button id="btnMonthly" class="btn-price" style="background: #2563eb;">Monthly £4.99</button>
-       <button id="btnTrialStart" class="btn-price" style="background: #16a34a;">Start Free Trial (Yearly)</button>
+  <div class="pricing-row">
+     <button id="btnDaily" class="btn-price" style="background: #6b7280;">Day Pass £1</button>
+     <button id="btnMonthly" class="btn-price" style="background: #2563eb;">Monthly £4.99</button>
+     <button id="btnTrialStart" class="btn-price" style="background: #16a34a;">Start Free Trial (Yearly)</button>
+  </div>
        
-       <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
+  <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
     <div class="card">
       <p class="status" id="status">Upload a photo to begin.</p>
       <div class="actions">
@@ -117,14 +134,13 @@
       <canvas id="mask" width="960" height="600"></canvas>
     </div>
 
-     <div class="card actions">
-  <div class="toolbar">
-    <!-- ✅ One button to rule them all -->
-    <button class="btn" id="btnSaveGallery">Save to Gallery</button>
+    <div class="card actions">
+      <div class="toolbar">
+        <button class="btn" id="btnSaveGallery">Save to Gallery</button>
+      </div>
+      <p class="hint">When signed in, your downloaded images are also saved to your gallery and downloaded to your device.</p>
+    </div>
   </div>
-  <p class="hint">When signed in, your downloaded images are also saved to your gallery and downloaded to your device.</p>
-</div>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -137,7 +153,6 @@
       apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
       authDomain: "ai-photo-studio-24354.firebaseapp.com",
       projectId: "ai-photo-studio-24354",
-      // UPDATED TO CORRECT BUCKET NAME:
       storageBucket: "ai-photo-studio-24354.firebasestorage.app",
       messagingSenderId: "411346648650",
       appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
@@ -153,7 +168,7 @@
     // 2. PAYMENT LINKS
     const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
     const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
-    const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08"; // Trial/Yearly link
+    const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08";
     
     const btnDaily      = document.getElementById("btnDaily");
     const btnMonthly    = document.getElementById("btnMonthly");
@@ -161,18 +176,14 @@
 
     if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY;
     if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY;
-    // UPDATED: Now points to the yearly Stripe link as requested
     if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY;
 
-    // --- CHECK FOR PAYMENT RETURN (Simulates Backend) ---
-    // User must set Stripe redirect to: https://aiphotostudio.co.uk/?paid=true
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('paid') === 'true' || urlParams.get('payment') === 'success') {
         auth.onAuthStateChanged(user => {
           if (user) {
             activatePro('Paid Plan (Stripe)');
-            // Clean URL
             window.history.replaceState({}, document.title, "/");
           }
         });
@@ -247,8 +258,6 @@ function drawChecker() {
 }
 
 function stampWatermark() {
-  // ✅ IMPORTANT: Uses window.proEnabled to skip watermark for Owner Mode, Free Trials & Paid Subscriptions
-  // Watermark only appears for free users (no subscription, no active trial)
   if (window.proEnabled) return;
 
   const text = "AI Photo Studio — FREE";
@@ -260,7 +269,6 @@ function stampWatermark() {
   const y = stage.height / 2 + 12;
   const padX = 14, r = 10, bx = x - padX, by = y - 34, bw = w + padX * 2, bh = 44;
 
-  // Background Box
   ctx.fillStyle = "rgba(255,255,255,0.88)";
   ctx.beginPath();
   ctx.moveTo(bx + r, by); ctx.lineTo(bx + bw - r, by); ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
@@ -270,8 +278,7 @@ function stampWatermark() {
   ctx.closePath(); 
   ctx.fill();
 
-  // Text
-  ctx.fillStyle = "#111827"; 
+  ctx.fillStyle = "#111827";
   ctx.fillText(text, x, y); 
   ctx.restore();
 }
@@ -324,9 +331,6 @@ const loadImage = (src) => new Promise((res, rej) => {
 
     // 5. AUTH & STATE
     function updatePlanUI() {
-      // Re-draw the canvas to apply/remove watermark based on window.proEnabled
-      // proEnabled is true for: owner mode, paid subscribers, and active trial users
-      // proEnabled is false for: free users (no subscription, no active trial)
       if (typeof Studio !== 'undefined' && Studio.redraw) {
         Studio.redraw();
       }
@@ -335,28 +339,29 @@ const loadImage = (src) => new Promise((res, rej) => {
     function setPro(on) {
       window.proEnabled = !!on;
       updatePlanUI();
-      if (on) console.log("✅ Pro features active.");
     }
 
     async function refreshUserPlan() {
       const user = auth.currentUser;
-      
-      // 1. Not signed in → Free user → Show watermark
+      const elUpgrade = document.getElementById('upgradeMsg');
+
       if (!user) { 
-        elTrialLeft.style.display = 'none'; 
+        if (elTrialLeft) elTrialLeft.style.display = 'none';
+        if (elUpgrade) elUpgrade.style.display = 'inline-block';
         setPro(false); 
         return; 
       }
       
-      // 2. 👑 OWNER MODE BYPASS (Your Master Key) → No watermark
       if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
-        elTrialLeft.textContent = '👑 Owner Mode';
-        elTrialLeft.style.display = 'inline-block';
+        if (elTrialLeft) {
+          elTrialLeft.textContent = '👑 Owner Mode';
+          elTrialLeft.style.display = 'inline-block';
+        }
+        if (elUpgrade) elUpgrade.style.display = 'none';
         setPro(true); 
         return;
       }
 
-      // 3. Normal Subscription Check → No watermark for paid subscribers
       try {
         const snap = await db.collection('users').doc(user.uid).get();
         let isPro = false;
@@ -372,36 +377,45 @@ const loadImage = (src) => new Promise((res, rej) => {
         }
         
         if (isPro) {
-          elTrialLeft.textContent = 'Pro Active';
-          elTrialLeft.style.display = 'inline-block';
-          setPro(true); // Paid subscriber → No watermark
+          if (elTrialLeft) {
+            elTrialLeft.textContent = 'Pro Active';
+            elTrialLeft.style.display = 'inline-block';
+          }
+          if (elUpgrade) elUpgrade.style.display = 'none';
+          setPro(true);
           return;
         }
         
-        // 4. Trial Check → No watermark for active trials, watermark for expired/no trial
         if (trialEndMillis) {
           const leftMs = trialEndMillis - Date.now();
           if (leftMs > 0) {
             const days = Math.ceil(leftMs / 86400000);
-            elTrialLeft.textContent = `${days} day${days === 1 ? '' : 's'} left`;
-            elTrialLeft.style.display = 'inline-block';
-            setPro(true); // Active trial → No watermark
+            if (elTrialLeft) {
+              elTrialLeft.textContent = `${days} day${days === 1 ? '' : 's'} left`;
+              elTrialLeft.style.display = 'inline-block';
+            }
+            if (elUpgrade) elUpgrade.style.display = 'none';
+            setPro(true);
           } else {
-            elTrialLeft.textContent = 'Trial ended';
-            elTrialLeft.style.display = 'inline-block';
-            setPro(false); // Expired trial → Show watermark (now free user)
+            if (elTrialLeft) {
+              elTrialLeft.textContent = 'Trial ended';
+              elTrialLeft.style.display = 'inline-block';
+            }
+            if (elUpgrade) elUpgrade.style.display = 'inline-block';
+            setPro(false);
           }
         } else {
-          elTrialLeft.style.display = 'none';
-          setPro(false); // No trial → Show watermark (free user)
+          if (elTrialLeft) elTrialLeft.style.display = 'none';
+          if (elUpgrade) elUpgrade.style.display = 'inline-block';
+          setPro(false);
         }
       } catch (e) {
         console.error("Plan check error:", e);
+        if (elUpgrade) elUpgrade.style.display = 'inline-block';
         setPro(false);
       }
     }
 
-    // Main Auth Listener
     auth.onAuthStateChanged(async user => {
       if (!user) {
         elStatus.style.display = 'none';
@@ -412,7 +426,6 @@ const loadImage = (src) => new Promise((res, rej) => {
         return;
       }
 
-      // UI Setup for Logged In User
       const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
       elStatus.style.display = 'inline-block';
       elStatus.textContent = `Signed in as ${who}`;
@@ -420,7 +433,6 @@ const loadImage = (src) => new Promise((res, rej) => {
       if(navSignIn) navSignIn.style.display = 'none';
       if(navSignUp) navSignUp.style.display = 'none';
 
-      // Run the detailed plan/owner check
       await refreshUserPlan();
     });
 
@@ -518,7 +530,7 @@ const loadImage = (src) => new Promise((res, rej) => {
         const sc = Math.min(stage.width/im.width, stage.height/im.height);
         const w = im.width*sc, h = im.height*sc;
         ctx.drawImage(im,(stage.width-w)/2,(stage.height-h)/2,w,h);
-        stampWatermark(); // Watermark check uses the global proEnabled flag
+        stampWatermark();
       }
       
       function redraw() {
@@ -543,9 +555,7 @@ const loadImage = (src) => new Promise((res, rej) => {
       }
 
       async function ensureHdAllowed(){
-        // Simple client-side check is good enough for a client-side app
-        // You can keep the functions check if you require a server-side gate
-        return proEnabled; 
+        return proEnabled;
       }
 
       async function removeBg(){
@@ -620,12 +630,10 @@ const loadImage = (src) => new Promise((res, rej) => {
           a.download = filename; 
           a.click(); 
           URL.revokeObjectURL(url);
-          // Auto-save logic triggers here
           saveToGalleryIfSignedIn(b, type);
         }, mime, .95);
       }
 
-      // Inject HD+ button
       let btnHDPlus = null;
       (function injectHDPlusButton() {
         const bar = document.querySelector('.toolbar');
@@ -661,7 +669,6 @@ const loadImage = (src) => new Promise((res, rej) => {
         setStatus("Brush canceled.");
       }
 
-      // ---- OpenCV HD inpaint (quality upgrade) ----
       async function applyInpaint() {
         try {
           setBusy(true);
@@ -748,8 +755,7 @@ const loadImage = (src) => new Promise((res, rej) => {
           cancelBrush(); stampWatermark(); setStatus("Person removed (HD).");
         } catch (e) {
           console.error('HD inpaint error:', e);
-          toast("Using basic fallback fill (OpenCV not available)");
-          await applyInpaintFallback();
+          toast("Removal failed.");
         } finally { setBusy(false); }
       }
 
@@ -772,7 +778,6 @@ const loadImage = (src) => new Promise((res, rej) => {
         });
       }
 
-      // ---- HD+ (WebGPU/WASM via Transformers.js) ----
       let _sdPipe = null;
       async function ensureSDInpaintReady() {
         if (_sdPipe) return;
@@ -875,7 +880,7 @@ async function applyInpaintHDPlus() {
       console.error('HD+ inpaint error:', e);
       hideProgress();
       try { await applyInpaint(); } catch(_) {
-        alert("HD+ removal failed. Try the standard Apply Removal or paint a tighter area.");
+        alert("HD+ removal failed.");
         setStatus("Removal failed.");
       }
     } finally { setBusy(false); }
@@ -908,7 +913,6 @@ async function applyInpaintHDPlus() {
   };
 })();
 
-// ✅ FINAL APP SETUP
 drawChecker();
 
 document.getElementById('mainInput').addEventListener('change', () => {
@@ -916,7 +920,6 @@ document.getElementById('mainInput').addEventListener('change', () => {
   if (brushBtn) brushBtn.disabled = false;
 });
 
-// ✅ REGISTERING THE CORRECT SERVICE WORKER
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
@@ -925,15 +928,10 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ✅ Attach Save to Gallery Button
 document.getElementById('btnSaveGallery').addEventListener('click', () => {
   stage.toBlob((blob) => {
     if (!blob) return alert("No image to save.");
-
-    // Save to gallery (Firebase)
     saveToGalleryIfSignedIn(blob, "jpeg");
-
-    // Also trigger device download (optional)
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

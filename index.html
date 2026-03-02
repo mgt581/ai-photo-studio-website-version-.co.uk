@@ -6,16 +6,41 @@
   <title>AI Photo Studio</title>
   <meta name="theme-color" content="#4f46e5">
 
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="/logo-192.png?v=3">
-  <link rel="icon" type="image/png" href="/logo-192.png?v=3">
+  <!-- Force all relative links/resources to resolve to the production domain -->
+  <base href="https://aiphotostudio.co.uk/">
+
+  <link rel="manifest" href="https://aiphotostudio.co.uk/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
+  <link rel="icon" type="image/png" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
 
   <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/background-removal.min.js"></script>
+
+  <script>
+    // Detect Android *app* (WebView) environment and mark the page.
+    // Web visibility remains unchanged unless one of these app signals is present.
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+
+      // Allow explicit override from the Android app: https://aiphotostudio.co.uk/?app=1
+      const forcedApp = params.get('app') === '1';
+
+      // Common WebView signals (kept conservative to avoid hiding on normal Android browsers)
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile/i.test(ua);
+      const hasAndroidBridge = typeof window.Android !== 'undefined';
+
+      const isAndroidApp = forcedApp || (isAndroid && (isWv || hasAndroidBridge));
+      window.__AIPS_IS_ANDROID_APP__ = isAndroidApp;
+
+      if (isAndroidApp) document.documentElement.classList.add('android-app');
+    })();
+  </script>
 
   <style>
     :root{--grad:linear-gradient(90deg,#6366f1,#8b5cf6)}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f9fafb;color:#111827}
-    
+
     /* Header & Nav */
     header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #e5e7eb;background:#fff}
     .brand{display:flex;align-items:center;gap:10px}
@@ -24,7 +49,7 @@
     .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .ghost{background:#eef2ff;color:#4338ca;border:0;padding:8px 12px;border-radius:10px;font-weight:700;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px}
     .muted{color:#6b7280;font-size:13px}
-    
+
     /* Pricing Buttons */
     .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
     .btn-price { padding: 8px 12px; border-radius: 99px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s; }
@@ -42,17 +67,15 @@
       display: none;
     }
 
+    /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
+    html.android-app .pricing-row,
+    html.android-app #upgradeMsg {
+      display: none !important;
+    }
+
     /* Layout */
     .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
-    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
-    .btn{height:44px;padding:0 16px;border-radius:10px;border:0;cursor:pointer;font-size:15px;font-weight:700;background:#e5e7eb;color:#111827}
-    .btn.primary{background:var(--grad);color:#fff}
-    .btn.warn{background:#fee2e2;color:#991b1b}
-    .btn:disabled{opacity:.65;cursor:not-allowed}
-
-    /* BETA TAG STYLE */
-    .tag-beta {
-      background: #f59e0b; /* Orange */
+    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px
       color: white;
       font-size: 10px;
       padding: 2px 6px;

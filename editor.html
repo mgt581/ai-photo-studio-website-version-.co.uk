@@ -20,7 +20,7 @@
         <p id="activeToolLabel">Loading tool…</p>
     </header>
 
-    <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+    <button class="back-btn pill-btn" onclick="window.location.href='index.html'">← Back</button>
 
     <div class="upload-box" onclick="document.getElementById('imageInput').click()">
         <input type="file" id="imageInput" accept="image/*">
@@ -33,16 +33,16 @@
     </div>
 
     <div class="mode-switcher">
-        <button onclick="setMode('remove')">Remove Background</button>
-        <button onclick="setMode('change')">Change Background</button>
-        <button onclick="setMode('choose')">Choose Background</button>
-        <button onclick="setMode('eraser')">Magic Eraser</button>
-        <button onclick="setMode('person')">Remove Person</button>
+        <button class="pill-btn" onclick="setMode('remove')">Remove Background</button>
+        <button class="pill-btn" onclick="setMode('change')">Change Background</button>
+        <button class="pill-btn" onclick="setMode('choose')">Choose Background</button>
+        <button class="pill-btn" onclick="setMode('eraser')">Magic Eraser</button>
+        <button class="pill-btn" onclick="setMode('person')">Remove Person</button>
     </div>
 
     <div id="toolControls" class="tool-controls"></div>
 
-    <button class="download-btn" onclick="downloadFinalImage()">Download Image</button>
+    <button class="download-btn pill-btn" onclick="downloadFinalImage()">Download Image</button>
 
 </div>
 

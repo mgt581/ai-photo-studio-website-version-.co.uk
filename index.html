@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Photo Studio</title>
+  <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#4f46e5">
 
   <!-- Force all relative links/resources to resolve to the production domain -->
@@ -131,22 +132,22 @@
       <p class="status" id="status">Upload a photo to begin.</p>
       <div class="actions">
         <div class="toolbar">
-          <button class="btn primary" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
+          <button class="pill-btn" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
           
           <input id="mainInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadMain(this.files[0]); this.value=''" />
           
           <input id="bgInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadBg(this.files[0]); this.value=''" />
 
-          <button id="btnRemove" class="btn" disabled onclick="Studio.removeBg()">Remove Background</button>
-          <button id="btnChange" class="btn" disabled onclick="Studio.changeBg()">Change Background</button>
-          <button class="btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
+          <button id="btnRemove" class="pill-btn" disabled onclick="Studio.removeBg()">Remove Background</button>
+          <button id="btnChange" class="pill-btn" disabled onclick="Studio.changeBg()">Change Background</button>
+          <button class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
 
-          <button id="btnBrush" class="btn" disabled onclick="Studio.startBrush()">
+          <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">
             Remove Person <span class="tag-beta">Beta</span>
           </button>
 
-          <button id="btnApply" class="btn warn" style="display:none" onclick="Studio.applyInpaint()">Apply Removal</button>
-          <button id="btnCancel" class="btn" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
+          <button id="btnApply" class="pill-btn warn" style="display:none" onclick="Studio.applyInpaint()">Apply Removal</button>
+          <button id="btnCancel" class="pill-btn" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
         </div>
       </div>
     </div>

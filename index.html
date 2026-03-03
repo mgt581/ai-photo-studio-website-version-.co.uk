@@ -40,7 +40,7 @@
 
   <style>
     :root{--grad:linear-gradient(90deg,#6366f1,#8b5cf6)}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f9fafb;color:#111827}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f5f5f5;color:#111827}
 
     /* Header & Nav */
     header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #e5e7eb;background:#fff}
@@ -53,7 +53,8 @@
 
     /* Pricing Buttons */
     .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
-    .btn-price { padding: 8px 12px; border-radius: 99px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s; }
+    .btn-price { padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn-price:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
     .btn-price:active { transform: scale(0.97); }
 
     /* Upgrade Message */
@@ -76,17 +77,10 @@
 
     /* Layout */
     .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
-    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-left: 6px;
-      text-transform: uppercase;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      vertical-align: middle;
-    }
+    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    
+    /* Beta Tag */
+    .tag-beta{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;vertical-align:middle}
     
     /* Canvas */
     .stage{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative}
@@ -96,7 +90,12 @@
     .actions{display:grid;gap:12px}
     .hint{font-size:13px;color:#6b7280;text-align:center}
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:9999}
-    .toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+    .toolbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+    
+    /* Generic button style */
+    .btn{padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.35);transition:all 0.2s}
+    .btn:hover{background:linear-gradient(135deg,#4338ca,#4f46e5);box-shadow:0 6px 16px rgba(79,70,229,0.45)}
+    .btn:active{transform:scale(0.97)}
   </style>
 </head>
 <body>
@@ -122,9 +121,9 @@
   </header>
 
   <div class="pricing-row">
-     <button id="btnDaily" class="btn-price" style="background: #6b7280;">Day Pass £1</button>
-     <button id="btnMonthly" class="btn-price" style="background: #2563eb;">Monthly £4.99</button>
-     <button id="btnTrialStart" class="btn-price" style="background: #16a34a;">Start Free Trial (Yearly)</button>
+     <button id="btnDaily" class="btn-price" style="background: linear-gradient(135deg, #64748b, #788292); border-radius: 10px;">Day Pass £1</button>
+     <button id="btnMonthly" class="btn-price" style="background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 10px;">Monthly £4.99</button>
+     <button id="btnTrialStart" class="btn-price" style="background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 10px;">Start Free Trial (Yearly)</button>
   </div>
        
   <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">

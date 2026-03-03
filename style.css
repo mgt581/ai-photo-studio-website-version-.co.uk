@@ -1,24 +1,25 @@
-/* Shared CSS for pill-shaped action buttons */
+/* Shared CSS for squared pill-shaped action buttons */
 
 .pill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 20px;
+  padding: 10px 24px;
   border: none;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #63b3ed, #4299e1);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
   color: #ffffff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 4px 10px rgba(66, 153, 225, 0.3);
+  transition: all 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
   text-decoration: none;
 }
 
 .pill-btn:hover {
-  background: linear-gradient(90deg, #7cbcfb, #2b6cb0);
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45);
 }
 
 .pill-btn:active {
@@ -32,12 +33,56 @@
   box-shadow: none;
 }
 
+/* Secondary button - slate gray */
+.pill-btn-secondary {
+  background: linear-gradient(135deg, #64748b, #788292);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+}
+
+.pill-btn-secondary:hover {
+  background: linear-gradient(135deg, #475569, #64748b);
+  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.4);
+}
+
+/* Success button - green */
+.pill-btn-success {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+}
+
+.pill-btn-success:hover {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45);
+}
+
+/* Danger button - red */
+.pill-btn-danger {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.pill-btn-danger:hover {
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.45);
+}
+
+/* Warning button - amber/orange */
+.pill-btn-warning {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+.pill-btn-warning:hover {
+  background: linear-gradient(135deg, #b45309, #d97706);
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.45);
+}
+
 /* container helpers for grouping action buttons */
 .toolbar,
 .mode-switcher {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
 }
 

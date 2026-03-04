@@ -47,8 +47,12 @@ public class LauncherActivity
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
 
+        // Append ?platform=android to the URL to signal that we're in the Android app WebView
+        // This allows the web app to automatically disable watermarks for app users
+        String originalUrl = uri.toString();
+        String separator = originalUrl.contains("?") ? "&" : "?";
+        String newUrl = originalUrl + separator + "platform=android";
         
-
-        return uri;
+        return Uri.parse(newUrl);
     }
 }

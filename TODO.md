@@ -1,31 +1,18 @@
-# TODO: Hide Payment Buttons on Android App
+# TODO: Implement ?platform=android Watermark Bypass
 
 ## Task
-Hide payment/subscription buttons when using the Android app (WebView) while keeping them visible on the web version.
+Modify the web application so that the watermark is automatically disabled only when the site is opened inside the Android app WebView using `?platform=android` parameter.
 
-## Completed Steps
-- [x] Analyzed codebase and identified payment button locations
-- [x] Updated settings.html - Added Android app detection and hidden subscription button
-- [x] Payment buttons already hidden in index.html (pricing-row)
+## Steps Completed:
+- [x] 1. Analyze codebase and understand watermark implementation
+- [x] 2. Modify Android detection in index.html to support ?platform=android parameter
+- [x] 3. Test that watermark is disabled when ?platform=android is present
+- [x] 4. Verify normal browser users still see watermark
 
-## Summary
-The following changes were made:
-
-### settings.html
-- Added Android app detection JavaScript (same as index.html)
-- Added CSS to hide `.subscription-section` on Android app
-- Added `subscription-section` class to the subscription content div
-
-### How it works:
-1. The JavaScript detects Android WebView using:
-   - URL parameter `?app=1` (can be passed from Android app)
-   - UserAgent detection for Android + WebView
-   - `window.Android` bridge detection
-2. When detected, adds `android-app` class to `<html>` element
-3. CSS hides `.subscription-section` when this class is present
-
-### Files with payment buttons:
-- ✅ index.html (pricing-row) - Already handled
-- ✅ settings.html (Manage Subscription) - Now updated
-
+## Implementation Details:
+- Add detection for `?platform=android` parameter in the existing Android detection code
+- Use existing `window.__AIPS_IS_ANDROID_APP__` variable
+- This will automatically affect:
+  - `stampWatermark()` function (skip rendering)
+  - Download/export (canvas won't have watermark)
 

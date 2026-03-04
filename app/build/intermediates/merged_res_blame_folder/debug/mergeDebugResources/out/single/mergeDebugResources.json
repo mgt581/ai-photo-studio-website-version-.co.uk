@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "uk.co.aiphotostudio.twa.app-debug-29:/xml_filepaths.xml.flat",
+        "source": "uk.co.aiphotostudio.twa.app-main-31:/xml/filepaths.xml"
+    },
+    {
+        "merged": "uk.co.aiphotostudio.twa.app-debug-29:/xml_shortcuts.xml.flat",
+        "source": "uk.co.aiphotostudio.twa.app-main-31:/xml/shortcuts.xml"
+    },
+    {
+        "merged": "uk.co.aiphotostudio.twa.app-debug-29:/drawable-anydpi_shortcut_legacy_background.xml.flat",
+        "source": "uk.co.aiphotostudio.twa.app-main-31:/drawable-anydpi/shortcut_legacy_background.xml"
+    }
+]

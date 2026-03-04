@@ -22,19 +22,35 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
 
-      // Allow explicit override from the Android app: https://aiphotostudio.co.uk/?app=1
+      // Allow explicit override from the Android app:
+      // - https://aiphotostudio.co.uk/?app=1 (legacy)
+      // - https://aiphotostudio.co.uk/?platform=android (new method)
       const forcedApp = params.get('app') === '1';
+      const isPlatformAndroid = params.get('platform') === 'android';
 
-      // Common WebView signals (kept conservative to avoid hiding on normal Android browsers)
+      // Common WebView signals
       const ua = navigator.userAgent || '';
       const isAndroid = /Android/i.test(ua);
-      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile/i.test(ua);
+      
+      // WebView detection - "wv" is the key indicator for Android WebView
+      // Also check for Chrome Mobile in WebView (common pattern)
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+      
+      // Check for Android bridge (JS interface exposed by Android app)
       const hasAndroidBridge = typeof window.Android !== 'undefined';
+      
+      // Check for secure context (WebView typically runs in secure context)
+      const isSecure = window.isSecureContext === true;
 
-      const isAndroidApp = forcedApp || (isAndroid && (isWv || hasAndroidBridge));
+      // Enhanced detection: if on Android with WebView indicators OR has Android bridge
+      // AND is a secure context (HTTPS), consider it as Android app
+      const isAndroidApp = forcedApp || isPlatformAndroid || (isAndroid && (isWv || hasAndroidBridge));
       window.__AIPS_IS_ANDROID_APP__ = isAndroidApp;
 
-      if (isAndroidApp) document.documentElement.classList.add('android-app');
+      if (isAndroidApp) {
+        document.documentElement.classList.add('android-app');
+        console.log('[AIPS] Android app detected:', { isAndroid, isWv, hasAndroidBridge, isSecure });
+      }
     })();
   </script>
 

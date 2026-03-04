@@ -22,8 +22,9 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
 
-      // Allow explicit override from the Android app: https://aiphotostudio.co.uk/?app=1
-      const forcedApp = params.get('app') === '1';
+// Allow explicit override from the Android app
+// Supports BOTH: ?app=1 and your actual WebView flag ?platform=android
+const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
 
       // Common WebView signals (kept conservative to avoid hiding on normal Android browsers)
       const ua = navigator.userAgent || '';

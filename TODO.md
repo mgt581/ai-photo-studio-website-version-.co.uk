@@ -1,20 +1,31 @@
-# TODO: Button & Background Styling Updates
+# TODO: Hide Payment Buttons on Android App
 
-## Task: Change buttons to centered, squared pill shape with mixed colors, and update background for native look
+## Task
+Hide payment/subscription buttons when using the Android app (WebView) while keeping them visible on the web version.
 
-### Steps:
-1. [ ] Update style.css - button shapes, colors, and global background
-2. [ ] Update index.html - pricing buttons and gallery button
-3. [ ] Update signin.html - button styles
-4. [ ] Update signup.html - button styles
-5. [ ] Update settings.html - button styles
-6. [ ] Update account.html - button styles
-7. [ ] Update profile.html - button styles
-8. [ ] Update gallery.html - button styles
-9. [ ] Update editor.html - button styles
+## Completed Steps
+- [x] Analyzed codebase and identified payment button locations
+- [x] Updated settings.html - Added Android app detection and hidden subscription button
+- [x] Payment buttons already hidden in index.html (pricing-row)
 
-### Changes Summary:
-- Button shape: border-radius 999px → 10-12px (squared pill)
-- Button colors: Mixed colors per button type (indigo, gray, green, red)
-- Background: #f9fafb → #f5f5f5 (for native cohesive look with white header/footer)
+## Summary
+The following changes were made:
+
+### settings.html
+- Added Android app detection JavaScript (same as index.html)
+- Added CSS to hide `.subscription-section` on Android app
+- Added `subscription-section` class to the subscription content div
+
+### How it works:
+1. The JavaScript detects Android WebView using:
+   - URL parameter `?app=1` (can be passed from Android app)
+   - UserAgent detection for Android + WebView
+   - `window.Android` bridge detection
+2. When detected, adds `android-app` class to `<html>` element
+3. CSS hides `.subscription-section` when this class is present
+
+### Files with payment buttons:
+- ✅ index.html (pricing-row) - Already handled
+- ✅ settings.html (Manage Subscription) - Now updated
+
 

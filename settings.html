@@ -4,6 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings • AI Photo Studio</title>
+  
+  <script>
+    // Detect Android app (WebView) environment
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const forcedApp = params.get('app') === '1';
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile/i.test(ua);
+      const hasAndroidBridge = typeof window.Android !== 'undefined';
+      const isAndroidApp = forcedApp || (isAndroid && (isWv || hasAndroidBridge));
+      if (isAndroidApp) document.documentElement.classList.add('android-app');
+    })();
+  </script>
+
+  <style>
+    /* Hide subscription/payment section on Android app */
+    html.android-app .subscription-section {
+      display: none !important;
+    }
+  </style>
+  
   <style>
     /* Reset & Base */
     body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:#f5f5f5; display:flex; justify-content:center; padding: 20px; min-height: 100vh; }
@@ -118,7 +140,7 @@
         <span class="cat-title"><span class="cat-icon">💎</span> Subscription</span>
         <div class="chevron"></div>
       </div>
-      <div class="content">
+      <div class="content subscription-section">
         <div class="info-row">
           <span class="info-label">Current Plan</span>
           <span class="info-val" id="uPlanBadge">

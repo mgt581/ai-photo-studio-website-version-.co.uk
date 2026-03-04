@@ -281,6 +281,10 @@ function drawChecker() {
 }
 
 function stampWatermark() {
+  // Skip watermark for Android app users
+  if (window.__AIPS_IS_ANDROID_APP__) return;
+  
+  // Skip watermark for paid/pro users on web
   if (window.proEnabled) return;
 
   const text = "AI Photo Studio — FREE";

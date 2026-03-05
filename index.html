@@ -422,9 +422,15 @@ function drawChecker() {
   } 
 }
 
-function stampWatermark() {
+() function stampWatermark() {
 
-  // Android app version = never show watermark
+  if (window.__AIPS_IS_ANDROID_APP__) return;
+
+  if (window.proEnabled === true) return;
+
+  const text = "AI Photo Studio — FREE";
+
+  // Android app vfunction stampWatermarkersion = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
   // Paid web users = no watermark

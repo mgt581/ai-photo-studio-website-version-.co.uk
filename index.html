@@ -115,8 +115,8 @@
     .tag-beta{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;vertical-align:middle}
     
     /* Canvas */
-    .stage{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative}
-    canvas#stage{width:100%;height:auto;display:block;background:#f3f4f6}
+    .stage{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative;background-image:linear-gradient(45deg,#e5e7eb 25%,transparent 25%),linear-gradient(-45deg,#e5e7eb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e7eb 75%),linear-gradient(-45deg,transparent 75%,#e5e7eb 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:#fff}
+    canvas#stage{width:100%;height:auto;display:block;background:transparent}
     canvas#mask{position:absolute;left:0;top:0;width:100%;height:100%;display:none;cursor:crosshair}
     
     .actions{display:grid;gap:12px}
@@ -172,6 +172,7 @@
           <button id="btnRemove" class="pill-btn" disabled onclick="Studio.removeBg()">Remove Background</button>
           <button id="btnChange" class="pill-btn" disabled onclick="Studio.changeBg()">Change Background</button>
           <button class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
+          <button id="btnColorPicker" class="pill-btn" onclick="showColorPicker()">Background Color</button>
 
           <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">
             Remove Person <span class="tag-beta">Beta</span>
@@ -582,7 +583,7 @@ const loadImage = (src) => new Promise((res, rej) => {
 
     // 8. APP CORE (Studio Logic)
     const Studio = (() => {
-      let mainSrc = null, cutoutURL = null, bgSrc = null, busy = false;
+      let mainSrc = null, cutoutURL = null, bgSrc = null, bgColor = null, busy = false;
 
       function setBusy(b){
         busy = b;
@@ -616,9 +617,12 @@ const loadImage = (src) => new Promise((res, rej) => {
           const s = Math.max(stage.width/b.width, stage.height/b.height);
           const bw=b.width*s, bh=b.height*s;
           ctx.drawImage(b,(stage.width-bw)/2,(stage.height-bh)/2,bw,bh);
-        } else { 
-          drawChecker(); 
+        } else if (bgColor) {
+          // Use solid color background from bgColor
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, stage.width, stage.height);
         }
+        // If no bg and no bgColor, canvas stays transparent (checkerboard is CSS)
         const im = await loadImage(img);
         const sc = Math.min(stage.width/im.width, stage.height/im.height);
         const w = im.width*sc, h = im.height*sc;
@@ -628,6 +632,13 @@ const loadImage = (src) => new Promise((res, rej) => {
       
       function redraw() {
         if (mainSrc) draw({ img: cutoutURL || mainSrc, bg: bgSrc });
+      }
+
+      function setBgColor(color) {
+        bgColor = color;
+        if (cutoutURL || mainSrc) {
+          draw({ img: cutoutURL || mainSrc, bg: bgSrc });
+        }
       }
 
       async function onUploadMain(file){
@@ -838,7 +849,10 @@ const loadImage = (src) => new Promise((res, rej) => {
           oc.putImageData(outImg, 0, 0);
 
           ctx.clearRect(0,0,stageW,stageH);
-          drawChecker();
+          if (bgColor) {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, stageW, stageH);
+          }
           ctx.drawImage(off, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
 
           src4.delete(); src3.delete(); mask.delete();
@@ -958,7 +972,11 @@ async function applyInpaintHDPlus() {
 
       updateProgress('Finalizing…', 100); setTimeout(hideProgress, 400);
 
-      ctx.clearRect(0,0,stageW,stageH); drawChecker();
+      ctx.clearRect(0,0,stageW,stageH);
+      if (bgColor) {
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, stageW, stageH);
+      }
       let outBitmap = result?.imageBitmap || (result?.images && result.images[0]) || null;
       if (!outBitmap && result?.toDataURL) {
         const tmp = new Image(); tmp.src = result.toDataURL();
@@ -1002,11 +1020,12 @@ async function applyInpaintHDPlus() {
 
   return {
     onUploadMain, onUploadBg, removeBg, changeBg,
-    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw
+    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw,
+    setBgColor
   };
 })();
 
-drawChecker();
+// Initial draw - now uses CSS checkerboard, canvas stays transparent
 
 document.getElementById('mainInput').addEventListener('change', () => {
   const brushBtn = document.getElementById('btnBrush');
@@ -1033,6 +1052,65 @@ document.getElementById('btnSaveGallery').addEventListener('click', () => {
     URL.revokeObjectURL(url);
   }, "image/png", 0.95);
 });
+
+// Color picker for background color
+function showColorPicker() {
+  // Predefined colors
+  const colors = [
+    '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
+    '#FFA500', '#800080', '#FFC0CB', '#808080', '#A52A2A', '#00FFFF'
+  ];
+  
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:white;padding:24px;border-radius:16px;max-width:320px;width:90%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.3)';
+  
+  const title = document.createElement('h3');
+  title.textContent = 'Choose Background Color';
+  title.style.cssText = 'margin:0 0 16px 0;font-size:18px;color:#111827';
+  modal.appendChild(title);
+  
+  const colorGrid = document.createElement('div');
+  colorGrid.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px';
+  
+  colors.forEach(color => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `width:40px;height:40px;border-radius:50%;border:2px solid #ddd;background:${color};cursor:pointer`;
+    btn.onclick = () => {
+      Studio.setBgColor(color);
+      overlay.remove();
+    };
+    colorGrid.appendChild(btn);
+  });
+  modal.appendChild(colorGrid);
+  
+  // Transparent option
+  const transBtn = document.createElement('button');
+  transBtn.textContent = 'Transparent (No Background)';
+  transBtn.style.cssText = 'padding:10px 20px;border-radius:8px;border:2px solid #ddd;background:#f9fafb;cursor:pointer;font-weight:600;width:100%';
+  transBtn.onclick = () => {
+    Studio.setBgColor(null);
+    overlay.remove();
+  };
+  modal.appendChild(transBtn);
+  
+  // Close button
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Cancel';
+  closeBtn.style.cssText = 'margin-top:12px;padding:8px 16px;border:none;background:none;color:#6b7280;cursor:pointer;font-size:14px';
+  closeBtn.onclick = () => overlay.remove();
+  modal.appendChild(closeBtn);
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.remove();
+  };
+}
 </script>
 </body>
 </html>

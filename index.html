@@ -22,14 +22,8 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
 
-      // Allow explicit override from the Android app:
-      // - https://aiphotostudio.co.uk/?app=1 (legacy)
-      // - https://aiphotostudio.co.uk/?platform=android (new method)
-      const forcedApp = params.get('app') === '1';
+      const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
       const isPlatformAndroid = params.get('platform') === 'android';
-// Allow explicit override from the Android app
-// Supports BOTH: ?app=1 and your actual WebView flag ?platform=android
-const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
 
       // Common WebView signals
       const ua = navigator.userAgent || '';

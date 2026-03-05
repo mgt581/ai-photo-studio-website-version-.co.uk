@@ -16,14 +16,17 @@
 package uk.co.aiphotostudio.twa;
 
 
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
 
 public class Application extends android.app.Application {
-
-  
 
   @Override
   public void onCreate() {
       super.onCreate();
       
+      // Enable debugging for WebView to help with debugging
+      WebView.setWebContentsDebuggingEnabled(true);
   }
 }

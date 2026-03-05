@@ -19,18 +19,29 @@ import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.webkit.WebView;
+import android.webkit.JavascriptInterface;
 
 
-
-public class LauncherActivity
-        extends com.google.androidbrowserhelper.trusted.LauncherActivity {
+public class LauncherActivity extends com.google.androidbrowserhelper.trusted.LauncherActivity {
     
-
-    
+    // JavaScript interface to expose Android app detection to the web page
+    public class AndroidInterface {
+        @JavascriptInterface
+        public String getPlatform() {
+            return "android";
+        }
+        
+        @JavascriptInterface
+        public boolean isApp() {
+            return true;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
         // Setting an orientation crashes the app due to the transparent background on Android 8.0
         // Oreo and below. We only set the orientation on Oreo and above. This only affects the
         // splash screen and Chrome will still respect the orientation.
@@ -47,8 +58,24 @@ public class LauncherActivity
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
 
+        // Append ?platform=android to the URL to signal that we're in the Android app WebView
+        // This allows the web app to automatically disable watermarks for app users
+        String originalUrl = uri.toString();
+        String separator = originalUrl.contains("?") ? "&" : "?";
+        String newUrl = originalUrl + separator + "platform=android";
         
-
-        return uri;
+        return Uri.parse(newUrl);
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // Inject Android interface into the WebView for reliable detection
+        // This runs after the WebView is created
+        final WebView webView = findViewById(android.R.id.content);
+        if (webView != null) {
+            webView.addJavascriptInterface(new AndroidInterface(), "Android");
+        }
     }
 }

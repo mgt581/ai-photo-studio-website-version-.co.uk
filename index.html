@@ -22,20 +22,49 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
 
+      // Allow explicit override from the Android app:
+      // - https://aiphotostudio.co.uk/?app=1 (legacy)
+      // - https://aiphotostudio.co.uk/?platform=android (new method)
+      const forcedApp = params.get('app') === '1';
+      const isPlatformAndroid = params.get('platform') === 'android';
 // Allow explicit override from the Android app
 // Supports BOTH: ?app=1 and your actual WebView flag ?platform=android
 const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
 
-      // Common WebView signals (kept conservative to avoid hiding on normal Android browsers)
+      // Common WebView signals
       const ua = navigator.userAgent || '';
       const isAndroid = /Android/i.test(ua);
-      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile/i.test(ua);
+      
+      // WebView detection - "wv" is the key indicator for Android WebView
+      // Also check for Chrome Mobile in WebView (common pattern)
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+      
+      // Check for Android bridge (JS interface exposed by Android app)
+      // This is set by our Android app's JavaScript interface
       const hasAndroidBridge = typeof window.Android !== 'undefined';
+      
+      // Check if Android interface returns valid response
+      let androidInterfaceActive = false;
+      if (hasAndroidBridge) {
+        try {
+          androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true;
+        } catch (e) {
+          // Ignore errors from interface calls
+        }
+      }
+      
+      // Check for secure context (WebView typically runs in secure context)
+      const isSecure = window.isSecureContext === true;
 
-      const isAndroidApp = forcedApp || (isAndroid && (isWv || hasAndroidBridge));
+      // Enhanced detection: if on Android with WebView indicators OR has Android bridge
+      // OR has active Android interface OR explicit platform=android parameter
+      const isAndroidApp = forcedApp || isPlatformAndroid || androidInterfaceActive || (isAndroid && (isWv || hasAndroidBridge));
       window.__AIPS_IS_ANDROID_APP__ = isAndroidApp;
 
-      if (isAndroidApp) document.documentElement.classList.add('android-app');
+      if (isAndroidApp) {
+        document.documentElement.classList.add('android-app');
+        console.log('[AIPS] Android app detected:', { isPlatformAndroid, androidInterfaceActive, isAndroid, isWv, hasAndroidBridge, isSecure });
+      }
     })();
   </script>
 
@@ -93,6 +122,11 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
     /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
     html.android-app .pricing-row,
     html.android-app #upgradeMsg {
+      display: none !important;
+    }
+    
+    /* Also hide watermark on editor.html for Android app users */
+    html.android-app .watermark {
       display: none !important;
     }
 
@@ -283,35 +317,59 @@ function requireSignInOrRedirect(actionLabel) {
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('paid') === 'true' || urlParams.get('payment') === 'success') {
-        auth.onAuthStateChanged(user => {
-          if (user) {
-            activatePro('Paid Plan (Stripe)');
-            window.history.replaceState({}, document.title, "/");
+
+      if (urlParams.get("payment") === "success") {
+        const plan = (urlParams.get("plan") || "").toLowerCase();
+
+        auth.onAuthStateChanged(async (user) => {
+          if (!user) return;
+          if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
+            await activatePlan(plan, "Stripe");
+          } else {
+            toast("Payment success received, but plan missing.");
           }
+          window.history.replaceState({}, document.title, "/");
         });
       }
-      
+
       if (urlParams.get("payment") === "cancel") {
         toast("Payment cancelled");
         window.history.replaceState({}, document.title, "/");
       }
     };
 
-    async function activatePro(type) {
+    // PLAN CONFIGURATION
+    const PLANS = {
+      day: { name: "Day Pass", days: 1, label: "Day Pass - Valid today" },
+      month: { name: "Monthly Pro", days: 30, label: "Monthly Pro" },
+      trial7: { name: "7-Day Trial", days: 7, label: "7-Day Trial" },
+      year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
+    };
+
+    // Activate a specific plan
+    async function activatePlan(planKey, source) {
       const user = auth.currentUser;
-      if(!user) return;
+      if (!user) return;
+      
+      const plan = PLANS[planKey];
+      if (!plan) { console.error("Unknown plan:", planKey); return; }
+      
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
       
       const ref = db.collection('users').doc(user.uid);
       await ref.set({
         tier: 'pro',
-        planType: type,
-        activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        planType: plan.name,
+        subscription: { type: planKey, startedAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: expiresAt, source: source }
       }, { merge: true });
       
-      toast(`✅ Plan activated! Pro features unlocked.`);
+      toast(`✅ ${plan.name} activated! Pro features unlocked.`);
       await refreshUserPlan();
     }
+
+    // Backwards compatibility
+    async function activatePro(type) { await activatePlan('year', type); }
 
     // 3. APP VARIABLES & DOM
     const elStatus    = document.getElementById('authStatus');
@@ -361,6 +419,10 @@ function drawChecker() {
 }
 
 function stampWatermark() {
+  // Skip watermark for Android app users
+  if (window.__AIPS_IS_ANDROID_APP__) return;
+  
+  // Skip watermark for paid/pro users on web
 
   // If running inside the Android WebView app, skip watermark completely
   if (window.__AIPS_IS_ANDROID_APP__) return;
@@ -485,50 +547,60 @@ const loadImage = (src) => new Promise((res, rej) => {
       try {
         const snap = await db.collection('users').doc(user.uid).get();
         let isPro = false;
-        let trialEndMillis = null;
+        let expiresAtMillis = null;
+        let planKey = "free";
 
         if (snap.exists) {
           const d = snap.data() || {};
           isPro = !!d.isPro || d.tier === 'pro';
           
-          if (d.trial?.endsAt?.toMillis) {
-            trialEndMillis = d.trial.endsAt.toMillis();
+          // Check subscription.expiry for new format
+          if (d.subscription?.expiresAt?.toMillis) {
+            expiresAtMillis = d.subscription.expiresAt.toMillis();
+            planKey = d.subscription?.type || "pro";
+          }
+          // Fallback to old trial format
+          else if (d.trial?.endsAt?.toMillis) {
+            expiresAtMillis = d.trial.endsAt.toMillis();
+            planKey = "trial7";
           }
         }
         
+        const now = Date.now();
+        const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
+        const hasProTier = !!d.isPro || d.tier === "pro";
+        isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
+
         if (isPro) {
           if (elTrialLeft) {
-            elTrialLeft.textContent = 'Pro Active';
-            elTrialLeft.style.display = 'inline-block';
+            if (expiresAtMillis) {
+              const leftMs = expiresAtMillis - now;
+              const days = Math.ceil(leftMs / 86400000);
+              const hours = Math.ceil(leftMs / 3600000);
+              const label =
+                planKey === "day" ? "Day Pass" :
+                planKey === "month" ? "Monthly Pro" :
+                planKey === "trial7" ? "Trial" :
+                planKey === "year" ? "Yearly Pro" : "Pro";
+              
+              elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
+            } else {
+              elTrialLeft.textContent = "Pro Active";
+            }
+            elTrialLeft.style.display = "inline-block";
           }
-          if (elUpgrade) elUpgrade.style.display = 'none';
+          if (elUpgrade) elUpgrade.style.display = "none";
           setPro(true);
           return;
         }
         
-        if (trialEndMillis) {
-          const leftMs = trialEndMillis - Date.now();
-          if (leftMs > 0) {
-            const days = Math.ceil(leftMs / 86400000);
-            if (elTrialLeft) {
-              elTrialLeft.textContent = `${days} day${days === 1 ? '' : 's'} left`;
-              elTrialLeft.style.display = 'inline-block';
-            }
-            if (elUpgrade) elUpgrade.style.display = 'none';
-            setPro(true);
-          } else {
-            if (elTrialLeft) {
-              elTrialLeft.textContent = 'Trial ended';
-              elTrialLeft.style.display = 'inline-block';
-            }
-            if (elUpgrade) elUpgrade.style.display = 'inline-block';
-            setPro(false);
-          }
-        } else {
-          if (elTrialLeft) elTrialLeft.style.display = 'none';
-          if (elUpgrade) elUpgrade.style.display = 'inline-block';
-          setPro(false);
+        // Trial ended or no subscription
+        if (elTrialLeft) {
+          elTrialLeft.textContent = 'Trial ended';
+          elTrialLeft.style.display = 'inline-block';
         }
+        if (elUpgrade) elUpgrade.style.display = 'inline-block';
+        setPro(false);
       } catch (e) {
         console.error("Plan check error:", e);
         if (elUpgrade) elUpgrade.style.display = 'inline-block';

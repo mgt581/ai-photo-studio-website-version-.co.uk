@@ -249,25 +249,65 @@
     try {
       const snap = await db.collection('users').doc(user.uid).get();
       const badge = document.getElementById('uPlanBadge');
+      const trialRow = document.getElementById('trialRow');
       
-      // FORCE PRO BADGE ALWAYS
-      badge.innerHTML = '<span class="plan-badge">✅ Pro Plan Activated</span>';
-
       if (snap.exists) {
         const data = snap.data();
-        if (data.trial && data.trial.endsAt) {
-           document.getElementById('trialRow').style.display = 'flex';
-           const end = data.trial.endsAt.toDate();
-           const now = new Date();
-           if (end > now) {
-              const days = Math.ceil((end - now)/(1000*60*60*24));
-              document.getElementById('uTrial').textContent = `${days} Days Left`;
+        let isPro = false;
+        let expiresAtMillis = null;
+        let planType = "Free";
+        
+        // Check subscription for new format
+        if (data.subscription?.expiresAt?.toMillis) {
+          expiresAtMillis = data.subscription.expiresAt.toMillis();
+          const planKey = data.subscription?.type || "pro";
+          
+          planType = 
+            planKey === "day" ? "Day Pass" :
+            planKey === "month" ? "Monthly Pro" :
+            planKey === "trial7" ? "7-Day Trial" :
+            planKey === "year" ? "Yearly Pro" : "Pro";
+          
+          isPro = expiresAtMillis > Date.now();
+        }
+        // Fallback to old format
+        else if (data.tier === 'pro' || data.isPro) {
+          isPro = true;
+          planType = data.planType || "Pro";
+        }
+        
+        if (isPro) {
+          if (expiresAtMillis) {
+            const leftMs = expiresAtMillis - Date.now();
+            if (leftMs > 0) {
+              const days = Math.ceil(leftMs / 86400000);
+              const hours = Math.ceil(leftMs / 3600000);
+              const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
+              badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+              trialRow.style.display = 'flex';
+              document.getElementById('uTrial').textContent = timeLeft;
               document.getElementById('uTrial').style.color = '#16a34a';
-           } else {
+            } else {
+              badge.innerHTML = `<span class="plan-badge free">Trial Expired</span>`;
+              trialRow.style.display = 'flex';
               document.getElementById('uTrial').textContent = "Expired";
               document.getElementById('uTrial').style.color = '#991b1b';
-           }
+            }
+          } else {
+            badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+            trialRow.style.display = 'none';
+          }
+        } else {
+          badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
+          trialRow.style.display = 'flex';
+          document.getElementById('uTrial').textContent = "No active subscription";
+          document.getElementById('uTrial').style.color = '#6b7280';
         }
+      } else {
+        badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
+        trialRow.style.display = 'flex';
+        document.getElementById('uTrial').textContent = "No active subscription";
+        document.getElementById('uTrial').style.color = '#6b7280';
       }
     } catch (e) {
       console.error("Error loading user data:", e);

@@ -256,6 +256,9 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
 
+    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
     /* ===== ADDED: Stripe gating (must be signed in) ===== */
     function showPaySignInRequired() {
       const msg = document.getElementById("payMsg");

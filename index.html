@@ -423,18 +423,15 @@ function drawChecker() {
 }
 
 function stampWatermark() {
-  // Skip watermark for Android app users
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-  
-  // Skip watermark for paid/pro users on web
 
-  // If running inside the Android WebView app, skip watermark completely
+  // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
-  // If user is Pro, also skip watermark
-  if (window.proEnabled) return;
+  // Paid web users = no watermark
+  if (proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";
+
   ctx.save();
   ctx.font = "bold 34px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial";
 

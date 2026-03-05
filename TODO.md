@@ -1,38 +1,50 @@
-# TODO: Implement ?platform=android Watermark Bypass
+# Subscription Tracking System Implementation Plan
 
-## Task
-Modify the web application so that the watermark is automatically disabled only when the site is opened inside the Android app WebView using `?platform=android` parameter.
+## Information Gathered:
+- **Payment Links** (index.html):
+  - Day Pass (£1): `https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a`
+  - Monthly (£4.99): `https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09`
+  - Yearly Pro: `https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08`
 
-## Steps Completed:
-- [x] 1. Analyze codebase and understand watermark implementation
-- [x] 2. Modify Android detection in index.html to support ?platform=android parameter
-- [x] 3. Test that watermark is disabled when ?platform=android is present
-- [x] 4. Verify normal browser users still see watermark
+- **Current Flow**: When payment succeeds, URL returns `?paid=true` or `?payment=success`, then `activatePro(type)` is called
 
-## Implementation Details:
-- Add detection for `?platform=android` parameter in the existing Android detection code
-- Use existing `window.__AIPS_IS_ANDROID_APP__` variable
-- This will automatically affect:
-  - `stampWatermark()` function (skip rendering)
-  - Download/export (canvas won't have watermark)
+- **Existing Trial System**: Already has `trial.endsAt` field in Firestore and trial display logic
 
-## Latest Updates (Completed):
-- [x] Enhanced Android WebView detection in index.html with multiple detection methods:
-  - `?platform=android` URL parameter
-  - `?app=1` URL parameter (legacy)
-  - `window.Android.isApp()` JavaScript interface
-  - User-Agent pattern detection (wv, Chrome Mobile)
-- [x] Modified LauncherActivity.java to:
-  - Append `?platform=android` to launching URL
-  - Inject JavaScript interface `window.Android` with `isApp()` and `getPlatform()` methods
-- [x] Added CSS to hide watermark upgrade prompts on Android app
-- [x] Added WebView debugging enabled in Application.java
+- **Display Locations**:
+  - Header (index.html): `#trialLeft` element shows subscription status
+  - Settings (settings.html): `#uPlanBadge` and `#uTrial` elements
 
-## How It Works:
-1. When Android app launches, it appends `?platform=android` to the URL
-2. The Android app also injects a JavaScript interface `window.Android`
-3. The web app's detection code checks for these signals
-4. If detected, `window.__AIPS_IS_ANDROID_APP__` is set to `true`
-5. The `stampWatermark()` function skips watermark rendering for Android app users
-6. CSS hides upgrade prompts for Android app users
+## Plan:
+
+### 1. Update Firestore User Data Structure
+Add these fields to track subscriptions:
+- `subscription.type`: 'trial' | 'daypass' | 'monthly' | 'yearly'
+- `subscription.startedAt`: Timestamp when subscription started
+- `subscription.expiresAt`: Timestamp when subscription expires
+
+### 2. Update index.html
+- Modify `activatePro()` to accept subscription type and calculate expiry
+- Update `refreshUserPlan()` to display proper subscription status:
+  - "7 Day Trial - X days left" for trial
+  - "Day Pass - Valid until [date]" for day pass
+  - "Monthly Pro - Valid until [date]" for monthly
+  - "Yearly Pro - Valid until [date]" for yearly
+- Update header display (`#trialLeft`) with subscription info
+
+### 3. Update settings.html  
+- Update subscription display to show correct plan type and expiry
+- Show different badges for each plan type
+
+### 4. Stripe Success URL Handling
+- The current redirect URLs should pass the plan type
+- Update activation logic to handle different plan types properly
+
+## Files to Edit:
+1. `index.html` - Main payment handling and subscription display
+2. `settings.html` - Settings page subscription display
+
+## Follow-up Steps:
+1. Test the payment flow
+2. Verify Firestore data is saved correctly
+3. Test UI displays correct information for each plan type
 

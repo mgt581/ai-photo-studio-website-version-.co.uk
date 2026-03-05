@@ -512,18 +512,18 @@ const loadImage = (src) => new Promise((res, rej) => {
       return mc;
     }
 
-    // 5. AUTH & STATE
-    function updatePlanUI() {
-      if (typeof Studio !== 'undefined' && Studio.redraw) {
-        Studio.redraw();
-      }
-    }
+   // 5. AUTH & STATE
+function updatePlanUI() {
+  if (typeof Studio !== 'undefined' && Studio.redraw) {
+    Studio.redraw();
+  }
+}
 
-    function setPro(on) {
-      window.proEnabled = !!on;
-      updatePlanUI();
-    }
-
+function setPro(on) {
+  proEnabled = !!on;
+  window.proEnabled = proEnabled;
+  updatePlanUI();
+}
     async function refreshUserPlan() {
       const user = auth.currentUser;
       const elUpgrade = document.getElementById('upgradeMsg');

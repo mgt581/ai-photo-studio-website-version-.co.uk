@@ -9,12 +9,17 @@
     // Detect Android app (WebView) environment
     (function () {
       const params = new URLSearchParams(window.location.search);
+
+      // Detect Android app or forced flag
       const forcedApp = params.get('app') === '1';
+      const isPlatformAndroid = params.get('platform') === 'android';
+
       const ua = navigator.userAgent || '';
       const isAndroid = /Android/i.test(ua);
       const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile/i.test(ua);
       const hasAndroidBridge = typeof window.Android !== 'undefined';
-      const isAndroidApp = forcedApp || (isAndroid && (isWv || hasAndroidBridge));
+
+      const isAndroidApp = forcedApp || isPlatformAndroid || (isAndroid && (isWv || hasAndroidBridge));
       if (isAndroidApp) document.documentElement.classList.add('android-app');
     })();
   </script>

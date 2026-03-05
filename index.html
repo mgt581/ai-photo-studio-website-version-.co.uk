@@ -1024,14 +1024,14 @@ if ('serviceWorker' in navigator) {
 document.getElementById('btnSaveGallery').addEventListener('click', () => {
   stage.toBlob((blob) => {
     if (!blob) return alert("No image to save.");
-    saveToGalleryIfSignedIn(blob, "jpeg");
+    saveToGalleryIfSignedIn(blob, "png");
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "photo-studio.jpg";
+    a.download = "photo-studio.png";
     a.click();
     URL.revokeObjectURL(url);
-  }, "image/jpeg", 0.95);
+  }, "image/png", 0.95);
 });
 </script>
 </body>

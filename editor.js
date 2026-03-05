@@ -129,6 +129,9 @@ function setMode(mode) {
 function showChooseBackgroundControls(container) {
     // Use the BackgroundColorPicker module
     BackgroundColorPicker.createColorPicker(container, function(color) {
+        // Update the preview background to show checkerboard or solid color
+        updatePreviewBackground(color);
+        
         if (color === null) {
             console.log('Background set to transparent');
         } else {
@@ -145,6 +148,28 @@ function showChooseBackgroundControls(container) {
         updatePreview();
     };
     container.appendChild(applyBtn);
+}
+
+/**
+ * Update the preview background based on selected color
+ * @param {string|null} color - Selected color or null for transparent
+ */
+function updatePreviewBackground(color) {
+    const imagePreview = document.querySelector('.image-preview');
+    if (!imagePreview) return;
+    
+    // Remove existing background classes
+    imagePreview.classList.remove('transparent-bg', 'color-bg');
+    
+    if (color === null) {
+        // Show checkerboard for transparent
+        imagePreview.classList.add('transparent-bg');
+        imagePreview.style.backgroundColor = 'transparent';
+    } else {
+        // Show solid color background
+        imagePreview.classList.add('color-bg');
+        imagePreview.style.backgroundColor = color;
+    }
 }
 
 /**

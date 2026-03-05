@@ -422,19 +422,12 @@ function drawChecker() {
   } 
 }
 
-() function stampWatermark() {
-
+function stampWatermark() {
+  // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
+  // Paid web users + Owner Mode = no watermark
   if (window.proEnabled === true) return;
-
-  const text = "AI Photo Studio — FREE";
-
-  // Android app vfunction stampWatermarkersion = never show watermark
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-
-  // Paid web users = no watermark
-  if (proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";
 
@@ -520,14 +513,18 @@ const loadImage = (src) => new Promise((res, rej) => {
 
    // 5. AUTH & STATE
 function updatePlanUI() {
-  if (typeof Studio !== 'undefined' && Studio.redraw) {
-    Studio.redraw();
+  try {
+    // If Studio exists, redraw to remove/add watermark immediately
+    if (typeof Studio !== 'undefined' && Studio.redraw) {
+      Studio.redraw();
+    }
+  } catch (e) {
+    console.warn("updatePlanUI redraw skipped:", e);
   }
 }
 
 function setPro(on) {
-  proEnabled = !!on;
-  window.proEnabled = proEnabled;
+  window.proEnabled = !!on;
   updatePlanUI();
 }
     async function refreshUserPlan() {
@@ -768,7 +765,7 @@ function setPro(on) {
       }
 
       async function ensureHdAllowed(){
-        return proEnabled;
+        return window.proEnabled === true;
       }
 
       async function removeBg(){

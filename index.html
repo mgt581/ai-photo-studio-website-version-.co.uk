@@ -27,6 +27,9 @@
       // - https://aiphotostudio.co.uk/?platform=android (new method)
       const forcedApp = params.get('app') === '1';
       const isPlatformAndroid = params.get('platform') === 'android';
+// Allow explicit override from the Android app
+// Supports BOTH: ?app=1 and your actual WebView flag ?platform=android
+const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
 
       // Common WebView signals
       const ua = navigator.userAgent || '';
@@ -96,6 +99,26 @@
       display: none;
     }
 
+    /* ===== ADDED: Sign-in required message + disabled style for Stripe buttons ===== */
+    #payMsg {
+      display: none;
+      background: #fff3cd;
+      color: #664d03;
+      padding: 10px 14px;
+      margin: 12px 24px 0 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1px solid rgba(102, 77, 3, 0.15);
+    }
+    .pay-disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    /* =========================================================================== */
+
     /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
     html.android-app .pricing-row,
     html.android-app #upgradeMsg {
@@ -151,6 +174,10 @@
       <button id="btnLogout" class="ghost" style="display:none; background:#fee2e2; color:#991b1b;">Sign out</button>
     </div>
   </header>
+
+  <!-- ===== ADDED: Message shown when user taps Stripe buttons while signed out ===== -->
+  <div id="payMsg">Please sign in or create an account to start a Pro plan.</div>
+  <!-- =========================================================================== -->
 
   <div class="pricing-row">
      <button id="btnDaily" class="btn-price" style="background: linear-gradient(135deg, #64748b, #788292); border-radius: 10px;">Day Pass £1</button>
@@ -232,6 +259,64 @@
     if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
     if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
     if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    /* ===== ADDED: Stripe gating (must be signed in) ===== */
+    function showPaySignInRequired() {
+      const msg = document.getElementById("payMsg");
+      if (msg) msg.style.display = "block";
+      try {
+        // toast() is defined later in the file, so guard it
+        if (typeof window.toast === "function") window.toast("Please sign in to start a Pro plan.");
+      } catch (_) {}
+    }
+function requireSignInOrRedirect(actionLabel) {
+  const user = auth.currentUser;
+  if (user) return true;
+
+  toast(`🔒 Please sign in or create an account to ${actionLabel}.`);
+
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+
+  setTimeout(() => {
+    window.location.href = `signin.html?next=${next}`;
+  }, 700);
+
+  return false;
+}
+    
+    function hidePaySignInRequired() {
+      const msg = document.getElementById("payMsg");
+      if (msg) msg.style.display = "none";
+    }
+
+    function setPayButtonsEnabled(enabled) {
+      const ids = ["btnDaily", "btnMonthly", "btnTrialStart"];
+      ids.forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.disabled = !enabled;
+        b.classList.toggle("pay-disabled", !enabled);
+      });
+      if (enabled) hidePaySignInRequired();
+    }
+
+    function openStripe(url) {
+      const user = auth.currentUser;
+      if (!user) {
+        showPaySignInRequired();
+        return;
+      }
+      hidePaySignInRequired();
+      window.location.href = url;
+    }
+    /* ===================================================== */
+
+    // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
+    setPayButtonsEnabled(false);
+
+    // Hook up buttons (kept, but now gated)
+    if (btnDaily)   btnDaily.onclick   = () => openStripe(STRIPE_DAILY);
+    if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
+    if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -341,28 +426,45 @@ function stampWatermark() {
   if (window.__AIPS_IS_ANDROID_APP__) return;
   
   // Skip watermark for paid/pro users on web
+
+  // If running inside the Android WebView app, skip watermark completely
+  if (window.__AIPS_IS_ANDROID_APP__) return;
+
+  // If user is Pro, also skip watermark
   if (window.proEnabled) return;
 
   const text = "AI Photo Studio — FREE";
   ctx.save();
   ctx.font = "bold 34px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial";
-  
+
   const w = ctx.measureText(text).width;
   const x = (stage.width - w) / 2;
   const y = stage.height / 2 + 12;
-  const padX = 14, r = 10, bx = x - padX, by = y - 34, bw = w + padX * 2, bh = 44;
+
+  const padX = 14;
+  const r = 10;
+  const bx = x - padX;
+  const by = y - 34;
+  const bw = w + padX * 2;
+  const bh = 44;
 
   ctx.fillStyle = "rgba(255,255,255,0.88)";
   ctx.beginPath();
-  ctx.moveTo(bx + r, by); ctx.lineTo(bx + bw - r, by); ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
-  ctx.lineTo(bx + bw, by + bh - r); ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
-  ctx.lineTo(bx + r, by + bh); ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
-  ctx.lineTo(bx, by + r); ctx.quadraticCurveTo(bx, by, bx + r, by); 
-  ctx.closePath(); 
+  ctx.moveTo(bx + r, by);
+  ctx.lineTo(bx + bw - r, by);
+  ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+  ctx.lineTo(bx + bw, by + bh - r);
+  ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+  ctx.lineTo(bx + r, by + bh);
+  ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+  ctx.lineTo(bx, by + r);
+  ctx.quadraticCurveTo(bx, by, bx + r, by);
+  ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = "#111827";
-  ctx.fillText(text, x, y); 
+  ctx.fillText(text, x, y);
+
   ctx.restore();
 }
 
@@ -510,6 +612,10 @@ const loadImage = (src) => new Promise((res, rej) => {
     }
 
     auth.onAuthStateChanged(async user => {
+      /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
+      setPayButtonsEnabled(!!user);
+      /* ============================================================= */
+
       if (!user) {
         elStatus.style.display = 'none';
         btnLogout.style.display = 'none';

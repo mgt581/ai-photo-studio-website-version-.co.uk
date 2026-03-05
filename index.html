@@ -229,9 +229,9 @@
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
 
-    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY;
-    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY;
-    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY;
+    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);

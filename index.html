@@ -70,6 +70,26 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
       display: none;
     }
 
+    /* ===== ADDED: Sign-in required message + disabled style for Stripe buttons ===== */
+    #payMsg {
+      display: none;
+      background: #fff3cd;
+      color: #664d03;
+      padding: 10px 14px;
+      margin: 12px 24px 0 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1px solid rgba(102, 77, 3, 0.15);
+    }
+    .pay-disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    /* =========================================================================== */
+
     /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
     html.android-app .pricing-row,
     html.android-app #upgradeMsg {
@@ -120,6 +140,10 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
       <button id="btnLogout" class="ghost" style="display:none; background:#fee2e2; color:#991b1b;">Sign out</button>
     </div>
   </header>
+
+  <!-- ===== ADDED: Message shown when user taps Stripe buttons while signed out ===== -->
+  <div id="payMsg">Please sign in or create an account to start a Pro plan.</div>
+  <!-- =========================================================================== -->
 
   <div class="pricing-row">
      <button id="btnDaily" class="btn-price" style="background: linear-gradient(135deg, #64748b, #788292); border-radius: 10px;">Day Pass £1</button>
@@ -198,9 +222,50 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
 
-    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY;
-    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY;
-    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY;
+    /* ===== ADDED: Stripe gating (must be signed in) ===== */
+    function showPaySignInRequired() {
+      const msg = document.getElementById("payMsg");
+      if (msg) msg.style.display = "block";
+      try {
+        // toast() is defined later in the file, so guard it
+        if (typeof window.toast === "function") window.toast("Please sign in to start a Pro plan.");
+      } catch (_) {}
+    }
+
+    function hidePaySignInRequired() {
+      const msg = document.getElementById("payMsg");
+      if (msg) msg.style.display = "none";
+    }
+
+    function setPayButtonsEnabled(enabled) {
+      const ids = ["btnDaily", "btnMonthly", "btnTrialStart"];
+      ids.forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.disabled = !enabled;
+        b.classList.toggle("pay-disabled", !enabled);
+      });
+      if (enabled) hidePaySignInRequired();
+    }
+
+    function openStripe(url) {
+      const user = auth.currentUser;
+      if (!user) {
+        showPaySignInRequired();
+        return;
+      }
+      hidePaySignInRequired();
+      window.location.href = url;
+    }
+    /* ===================================================== */
+
+    // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
+    setPayButtonsEnabled(false);
+
+    // Hook up buttons (kept, but now gated)
+    if (btnDaily)   btnDaily.onclick   = () => openStripe(STRIPE_DAILY);
+    if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
+    if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -458,6 +523,10 @@ const loadImage = (src) => new Promise((res, rej) => {
     }
 
     auth.onAuthStateChanged(async user => {
+      /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
+      setPayButtonsEnabled(!!user);
+      /* ============================================================= */
+
       if (!user) {
         elStatus.style.display = 'none';
         btnLogout.style.display = 'none';

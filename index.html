@@ -231,7 +231,21 @@ const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'an
         if (typeof window.toast === "function") window.toast("Please sign in to start a Pro plan.");
       } catch (_) {}
     }
+function requireSignInOrRedirect(actionLabel) {
+  const user = auth.currentUser;
+  if (user) return true;
 
+  toast(`🔒 Please sign in or create an account to ${actionLabel}.`);
+
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+
+  setTimeout(() => {
+    window.location.href = `signin.html?next=${next}`;
+  }, 700);
+
+  return false;
+}
+    
     function hidePaySignInRequired() {
       const msg = document.getElementById("payMsg");
       if (msg) msg.style.display = "none";

@@ -637,13 +637,6 @@ auth.onAuthStateChanged(async user => {
   if(navSignUp) navSignUp.style.display = 'none';
 });
 
-      const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
-      elStatus.style.display = 'inline-block';
-      elStatus.textContent = `Signed in as ${who}`;
-      btnLogout.style.display = 'inline-block';
-      if(navSignIn) navSignIn.style.display = 'none';
-      if(navSignUp) navSignUp.style.display = 'none';
-
       await refreshUserPlan();
 
     if(btnLogout) btnLogout.onclick = () => auth.signOut();

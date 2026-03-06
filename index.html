@@ -554,90 +554,79 @@ function setPro(on) {
   window.proEnabled = !!on;
   updatePlanUI();
 }
-    async function refreshUserPlan() {
-      const user = auth.currentUser;
-      const elUpgrade = document.getElementById('upgradeMsg');
 
-      if (!user) { 
-        if (elTrialLeft) elTrialLeft.style.display = 'none';
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false); 
-        return; 
-      }
-      
-      if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
-        if (elTrialLeft) {
-          elTrialLeft.textContent = '👑 Owner Mode';
-          elTrialLeft.style.display = 'inline-block';
-        }
-        if (elUpgrade) elUpgrade.style.display = 'none';
-        setPro(true); 
-        return;
-      }
+async function refreshUserPlan() {
+  const user = auth.currentUser;
+  const elUpgrade = document.getElementById('upgradeMsg');
 
-      try {
-        const snap = await db.collection('users').doc(user.uid).get();
-        let isPro = false;
-        let expiresAtMillis = null;
-        let planKey = "free";
+  if (!user) {
+    if (elTrialLeft) elTrialLeft.style.display = 'none';
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false);
+    return;
+  }
 
-        if (snap.exists) {
-          const d = snap.data() || {};
-          isPro = !!d.isPro || d.tier === 'pro';
-          
-          // Check subscription.expiry for new format
-          if (d.subscription?.expiresAt?.toMillis) {
-            expiresAtMillis = d.subscription.expiresAt.toMillis();
-            planKey = d.subscription?.type || "pro";
-          }
-          // Fallback to old trial format
-          else if (d.trial?.endsAt?.toMillis) {
-            expiresAtMillis = d.trial.endsAt.toMillis();
-            planKey = "trial7";
-          }
-        }
-        
-        const now = Date.now();
-        const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
-        const hasProTier = !!d.isPro || d.tier === "pro";
-        isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
-
-        if (isPro) {
-          if (elTrialLeft) {
-            if (expiresAtMillis) {
-              const leftMs = expiresAtMillis - now;
-              const days = Math.ceil(leftMs / 86400000);
-              const hours = Math.ceil(leftMs / 3600000);
-              const label =
-                planKey === "day" ? "Day Pass" :
-                planKey === "month" ? "Monthly Pro" :
-                planKey === "trial7" ? "Trial" :
-                planKey === "year" ? "Yearly Pro" : "Pro";
-              
-              elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
-            } else {
-              elTrialLeft.textContent = "Pro Active";
-            }
-            elTrialLeft.style.display = "inline-block";
-          }
-          if (elUpgrade) elUpgrade.style.display = "none";
-          setPro(true);
-          return;
-        }
-        
-        // Trial ended or no subscription
-        if (elTrialLeft) {
-          elTrialLeft.textContent = 'Trial ended';
-          elTrialLeft.style.display = 'inline-block';
-        }
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false);
-      } catch (e) {
-        console.error("Plan check error:", e);
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false);
-      }
+  // Owner mode stays
+  if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
+    if (elTrialLeft) {
+      elTrialLeft.textContent = '👑 Owner Mode';
+      elTrialLeft.style.display = 'inline-block';
     }
+    if (elUpgrade) elUpgrade.style.display = 'none';
+    setPro(true);
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+    const data = await res.json();
+
+    if (data && data.premium === true) {
+      const now = Date.now();
+      const expiresAt = Number(data.expiresAt || 0);
+      const msLeft = Math.max(0, expiresAt - now);
+
+      let label = "Pro";
+      if (data.plan === "day") label = "Day Pass";
+      else if (data.plan === "month") label = "Monthly Pro";
+      else if (data.plan === "trial7") label = "7-Day Trial";
+      else if (data.plan === "year") label = "Yearly Pro";
+
+      if (elTrialLeft) {
+        if (expiresAt > now) {
+          const days = Math.ceil(msLeft / 86400000);
+          const hours = Math.ceil(msLeft / 3600000);
+          elTrialLeft.textContent = days > 0
+            ? `${label} • ${days}d left`
+            : `${label} • ${hours}h left`;
+        } else {
+          elTrialLeft.textContent = `${label} Active`;
+        }
+        elTrialLeft.style.display = 'inline-block';
+      }
+
+      if (elUpgrade) elUpgrade.style.display = 'none';
+      setPro(true);
+      return;
+    }
+
+    if (elTrialLeft) {
+      elTrialLeft.textContent = 'Free Plan';
+      elTrialLeft.style.display = 'inline-block';
+    }
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false);
+
+  } catch (e) {
+    console.error("Worker plan check error:", e);
+    if (elTrialLeft) {
+      elTrialLeft.textContent = 'Free Plan';
+      elTrialLeft.style.display = 'inline-block';
+    }
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false);
+  }
+}
 
     auth.onAuthStateChanged(async user => {
       /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */

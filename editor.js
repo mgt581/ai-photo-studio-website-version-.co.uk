@@ -180,100 +180,6 @@ function restoreTransparentSnapshot() {
         // ✅ This restores true alpha pixels (transparent background)
         editorCtx.putImageData(transparentSnapshot, 0, 0);
         updatePreview();
-/**
- * ✅ TRANSPARENCY / EXPORT SAFETY
- * The checkerboard must NEVER be baked into the exported PNG.
- * The checkerboard is UI-only (CSS). Export must use real alpha pixels.
- *
- * Problem this fixes:
- * - If user applies a solid background color, then switches back to "Transparent",
- *   your preview <img> (editorImage) may already be a flattened snapshot (no alpha),
- *   so "transparent" would still export with a baked background.
- *
- * Fix:
- * - Keep a snapshot of the canvas BEFORE any background color is applied
- *   (transparentSnapshot).
- * - When user selects Transparent, restore that snapshot.
- * - When exporting, always export from a fresh transparent offscreen canvas.
- */
-let transparentSnapshot = null;     // ImageData snapshot of the true transparent version
-let snapshotW = 0;
-let snapshotH = 0;
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEditor();
-});
-
-/**
- * Initialize the editor
- */
-function initializeEditor() {
-    const imageInput = document.getElementById('imageInput');
-    const editorImage = document.getElementById('editorImage');
-    
-    if (imageInput) {
-        imageInput.addEventListener('change', handleImageUpload);
-    }
-    
-    // Keep reference if present
-    if (editorImage) {
-        imageElement = editorImage;
-    }
-    
-    // Create hidden canvas for editing
-    createEditorCanvas();
-    
-    // Update active tool label
-    updateActiveToolLabel('Select a tool');
-}
-
-/**
- * Create a hidden canvas for image editing
- */
-function createEditorCanvas() {
-    editorCanvas = document.createElement('canvas');
-    editorCanvas.id = 'editorCanvas';
-    editorCanvas.style.display = 'none';
-    document.body.appendChild(editorCanvas);
-    
-    editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
-    
-    // Initialize the background color picker
-    // (imageElement may be null until upload; init() safely stores refs)
-    if (typeof BackgroundColorPicker !== 'undefined' && BackgroundColorPicker) {
-        BackgroundColorPicker.init(editorCanvas, imageElement);
-    }
-}
-
-/**
- * Capture a transparent snapshot of the current canvas state.
- * This becomes our "true transparent" baseline before applying solid backgrounds.
- */
-function captureTransparentSnapshot() {
-    if (!editorCanvas || !editorCtx) return;
-    try {
-        transparentSnapshot = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
-        snapshotW = editorCanvas.width;
-        snapshotH = editorCanvas.height;
-    } catch (e) {
-        console.warn('Could not capture transparent snapshot:', e);
-        transparentSnapshot = null;
-        snapshotW = snapshotH = 0;
-    }
-}
-
-/**
- * Restore the canvas from the previously captured transparent snapshot.
- */
-function restoreTransparentSnapshot() {
-    if (!editorCanvas || !editorCtx) return false;
-    if (!transparentSnapshot || snapshotW !== editorCanvas.width || snapshotH !== editorCanvas.height) return false;
-
-    try {
-        // ✅ This restores true alpha pixels (transparent background)
-        editorCtx.putImageData(transparentSnapshot, 0, 0);
-        updatePreview();
 
         // Re-init background picker so it points at the latest image
         const editorImage = document.getElementById('editorImage');
@@ -701,4 +607,6 @@ function updateActiveToolLabel(text) {
     if (label) {
         label.textContent = text;
     }
-}
+
+
+    

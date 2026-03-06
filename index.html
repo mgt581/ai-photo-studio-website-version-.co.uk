@@ -286,16 +286,50 @@ function requireSignInOrRedirect(actionLabel) {
       if (enabled) hidePaySignInRequired();
     }
 
-    function startCheckout(url) {
+    const CHECKOUT_ENDPOINT = "https://aiphotostudio.co.uk/create-checkout-session";
+
+    async function startCheckout(plan) {
       const user = auth.currentUser;
+
       if (!user) {
         showPaySignInRequired();
         return;
       }
+
       hidePaySignInRequired();
-      window.location.href = url;
+
+      try {
+        const idToken = await user.getIdToken();
+
+        const res = await fetch(CHECKOUT_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email || "",
+            plan: plan
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to create checkout session");
+        }
+
+        if (!data.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        window.location.href = data.url;
+      } catch (err) {
+        console.error("Checkout error:", err);
+        toast(err.message || "Could not start checkout.");
+      }
     }
-    /* ===================================================== */
 
     // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
     setPayButtonsEnabled(false);

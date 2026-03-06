@@ -420,7 +420,7 @@ function stampWatermark() {
   // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
-  // Paid web users + Owner Mode = no watermark
+  // Paid web users + owner mode = no watermark
   if (window.proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";

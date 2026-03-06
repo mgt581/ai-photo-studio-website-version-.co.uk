@@ -499,38 +499,69 @@ function enableEraserMode(brushSize) {
     const editorImage = document.getElementById('editorImage');
     if (!editorImage) return;
     
+    // Remove existing eraser listeners to prevent accumulation
+    disableEraserMode();
+    
     editorImage.style.cursor = 'crosshair';
     
     let isDrawing = false;
     
-    editorImage.addEventListener('mousedown', function(e) {
-        isDrawing = true;
-        erase(e, brushSize);
-    });
-    
-    editorImage.addEventListener('mousemove', function(e) {
-        if (isDrawing) {
+    // Store handlers for later removal
+    const handlers = {
+        mousedown: function(e) {
+            isDrawing = true;
             erase(e, brushSize);
+        },
+        mousemove: function(e) {
+            if (isDrawing) {
+                erase(e, brushSize);
+            }
+        },
+        mouseup: function() {
+            isDrawing = false;
+            // ✅ update snapshot after edits so transparency remains true
+            captureTransparentSnapshot();
+        },
+        mouseleave: function() {
+            isDrawing = false;
+            captureTransparentSnapshot();
         }
-    });
+    };
     
-    editorImage.addEventListener('mouseup', function() {
-        isDrawing = false;
-        // ✅ update snapshot after edits so transparency remains true
-        captureTransparentSnapshot();
-    });
+    // Attach handlers
+    editorImage.addEventListener('mousedown', handlers.mousedown);
+    editorImage.addEventListener('mousemove', handlers.mousemove);
+    editorImage.addEventListener('mouseup', handlers.mouseup);
+    editorImage.addEventListener('mouseleave', handlers.mouseleave);
     
-    editorImage.addEventListener('mouseleave', function() {
-        isDrawing = false;
-        captureTransparentSnapshot();
-    });
+    // Store reference for cleanup
+    editorImage._eraserHandlers = handlers;
+}
+
+/**
+ * Disable eraser mode and remove event listeners
+ */
+function disableEraserMode() {
+    const editorImage = document.getElementById('editorImage');
+    if (!editorImage || !editorImage._eraserHandlers) return;
+    
+    const handlers = editorImage._eraserHandlers;
+    editorImage.removeEventListener('mousedown', handlers.mousedown);
+    editorImage.removeEventListener('mousemove', handlers.mousemove);
+    editorImage.removeEventListener('mouseup', handlers.mouseup);
+    editorImage.removeEventListener('mouseleave', handlers.mouseleave);
+    
+    editorImage._eraserHandlers = null;
+    editorImage.style.cursor = 'default';
 }
 
 /**
  * Erase at position
  */
 function erase(event, brushSize) {
-    const rect = editorImage.getBoundingClientRect();
+    if (!imageElement) return;
+    
+    const rect = imageElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
@@ -607,6 +638,4 @@ function updateActiveToolLabel(text) {
     if (label) {
         label.textContent = text;
     }
-
-
-    
+}

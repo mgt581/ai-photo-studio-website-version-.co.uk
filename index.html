@@ -241,19 +241,11 @@
     const db        = firebase.firestore();
     const storage   = firebase.storage();
     const functions = firebase.functions ? firebase.functions() : null;
-
-    // 2. PAYMENT LINKS
-    const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
-    const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
-    const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08";
-    
     const btnDaily      = document.getElementById("btnDaily");
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
 
-    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    
     /* ===== ADDED: Stripe gating (must be signed in) ===== */
     function showPaySignInRequired() {
       const msg = document.getElementById("payMsg");
@@ -294,7 +286,7 @@ function requireSignInOrRedirect(actionLabel) {
       if (enabled) hidePaySignInRequired();
     }
 
-    function openStripe(url) {
+    function startCheckout(url) {
       const user = auth.currentUser;
       if (!user) {
         showPaySignInRequired();
@@ -309,10 +301,17 @@ function requireSignInOrRedirect(actionLabel) {
     setPayButtonsEnabled(false);
 
     // Hook up buttons (kept, but now gated)
-    if (btnDaily)   btnDaily.onclick   = () => openStripe(STRIPE_DAILY);
-    if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
-    if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
+    if (btnDaily) {
+  btnDaily.onclick = () => startCheckout("day");
+}
 
+if (btnMonthly) {
+  btnMonthly.onclick = () => startCheckout("month");
+}
+
+if (btnTrialStart) {
+  btnTrialStart.onclick = () => startCheckout("trial7");
+}
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
 

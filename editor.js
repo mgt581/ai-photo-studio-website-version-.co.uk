@@ -180,100 +180,6 @@ function restoreTransparentSnapshot() {
         // ✅ This restores true alpha pixels (transparent background)
         editorCtx.putImageData(transparentSnapshot, 0, 0);
         updatePreview();
-/**
- * ✅ TRANSPARENCY / EXPORT SAFETY
- * The checkerboard must NEVER be baked into the exported PNG.
- * The checkerboard is UI-only (CSS). Export must use real alpha pixels.
- *
- * Problem this fixes:
- * - If user applies a solid background color, then switches back to "Transparent",
- *   your preview <img> (editorImage) may already be a flattened snapshot (no alpha),
- *   so "transparent" would still export with a baked background.
- *
- * Fix:
- * - Keep a snapshot of the canvas BEFORE any background color is applied
- *   (transparentSnapshot).
- * - When user selects Transparent, restore that snapshot.
- * - When exporting, always export from a fresh transparent offscreen canvas.
- */
-let transparentSnapshot = null;     // ImageData snapshot of the true transparent version
-let snapshotW = 0;
-let snapshotH = 0;
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEditor();
-});
-
-/**
- * Initialize the editor
- */
-function initializeEditor() {
-    const imageInput = document.getElementById('imageInput');
-    const editorImage = document.getElementById('editorImage');
-    
-    if (imageInput) {
-        imageInput.addEventListener('change', handleImageUpload);
-    }
-    
-    // Keep reference if present
-    if (editorImage) {
-        imageElement = editorImage;
-    }
-    
-    // Create hidden canvas for editing
-    createEditorCanvas();
-    
-    // Update active tool label
-    updateActiveToolLabel('Select a tool');
-}
-
-/**
- * Create a hidden canvas for image editing
- */
-function createEditorCanvas() {
-    editorCanvas = document.createElement('canvas');
-    editorCanvas.id = 'editorCanvas';
-    editorCanvas.style.display = 'none';
-    document.body.appendChild(editorCanvas);
-    
-    editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
-    
-    // Initialize the background color picker
-    // (imageElement may be null until upload; init() safely stores refs)
-    if (typeof BackgroundColorPicker !== 'undefined' && BackgroundColorPicker) {
-        BackgroundColorPicker.init(editorCanvas, imageElement);
-    }
-}
-
-/**
- * Capture a transparent snapshot of the current canvas state.
- * This becomes our "true transparent" baseline before applying solid backgrounds.
- */
-function captureTransparentSnapshot() {
-    if (!editorCanvas || !editorCtx) return;
-    try {
-        transparentSnapshot = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
-        snapshotW = editorCanvas.width;
-        snapshotH = editorCanvas.height;
-    } catch (e) {
-        console.warn('Could not capture transparent snapshot:', e);
-        transparentSnapshot = null;
-        snapshotW = snapshotH = 0;
-    }
-}
-
-/**
- * Restore the canvas from the previously captured transparent snapshot.
- */
-function restoreTransparentSnapshot() {
-    if (!editorCanvas || !editorCtx) return false;
-    if (!transparentSnapshot || snapshotW !== editorCanvas.width || snapshotH !== editorCanvas.height) return false;
-
-    try {
-        // ✅ This restores true alpha pixels (transparent background)
-        editorCtx.putImageData(transparentSnapshot, 0, 0);
-        updatePreview();
 
         // Re-init background picker so it points at the latest image
         const editorImage = document.getElementById('editorImage');
@@ -593,38 +499,69 @@ function enableEraserMode(brushSize) {
     const editorImage = document.getElementById('editorImage');
     if (!editorImage) return;
     
+    // Remove existing eraser listeners to prevent accumulation
+    disableEraserMode();
+    
     editorImage.style.cursor = 'crosshair';
     
     let isDrawing = false;
     
-    editorImage.addEventListener('mousedown', function(e) {
-        isDrawing = true;
-        erase(e, brushSize);
-    });
-    
-    editorImage.addEventListener('mousemove', function(e) {
-        if (isDrawing) {
+    // Store handlers for later removal
+    const handlers = {
+        mousedown: function(e) {
+            isDrawing = true;
             erase(e, brushSize);
+        },
+        mousemove: function(e) {
+            if (isDrawing) {
+                erase(e, brushSize);
+            }
+        },
+        mouseup: function() {
+            isDrawing = false;
+            // ✅ update snapshot after edits so transparency remains true
+            captureTransparentSnapshot();
+        },
+        mouseleave: function() {
+            isDrawing = false;
+            captureTransparentSnapshot();
         }
-    });
+    };
     
-    editorImage.addEventListener('mouseup', function() {
-        isDrawing = false;
-        // ✅ update snapshot after edits so transparency remains true
-        captureTransparentSnapshot();
-    });
+    // Attach handlers
+    editorImage.addEventListener('mousedown', handlers.mousedown);
+    editorImage.addEventListener('mousemove', handlers.mousemove);
+    editorImage.addEventListener('mouseup', handlers.mouseup);
+    editorImage.addEventListener('mouseleave', handlers.mouseleave);
     
-    editorImage.addEventListener('mouseleave', function() {
-        isDrawing = false;
-        captureTransparentSnapshot();
-    });
+    // Store reference for cleanup
+    editorImage._eraserHandlers = handlers;
+}
+
+/**
+ * Disable eraser mode and remove event listeners
+ */
+function disableEraserMode() {
+    const editorImage = document.getElementById('editorImage');
+    if (!editorImage || !editorImage._eraserHandlers) return;
+    
+    const handlers = editorImage._eraserHandlers;
+    editorImage.removeEventListener('mousedown', handlers.mousedown);
+    editorImage.removeEventListener('mousemove', handlers.mousemove);
+    editorImage.removeEventListener('mouseup', handlers.mouseup);
+    editorImage.removeEventListener('mouseleave', handlers.mouseleave);
+    
+    editorImage._eraserHandlers = null;
+    editorImage.style.cursor = 'default';
 }
 
 /**
  * Erase at position
  */
 function erase(event, brushSize) {
-    const rect = editorImage.getBoundingClientRect();
+    if (!imageElement) return;
+    
+    const rect = imageElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     

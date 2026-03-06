@@ -22,6 +22,10 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
 
+      // Allow explicit override from the Android app:
+      // - https://aiphotostudio.co.uk/?app=1 (legacy)
+      // - https://aiphotostudio.co.uk/?platform=android (new method)
+      // Supports BOTH: ?app=1 and your actual WebView flag ?platform=android
       const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
       const isPlatformAndroid = params.get('platform') === 'android';
 
@@ -786,6 +790,11 @@ function setPro(on) {
           cutoutURL = URL.createObjectURL(blob);
           await draw({img: cutoutURL, bg: bgSrc});
           setStatus("Background removed. Choose a background, then press Change Background.");
+          
+          // Auto-save to gallery after background removal
+          stage.toBlob((b) => {
+            if (b) saveToGalleryIfSignedIn(b, "png");
+          }, "image/png", 0.95);
         }catch(e){
           console.error(e); 
           alert("Remove BG failed. Try a smaller image.");
@@ -809,6 +818,11 @@ function setPro(on) {
         try{ 
           await draw({img: cutoutURL, bg: bgSrc}); 
           setStatus("Background changed. You can download now."); 
+          
+          // Auto-save to gallery after background change
+          stage.toBlob((b) => {
+            if (b) saveToGalleryIfSignedIn(b, "png");
+          }, "image/png", 0.95);
         }
         finally{ 
           setBusy(false); 
@@ -960,6 +974,11 @@ function setPro(on) {
           blended.delete(); out4.delete();
 
           cancelBrush(); stampWatermark(); setStatus("Person removed (HD).");
+          
+          // Auto-save to gallery after person removal
+          stage.toBlob((b) => {
+            if (b) saveToGalleryIfSignedIn(b, "png");
+          }, "image/png", 0.95);
         } catch (e) {
           console.error('HD inpaint error:', e);
           toast("Removal failed.");
@@ -1087,6 +1106,11 @@ async function applyInpaintHDPlus() {
       ctx.drawImage(outBitmap, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
 
       cancelBrush(); stampWatermark(); setStatus("Person removed (HD+).");
+      
+      // Auto-save to gallery after HD+ person removal
+      stage.toBlob((b) => {
+        if (b) saveToGalleryIfSignedIn(b, "png");
+      }, "image/png", 0.95);
     } catch (e) {
       console.error('HD+ inpaint error:', e);
       hideProgress();

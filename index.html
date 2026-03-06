@@ -327,6 +327,7 @@ function requireSignInOrRedirect(actionLabel) {
           if (!user) return;
           if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
             await activatePlan(plan, "Stripe");
+            await refreshUserPlan(); // refresh subscription status
           } else {
             toast("Payment success received, but plan missing.");
           }
@@ -509,7 +510,7 @@ const loadImage = (src) => new Promise((res, rej) => {
       return mc;
     }
 
-   // 5. AUTH & STATE
+  // 5. AUTH & STATE
 function updatePlanUI() {
   try {
     // If Studio exists, redraw to remove/add watermark immediately
@@ -525,104 +526,116 @@ function setPro(on) {
   window.proEnabled = !!on;
   updatePlanUI();
 }
-    async function refreshUserPlan() {
-      const user = auth.currentUser;
-      const elUpgrade = document.getElementById('upgradeMsg');
 
-      if (!user) { 
-        if (elTrialLeft) elTrialLeft.style.display = 'none';
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false); 
-        return; 
-      }
+async function refreshUserPlan() {
+  const user = auth.currentUser;
+  const elUpgrade = document.getElementById('upgradeMsg');
+
+  if (!user) { 
+    if (elTrialLeft) elTrialLeft.style.display = 'none';
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false); 
+    return; 
+  }
+  
+  if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
+    if (elTrialLeft) {
+      elTrialLeft.textContent = '👑 Owner Mode';
+      elTrialLeft.style.display = 'inline-block';
+    }
+    if (elUpgrade) elUpgrade.style.display = 'none';
+    setPro(true); 
+    return;
+  }
+
+  try {
+    const snap = await db.collection('users').doc(user.uid).get();
+    let isPro = false;
+    let expiresAtMillis = null;
+    let planKey = "free";
+
+    if (snap.exists) {
+      const d = snap.data() || {};
+      isPro = !!d.isPro || d.tier === 'pro';
       
-      if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
-        if (elTrialLeft) {
-          elTrialLeft.textContent = '👑 Owner Mode';
-          elTrialLeft.style.display = 'inline-block';
-        }
-        if (elUpgrade) elUpgrade.style.display = 'none';
-        setPro(true); 
-        return;
+      // Check subscription.expiry for new format
+      if (d.subscription?.expiresAt?.toMillis) {
+        expiresAtMillis = d.subscription.expiresAt.toMillis();
+        planKey = d.subscription?.type || "pro";
       }
-
-      try {
-        const snap = await db.collection('users').doc(user.uid).get();
-        let isPro = false;
-        let expiresAtMillis = null;
-        let planKey = "free";
-
-        if (snap.exists) {
-          const d = snap.data() || {};
-          isPro = !!d.isPro || d.tier === 'pro';
-          
-          // Check subscription.expiry for new format
-          if (d.subscription?.expiresAt?.toMillis) {
-            expiresAtMillis = d.subscription.expiresAt.toMillis();
-            planKey = d.subscription?.type || "pro";
-          }
-          // Fallback to old trial format
-          else if (d.trial?.endsAt?.toMillis) {
-            expiresAtMillis = d.trial.endsAt.toMillis();
-            planKey = "trial7";
-          }
-        }
-        
-        const now = Date.now();
-        const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
-        const hasProTier = !!d.isPro || d.tier === "pro";
-        isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
-
-        if (isPro) {
-          if (elTrialLeft) {
-            if (expiresAtMillis) {
-              const leftMs = expiresAtMillis - now;
-              const days = Math.ceil(leftMs / 86400000);
-              const hours = Math.ceil(leftMs / 3600000);
-              const label =
-                planKey === "day" ? "Day Pass" :
-                planKey === "month" ? "Monthly Pro" :
-                planKey === "trial7" ? "Trial" :
-                planKey === "year" ? "Yearly Pro" : "Pro";
-              
-              elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
-            } else {
-              elTrialLeft.textContent = "Pro Active";
-            }
-            elTrialLeft.style.display = "inline-block";
-          }
-          if (elUpgrade) elUpgrade.style.display = "none";
-          setPro(true);
-          return;
-        }
-        
-        // Trial ended or no subscription
-        if (elTrialLeft) {
-          elTrialLeft.textContent = 'Trial ended';
-          elTrialLeft.style.display = 'inline-block';
-        }
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false);
-      } catch (e) {
-        console.error("Plan check error:", e);
-        if (elUpgrade) elUpgrade.style.display = 'inline-block';
-        setPro(false);
+      // Fallback to old trial format
+      else if (d.trial?.endsAt?.toMillis) {
+        expiresAtMillis = d.trial.endsAt.toMillis();
+        planKey = "trial7";
       }
     }
+    
+    const now = Date.now();
+    const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
+    const hasProTier = !!d.isPro || d.tier === "pro";
+    isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
 
-    auth.onAuthStateChanged(async user => {
-      /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
-      setPayButtonsEnabled(!!user);
-      /* ============================================================= */
-
-      if (!user) {
-        elStatus.style.display = 'none';
-        btnLogout.style.display = 'none';
-        if(navSignIn) navSignIn.style.display = 'inline-block';
-        if(navSignUp) navSignUp.style.display = 'inline-block';
-        setPro(false);
-        return;
+    if (isPro) {
+      if (elTrialLeft) {
+        if (expiresAtMillis) {
+          const leftMs = expiresAtMillis - now;
+          const days = Math.ceil(leftMs / 86400000);
+          const hours = Math.ceil(leftMs / 3600000);
+          const label =
+            planKey === "day" ? "Day Pass" :
+            planKey === "month" ? "Monthly Pro" :
+            planKey === "trial7" ? "Trial" :
+            planKey === "year" ? "Yearly Pro" : "Pro";
+          
+          elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
+        } else {
+          elTrialLeft.textContent = "Pro Active";
+        }
+        elTrialLeft.style.display = "inline-block";
       }
+      if (elUpgrade) elUpgrade.style.display = "none";
+      setPro(true);
+      return;
+    }
+    
+    // Trial ended or no subscription
+    if (elTrialLeft) {
+      elTrialLeft.textContent = 'Trial ended';
+      elTrialLeft.style.display = 'inline-block';
+    }
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false);
+  } catch (e) {
+    console.error("Plan check error:", e);
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    setPro(false);
+  }
+}
+
+auth.onAuthStateChanged(async user => {
+  /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
+  setPayButtonsEnabled(!!user);
+  /* ============================================================= */
+
+  if (!user) {
+    elStatus.style.display = 'none';
+    btnLogout.style.display = 'none';
+    if(navSignIn) navSignIn.style.display = 'inline-block';
+    if(navSignUp) navSignUp.style.display = 'inline-block';
+    setPro(false);
+    return;
+  }
+
+  // ✅ ADDED — force plan refresh after login or redirect
+  await refreshUserPlan();
+
+  const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
+  elStatus.style.display = 'inline-block';
+  elStatus.textContent = `Signed in as ${who}`;
+  btnLogout.style.display = 'inline-block';
+  if(navSignIn) navSignIn.style.display = 'none';
+  if(navSignUp) navSignUp.style.display = 'none';
+});
 
       const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
       elStatus.style.display = 'inline-block';
@@ -632,7 +645,6 @@ function setPro(on) {
       if(navSignUp) navSignUp.style.display = 'none';
 
       await refreshUserPlan();
-    });
 
     if(btnLogout) btnLogout.onclick = () => auth.signOut();
     
@@ -1238,3 +1250,4 @@ function showColorPicker() {
 </script>
 </body>
 </html>
+]

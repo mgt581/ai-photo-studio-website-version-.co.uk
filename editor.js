@@ -47,7 +47,15 @@ async function refreshProFlag(user) {
     }
 
     const data = snap.data();
-    window.proEnabled = !!data.pro && (data.currentPeriodEnd || 0) > now;
+    let periodEnd = 0;
+
+    if (typeof data.currentPeriodEnd === "number") {
+      periodEnd = data.currentPeriodEnd;
+    } else if (data.currentPeriodEnd?.seconds) {
+      periodEnd = data.currentPeriodEnd.seconds;
+    }
+
+    window.proEnabled = data.pro === true && periodEnd > now;
 
     console.log("✅ proEnabled:", window.proEnabled, data);
   } catch (e) {

@@ -1,18 +1,28 @@
-# TODO List - Gallery & Autosave Fix
+# TODO List - Cloud Functions Setup
 
-## Task: Fix gallery image loading and restore autosave functionality
+## Task: Create Cloud Functions for user document backfill
 
-### Issues Identified:
-1. **Gallery not loading images**: Storage bucket mismatch between gallery.html (appspot.com) and index.html (firebasestorage.app)
-2. **Autosave stopped working**: Only triggers after manual download, not automatically after edits
+### Completed:
+1. [x] Created functions/ directory structure
+2. [x] Created package.json with dependencies
+3. [x] Created index.js with Cloud Functions:
+   - `onUserCreate` - Creates Firestore document when user signs up
+   - `onUserDelete` - Deletes Firestore document when user is deleted
+   - `extFirestoreUserDocumentBackfillExistingUsers` - Backfills existing users
+   - `backfillUserDocuments` - HTTP endpoint for manual backfill
+   - `updateLastLogin` - Updates user's last login time
 
-### Steps:
-1. [x] Fix storageBucket in gallery.html to match index.html (firebasestorage.app)
-2. [x] Add autosave functionality to index.html after image processing (remove background, change background, remove person)
-3. [x] Fix JavaScript duplicate variable declaration in index.html
-4. [x] Test the implementation
+### Deployment Status:
+- **FAILED**: Billing account issue on Google Cloud project
+- Error: "Write access to project 'ai-photo-studio-24354' was denied: please check billing account associated"
 
-### Files Edited:
-- **gallery.html** - Fixed Firebase storage bucket configuration from `appspot.com` to `firebasestorage.app`
-- **index.html** - Added autosave after processing operations (remove bg, change bg, person removal HD, HD+) and fixed duplicate variable declaration
+### Next Steps:
+1. Go to Google Cloud Console: https://console.cloud.google.com
+2. Navigate to Billing and ensure a valid billing account is linked
+3. Try deploying again with: `cd functions && firebase deploy --only functions`
+
+### Files Created:
+- functions/package.json
+- functions/index.js
+- functions/.eslintrc.js
 

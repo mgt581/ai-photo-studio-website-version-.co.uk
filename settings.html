@@ -250,78 +250,131 @@
     document.getElementById('uEmail').textContent = user.email;
     document.getElementById('uID').textContent = user.uid.substring(0,8) + "..."; 
 
-    // LOAD DATA
-    try {
-      const snap = await db.collection('users').doc(user.uid).get();
+    // Owner mode check
+    if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
       const badge = document.getElementById('uPlanBadge');
       const trialRow = document.getElementById('trialRow');
-      
-      if (snap.exists) {
-        const data = snap.data();
-        let isPro = false;
-        let expiresAtMillis = null;
-        let planType = "Free";
-        
-        // Check subscription for new format
-        if (data.subscription?.expiresAt?.toMillis) {
-          expiresAtMillis = data.subscription.expiresAt.toMillis();
-          const planKey = data.subscription?.type || "pro";
-          
-          planType = 
-            planKey === "day" ? "Day Pass" :
-            planKey === "month" ? "Monthly Pro" :
-            planKey === "trial7" ? "7-Day Trial" :
-            planKey === "year" ? "Yearly Pro" : "Pro";
-          
-          isPro = expiresAtMillis > Date.now();
-        }
-        // Fallback to old format
-        else if (data.tier === 'pro' || data.isPro) {
-          isPro = true;
-          planType = data.planType || "Pro";
-        }
-        
-        if (isPro) {
-          if (expiresAtMillis) {
-            const leftMs = expiresAtMillis - Date.now();
-            if (leftMs > 0) {
-              const days = Math.ceil(leftMs / 86400000);
-              const hours = Math.ceil(leftMs / 3600000);
-              const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
-              badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
-              trialRow.style.display = 'flex';
-              document.getElementById('uTrial').textContent = timeLeft;
-              document.getElementById('uTrial').style.color = '#16a34a';
-            } else {
-              badge.innerHTML = `<span class="plan-badge free">Trial Expired</span>`;
-              trialRow.style.display = 'flex';
-              document.getElementById('uTrial').textContent = "Expired";
-              document.getElementById('uTrial').style.color = '#991b1b';
-            }
-          } else {
-            badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
-            trialRow.style.display = 'none';
-          }
-        } else {
-          badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
-          trialRow.style.display = 'flex';
-          document.getElementById('uTrial').textContent = "No active subscription";
-          document.getElementById('uTrial').style.color = '#6b7280';
-        }
-      } else {
-        badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
-        trialRow.style.display = 'flex';
-        document.getElementById('uTrial').textContent = "No active subscription";
-        document.getElementById('uTrial').style.color = '#6b7280';
+      badge.innerHTML = `<span class="plan-badge">👑 Owner Mode</span>`;
+      trialRow.style.display = 'flex';
+      document.getElementById('uTrial').textContent = "Full access";
+      document.getElementById('uTrial').style.color = '#16a34a';
+      return;
+    }
+
+    // Check Worker API first for premium status
+    let isPro = false;
+    let planType = "Free";
+    let expiresAtMillis = null;
+
+    try {
+      const res = await fetch(`https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+      const data = await res.json();
+
+      if (data && data.premium === true) {
+        const now = Date.now();
+        const expiresAt = Number(data.expiresAt || 0);
+        expiresAtMillis = expiresAt > now ? expiresAt : null;
+
+        if (data.plan === "day") planType = "Day Pass";
+        else if (data.plan === "month") planType = "Monthly Pro";
+        else if (data.plan === "trial7") planType = "7-Day Trial";
+        else if (data.plan === "year") planType = "Yearly Pro";
+        else planType = "Pro";
+
+        isPro = true;
       }
     } catch (e) {
-      console.error("Error loading user data:", e);
+      console.error("Worker plan check error:", e);
+    }
+
+    // Fallback to Firestore if Worker check failed
+    if (!isPro) {
+      try {
+        const snap = await db.collection('users').doc(user.uid).get();
+        
+        if (snap.exists) {
+          const data = snap.data();
+          
+          // Check subscription for new format
+          if (data.subscription?.expiresAt?.toMillis) {
+            expiresAtMillis = data.subscription.expiresAt.toMillis();
+            const planKey = data.subscription?.type || "pro";
+            
+            planType = 
+              planKey === "day" ? "Day Pass" :
+              planKey === "month" ? "Monthly Pro" :
+              planKey === "trial7" ? "7-Day Trial" :
+              planKey === "year" ? "Yearly Pro" : "Pro";
+            
+            isPro = expiresAtMillis > Date.now();
+          }
+          // Fallback to old format
+          else if (data.tier === 'pro' || data.isPro) {
+            isPro = true;
+            planType = data.planType || "Pro";
+          }
+        }
+      } catch (e) {
+        console.error("Error loading user data:", e);
+      }
+    }
+
+    // Update UI
+    const badge = document.getElementById('uPlanBadge');
+    const trialRow = document.getElementById('trialRow');
+    
+    if (isPro) {
+      if (expiresAtMillis) {
+        const leftMs = expiresAtMillis - Date.now();
+        if (leftMs > 0) {
+          const days = Math.ceil(leftMs / 86400000);
+          const hours = Math.ceil(leftMs / 3600000);
+          const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
+          badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+          trialRow.style.display = 'flex';
+          document.getElementById('uTrial').textContent = timeLeft;
+          document.getElementById('uTrial').style.color = '#16a34a';
+        } else {
+          badge.innerHTML = `<span class="plan-badge free">Expired</span>`;
+          trialRow.style.display = 'flex';
+          document.getElementById('uTrial').textContent = "Expired";
+          document.getElementById('uTrial').style.color = '#991b1b';
+        }
+      } else {
+        badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+        trialRow.style.display = 'none';
+      }
+    } else {
+      badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
+      trialRow.style.display = 'flex';
+      document.getElementById('uTrial').textContent = "No active subscription";
+      document.getElementById('uTrial').style.color = '#6b7280';
     }
   });
 
   // --- 4. ACTION FUNCTIONS ---
-  function manageSub() {
-    alert("To manage your subscription, please use the link sent to your email by Stripe.");
+  async function manageSub() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Try to get Stripe customer info from Firestore
+    let stripeCustomerId = null;
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      if (snap.exists) {
+        const data = snap.data();
+        stripeCustomerId = data.subscription?.stripeCustomerId || data.stripeCustomerId;
+      }
+    } catch (e) {
+      console.error("Error getting Stripe info:", e);
+    }
+
+    if (stripeCustomerId) {
+      const msg = `Your subscription is managed via Stripe.\n\nTo update payment method, cancel, or view invoices:\n\n1. Visit: https://billing.stripe.com/p/login/\n2. Enter email: ${user.email}\n\nOr check your Stripe receipt emails for a "Manage subscription" link.`;
+      alert(msg);
+    } else {
+      alert("To manage your subscription, please check your Stripe receipt email for the 'Manage subscription' link, or contact support@aiphotostudio.co.uk");
+    }
   }
 
   function resetPassword() {

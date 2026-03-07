@@ -1222,7 +1222,7 @@ function showColorPicker() {
   transBtn.textContent = 'Transparent (No Background)';
   transBtn.style.cssText = 'padding:10px 20px;border-radius:8px;border:2px solid #ddd;background:#f9fafb;cursor:pointer;font-weight:600;width:100%';
   transBtn.onclick = () => {
-    Studio.setBgColor(null);
+    Studio.setBgColor(null); 
     overlay.remove();
   };
   modal.appendChild(transBtn);

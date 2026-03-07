@@ -317,7 +317,7 @@ function requireSignInOrRedirect(actionLabel) {
     if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
     if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
 
-    on.load = function() {
+    window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
 
       if (urlParams.get("payment") === "success") {

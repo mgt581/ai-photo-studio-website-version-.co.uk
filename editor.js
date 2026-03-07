@@ -12,7 +12,13 @@ let editorCtx = null;
 let imageElement = null;
 
 // --- Pro / Subscription flag ---
-window.proEnabled = false;
+// Note: proEnabled is defined globally in index.html
+// For editor.html standalone use, we check auth and Firestore
+
+/**
+ * Check if running in Android app (WebView)
+ */
+const isAndroidApp = window.__AIPS_IS_ANDROID_APP__ === true;
 
 /**
  * Web app: reads pro status from Firestore users/{uid}
@@ -20,20 +26,19 @@ window.proEnabled = false;
  */
 async function refreshProFlag(user) {
   try {
-    // Keep Android always watermark-free
-    if (window.__AIPS_IS_ANDROID_APP__) {
+    // Android stays watermark-free
+    if (isAndroidApp) {
       window.proEnabled = true;
       return;
     }
 
-    // Expect Firestore db to exist (defined in your firebase init)
+    // If running standalone (editor.html), check Firestore
     if (typeof db === "undefined") {
       console.warn("Firestore 'db' not found. proEnabled forced false.");
       window.proEnabled = false;
       return;
     }
 
-    // Load Firestore helpers (no build tools needed)
     const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const ref = doc(db, "users", user.uid);
@@ -92,12 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     try {
       // Android stays watermark-free
-      if (window.__AIPS_IS_ANDROID_APP__) {
+      if (isAndroidApp) {
         window.proEnabled = true;
         return;
       }
 
-      if (typeof auth === "undefined") {
+      // Initialize proEnabled to false for standalone use
+      window.proEnabled = false;
+
+      // Check if Firebase auth is available (defined in firebase-app-compat.js)
+      if (typeof firebase === "undefined" || typeof firebase.auth === "undefined") {
         console.warn("Firebase 'auth' not found. proEnabled default false.");
         window.proEnabled = false;
         return;
@@ -105,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
 
-      onAuthStateChanged(auth, async (user) => {
+      onAuthStateChanged(firebase.auth(), async (user) => {
         if (user) {
           await refreshProFlag(user);
         } else {

@@ -151,7 +151,14 @@
 
 <script src="choose-bg.js"></script>
 <script src="editor.js"></script>
-<script src="app.js"></script>
+<script>
+  // Stub function to prevent console error - editor has its own color picker in mode controls
+  function showColorPicker() {
+    // The editor has a proper color picker in the mode controls
+    // This is a fallback for any direct calls
+    console.log("Color picker should be accessed via the 'Choose Color' mode button");
+  }
+</script>
 
 </body>
 </html>

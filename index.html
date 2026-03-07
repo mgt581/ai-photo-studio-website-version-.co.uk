@@ -244,7 +244,9 @@
     const auth      = firebase.auth();
     const db        = firebase.firestore();
     const storage   = firebase.storage();
-    const functions = firebase.functions ? firebase.functions() : null;
+    // Note: Firebase Functions not initialized - would require firebase-functions-compat.js
+    // Uncomment the following line if firebase-functions is needed:
+    // const functions = firebase.functions ? firebase.functions() : null;
 
     // 2. PAYMENT LINKS
     const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
@@ -258,14 +260,14 @@
     if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
     if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
     if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    /* ===== ADDED: Stripe gating (must be signed in) ===== */
+/* ===== ADDED: Stripe gating (must be signed in) ===== */
     function showPaySignInRequired() {
       const msg = document.getElementById("payMsg");
       if (msg) msg.style.display = "block";
-      try {
-        // toast() is defined later in the file, so guard it
-        if (typeof window.toast === "function") window.toast("Please sign in to start a Pro plan.");
-      } catch (_) {}
+      // Use window.toast which is now exposed globally
+      if (typeof window.toast === "function") {
+        window.toast("Please sign in to start a Pro plan.");
+      }
     }
 function requireSignInOrRedirect(actionLabel) {
   const user = auth.currentUser;
@@ -408,6 +410,8 @@ function toast(msg) {
   document.body.appendChild(el); 
   setTimeout(() => el.remove(), 2200); 
 }
+// Expose toast globally to avoid conflicts with other scripts
+window.toast = toast;
 
 function setStatus(t) { $status.textContent = t; }
 
@@ -1161,9 +1165,9 @@ document.getElementById('mainInput').addEventListener('change', () => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log("SW Registered"))
-      .catch(err => console.log("SW Error", err));
+    // Service worker registration disabled - no service-worker.js file
+    // To enable: create a service-worker.js file first
+    console.log("Service worker disabled - no service worker file found");
   });
 }
 

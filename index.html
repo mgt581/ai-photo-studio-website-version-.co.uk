@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#4f46e5"> 
 
   <!-- Force all relative links/resources to resolve to the production domain -->
   <base href="https://aiphotostudio.co.uk/">
@@ -642,6 +642,9 @@ auth.onAuthStateChanged(async user => {
 });
 
 if(btnLogout) btnLogout.onclick = () => auth.signOut();
+  // ✅ ADDED — force plan refresh after login or redirect
+
+    if(btnLogout) btnLogout.onclick = () => auth.signOut();
     
     // 6. GALLERY SAVING
     async function saveToGalleryIfSignedIn(blob, type){
@@ -1223,7 +1226,7 @@ function showColorPicker() {
   transBtn.textContent = 'Transparent (No Background)';
   transBtn.style.cssText = 'padding:10px 20px;border-radius:8px;border:2px solid #ddd;background:#f9fafb;cursor:pointer;font-weight:600;width:100%';
   transBtn.onclick = () => {
-    Studio.setBgColor(null);
+    Studio.setBgColor(null); 
     overlay.remove();
   };
   modal.appendChild(transBtn);

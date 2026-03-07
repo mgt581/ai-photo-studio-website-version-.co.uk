@@ -627,7 +627,8 @@ auth.onAuthStateChanged(async user => {
   }
 
   // ✅ ADDED — force plan refresh after login or redirect
-  
+  await refreshUserPlan();
+
   const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
   elStatus.style.display = 'inline-block';
   elStatus.textContent = `Signed in as ${who}`;
@@ -636,7 +637,8 @@ auth.onAuthStateChanged(async user => {
   if(navSignUp) navSignUp.style.display = 'none';
 });
 
-      await refreshUserPlan();
+if(btnLogout) btnLogout.onclick = () => auth.signOut();
+  // ✅ ADDED — force plan refresh after login or redirect
 
     if(btnLogout) btnLogout.onclick = () => auth.signOut();
     

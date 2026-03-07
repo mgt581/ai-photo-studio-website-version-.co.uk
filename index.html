@@ -627,8 +627,7 @@ auth.onAuthStateChanged(async user => {
   }
 
   // ✅ ADDED — force plan refresh after login or redirect
-  await refreshUserPlan();
-
+  
   const who = user.email || (user.isAnonymous ? 'Guest' : 'User');
   elStatus.style.display = 'inline-block';
   elStatus.textContent = `Signed in as ${who}`;

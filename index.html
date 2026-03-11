@@ -284,7 +284,7 @@ function requireSignInOrRedirect(actionLabel) {
   return false;
 }
     
-  function hidePaySignInRequired() {
+function hidePaySignInRequired() {
   const msg = document.getElementById("payMsg");
   if (msg) msg.style.display = "none";
 }
@@ -674,10 +674,7 @@ auth.onAuthStateChanged(async user => {
 });
 
 if(btnLogout) btnLogout.onclick = () => auth.signOut();
-  // ✅ ADDED — force plan refresh after login or redirect
 
-    if(btnLogout) btnLogout.onclick = () => auth.signOut();
-    
     // 6. GALLERY SAVING
     async function saveToGalleryIfSignedIn(blob, type){
       const user = auth.currentUser;

@@ -8,7 +8,7 @@ workers_dev = true
 # KV binding used by your code: env.PREMIUM
 [[kv_namespaces]]
 binding = "PREMIUM"
-id = "PUT_YOUR_KV_NAMESPACE_ID_HERE"
+id = ""
 
 # Optional: preview ID if you have one
 # preview_id = "PUT_YOUR_KV_PREVIEW_ID_HERE"

@@ -1,0 +1,9 @@
+name = "premium-status"
+main = "cloudflareworker/worker.js"
+compatibility_date = "2025-03-01"
+workers_dev = true
+preview_urls = false
+
+[[kv_namespaces]]
+binding = "PREMIUM"
+id = "835daf9d99924356a1e070c51a78d17d"

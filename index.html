@@ -284,152 +284,184 @@ function requireSignInOrRedirect(actionLabel) {
   return false;
 }
     
-    function hidePaySignInRequired() {
-      const msg = document.getElementById("payMsg");
-      if (msg) msg.style.display = "none";
-    }
-
-    function setPayButtonsEnabled(enabled) {
-      const ids = ["btnDaily", "btnMonthly", "btnTrialStart"];
-      ids.forEach(id => {
-        const b = document.getElementById(id);
-        if (!b) return;
-        b.disabled = !enabled;
-        b.classList.toggle("pay-disabled", !enabled);
-      });
-      if (enabled) hidePaySignInRequired();
-    }
-
-    function openStripe(url) {
-      const user = auth.currentUser;
-      if (!user) {
-        showPaySignInRequired();
-        return;
-      }
-      hidePaySignInRequired();
-      window.location.href = url;
-    }
-    /* ===================================================== */
-
-    // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
-    setPayButtonsEnabled(false);
-
-    // Hook up buttons (kept, but now gated)
-    if (btnDaily)   btnDaily.onclick   = () => openStripe(STRIPE_DAILY);
-    if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
-    if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
-
-    window.onload = function() {
-      const urlParams = new URLSearchParams(window.location.search);
-
-      if (urlParams.get("payment") === "success") {
-        const plan = (urlParams.get("plan") || "").toLowerCase();
-
-        auth.onAuthStateChanged(async (user) => {
-          if (!user) return;
-          if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
-            await activatePlan(plan, "Stripe");
-            await refreshUserPlan(); // refresh subscription status
-          } else {
-            toast("Payment success received, but plan missing.");
-          }
-          window.history.replaceState({}, document.title, "/");
-        });
-      }
-
-      if (urlParams.get("payment") === "cancel") {
-        toast("Payment cancelled");
-        window.history.replaceState({}, document.title, "/");
-      }
-    };
-
-    // PLAN CONFIGURATION
-    const PLANS = {
-      day: { name: "Day Pass", days: 1, label: "Day Pass - Valid today" },
-      month: { name: "Monthly Pro", days: 30, label: "Monthly Pro" },
-      trial7: { name: "7-Day Trial", days: 7, label: "7-Day Trial" },
-      year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
-    };
-
-    // Activate a specific plan
-    async function activatePlan(planKey, source) {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      const plan = PLANS[planKey];
-      if (!plan) { console.error("Unknown plan:", planKey); return; }
-      
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
-      
-      const ref = db.collection('users').doc(user.uid);
-      await ref.set({
-        tier: 'pro',
-        planType: plan.name,
-        subscription: { type: planKey, startedAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: expiresAt, source: source }
-      }, { merge: true });
-      
-      toast(`✅ ${plan.name} activated! Pro features unlocked.`);
-      await refreshUserPlan();
-    }
-
-    // Backwards compatibility
-    async function activatePro(type) { await activatePlan('year', type); }
-
-    // 3. APP VARIABLES & DOM
-    const elStatus    = document.getElementById('authStatus');
-    const btnLogout   = document.getElementById('btnLogout');
-    const elTrialLeft = document.getElementById('trialLeft');
-    const navSignIn   = document.getElementById('navSignIn');
-    const navSignUp   = document.getElementById('navSignUp');
-    let proEnabled    = false;
-
-    const $status = document.getElementById('status');
-    const stage   = document.getElementById('stage');
-    const ctx     = stage.getContext('2d', { willReadFrequently: true });
-    ctx.imageSmoothingEnabled = true; 
-    ctx.imageSmoothingQuality = 'high';
-
-    const maskCanvas = document.getElementById('mask');
-    const mctx       = maskCanvas.getContext('2d');
-    let brushing = false, brushDown = false, brushSize = 24;
-
-
-    const btnRemove = document.getElementById('btnRemove');
-    const btnChange = document.getElementById('btnChange');
-    const btnBrush  = document.getElementById('btnBrush');
-    const btnApply  = document.getElementById('btnApply');
-    const btnCancel = document.getElementById('btnCancel');
-
-   
-// 4. HELPER FUNCTIONS
-function toast(msg) { 
-  const el = document.createElement('div'); 
-  el.className = 'toast'; 
-  el.textContent = msg; 
-  document.body.appendChild(el); 
-  setTimeout(() => el.remove(), 2200); 
+function hidePaySignInRequired() {
+  const msg = document.getElementById("payMsg");
+  if (msg) msg.style.display = "none";
 }
+
+function setPayButtonsEnabled(enabled) {
+  const ids = ["btnDaily", "btnMonthly", "btnTrialStart"];
+  ids.forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = !enabled;
+    b.classList.toggle("pay-disabled", !enabled);
+  });
+  if (enabled) hidePaySignInRequired();
+}
+
+function openStripe(url) {
+  const user = auth.currentUser;
+  if (!user) {
+    showPaySignInRequired();
+    return;
+  }
+  hidePaySignInRequired();
+  window.location.href = url;
+}
+/* ===================================================== */
+
+// Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
+setPayButtonsEnabled(false);
+
+// Hook up buttons (kept, but now gated)
+if (btnDaily) btnDaily.onclick = () => openStripe(STRIPE_DAILY);
+if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
+if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
+
+window.onload = function () {
+
+  // Always refresh plan when page loads
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      await refreshUserPlan();
+      setPayButtonsEnabled(true);
+    } else {
+      window.proEnabled = false;
+      setPayButtonsEnabled(false);
+    }
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+
+  if (urlParams.get("payment") === "success") {
+
+    const plan = (urlParams.get("plan") || "").toLowerCase();
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
+        await activatePlan(plan, "Stripe");
+        await refreshUserPlan();
+      } else {
+        toast("Payment success received, but plan missing.");
+      }
+
+      window.history.replaceState({}, document.title, "/");
+    });
+  }
+
+  if (urlParams.get("payment") === "cancel") {
+    toast("Payment cancelled");
+    window.history.replaceState({}, document.title, "/");
+  }
+
+};
+
+// PLAN CONFIGURATION
+const PLANS = {
+  day: { name: "Day Pass", days: 1, label: "Day Pass - Valid today" },
+  month: { name: "Monthly Pro", days: 30, label: "Monthly Pro" },
+  trial7: { name: "7-Day Trial", days: 7, label: "7-Day Trial" },
+  year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
+};
+
+// Activate a specific plan
+async function activatePlan(planKey, source) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const plan = PLANS[planKey];
+  if (!plan) {
+    console.error("Unknown plan:", planKey);
+    return;
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
+
+  const ref = db.collection("users").doc(user.uid);
+  await ref.set({
+    tier: "pro",
+    planType: plan.name,
+    subscription: {
+      type: planKey,
+      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: expiresAt,
+      source: source
+    }
+  }, { merge: true });
+
+  // keep global state in sync immediately
+  window.proEnabled = true;
+
+  toast(`✅ ${plan.name} activated! Pro features unlocked.`);
+  await refreshUserPlan();
+}
+
+// Backwards compatibility
+async function activatePro(type) {
+  await activatePlan("year", type);
+}
+
+// 3. APP VARIABLES & DOM
+const elStatus    = document.getElementById("authStatus");
+const btnLogout   = document.getElementById("btnLogout");
+const elTrialLeft = document.getElementById("trialLeft");
+const navSignIn   = document.getElementById("navSignIn");
+const navSignUp   = document.getElementById("navSignUp");
+
+// IMPORTANT: use one global source of truth
+window.proEnabled = false;
+
+const $status = document.getElementById("status");
+const stage   = document.getElementById("stage");
+const ctx     = stage.getContext("2d", { willReadFrequently: true });
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
+
+const maskCanvas = document.getElementById("mask");
+const mctx       = maskCanvas.getContext("2d");
+let brushing = false, brushDown = false, brushSize = 24;
+
+const btnRemove = document.getElementById("btnRemove");
+const btnChange = document.getElementById("btnChange");
+const btnBrush  = document.getElementById("btnBrush");
+const btnApply  = document.getElementById("btnApply");
+const btnCancel = document.getElementById("btnCancel");
+
+// 4. HELPER FUNCTIONS
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
 // Expose toast globally to avoid conflicts with other scripts
 window.toast = toast;
 
-function setStatus(t) { $status.textContent = t; }
+function setStatus(t) {
+  $status.textContent = t;
+}
 
-function drawChecker() { 
-  const s = 20; 
-  for (let y = 0; y < stage.height; y += s) { 
-    for (let x = 0; x < stage.width; x += s) { 
-      ctx.fillStyle = ((x / s + y / s) % 2 === 0) ? '#e5e7eb' : '#fff'; 
-      ctx.fillRect(x, y, s, s); 
-    } 
-  } 
+function drawChecker() {
+  const s = 20;
+  for (let y = 0; y < stage.height; y += s) {
+    for (let x = 0; x < stage.width; x += s) {
+      ctx.fillStyle = ((x / s + y / s) % 2 === 0) ? "#e5e7eb" : "#fff";
+      ctx.fillRect(x, y, s, s);
+    }
+  }
 }
 
 function stampWatermark() {
   // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
-  // Paid web users + owner mode = no watermark
+  // Paid web users = no watermark
   if (window.proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";
@@ -642,10 +674,7 @@ auth.onAuthStateChanged(async user => {
 });
 
 if(btnLogout) btnLogout.onclick = () => auth.signOut();
-  // ✅ ADDED — force plan refresh after login or redirect
 
-    if(btnLogout) btnLogout.onclick = () => auth.signOut();
-    
     // 6. GALLERY SAVING
     async function saveToGalleryIfSignedIn(blob, type){
       const user = auth.currentUser;

@@ -371,8 +371,7 @@ window.onload = function () {
     }
   });
 
-  }
-};
+  };
 
   const urlParams = new URLSearchParams(window.location.search);
 
@@ -398,7 +397,7 @@ window.onload = function () {
     window.history.replaceState({}, document.title, "/");
   }
 
-};
+;
 
 // PLAN CONFIGURATION
 const PLANS = {
@@ -504,60 +503,71 @@ function stampWatermark() {
   ctx.fillText(text, x, y);
 
   ctx.restore();
+}
 
-
-const readFileURL = (f) => new Promise((res, rej) => { 
-  if (!f) return res(null); 
-  const r = new FileReader(); 
-  r.onload = () => res(r.result); 
-  r.onerror = rej; 
-  r.readAsDataURL(f); 
+const readFileURL = (f) => new Promise((res, rej) => {
+  if (!f) return res(null);
+  const r = new FileReader();
+  r.onload = () => res(r.result);
+  r.onerror = rej;
+  r.readAsDataURL(f);
 });
 
-const loadImage = (src) => new Promise((res, rej) => { 
-  const im = new Image(); 
-  im.onload = () => res(im); 
-  im.onerror = rej; 
-  im.src = src; 
+const loadImage = (src) => new Promise((res, rej) => {
+  const im = new Image();
+  im.onload = () => res(im);
+  im.onerror = rej;
+  im.src = src;
 });
-    let selfieLoader = null;
-    function ensureSelfieSegmentation(){
-      if (window.SelfieSegmentation) return Promise.resolve();
-      if (selfieLoader) return selfieLoader;
-      selfieLoader = new Promise((resolve,reject)=>{
-        const s=document.createElement('script');
-        s.src='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1/selfie_segmentation.js';
-        s.onload=()=>resolve(); 
-        s.onerror=()=>reject(new Error('mediapipe-load-failed'));
-        document.head.appendChild(s);
-      });
-      return selfieLoader;
-    }
-    
-    async function maskWithSelfie(img){
-      await ensureSelfieSegmentation();
-      const ss = new SelfieSegmentation({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}` });
-      ss.setOptions({ modelSelection: 1 });
-      const mc = document.createElement('canvas'); 
-      mc.width = img.width; 
-      mc.height = img.height;
-      await new Promise((resolve)=>{ 
-        ss.onResults((r)=>{ 
-          const m = mc.getContext('2d'); 
-          m.drawImage(r.segmentationMask,0,0,img.width,img.height); 
-          resolve(); 
-        }); 
-        ss.send({ image: img }); 
-      });
-      return mc;
-    }
 
-  // 5. AUTH & STATE
+let selfieLoader = null;
+
+function ensureSelfieSegmentation() {
+  if (window.SelfieSegmentation) return Promise.resolve();
+  if (selfieLoader) return selfieLoader;
+
+  selfieLoader = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1/selfie_segmentation.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("mediapipe-load-failed"));
+    document.head.appendChild(s);
+  });
+
+  return selfieLoader;
+}
+
+async function maskWithSelfie(img) {
+  await ensureSelfieSegmentation();
+
+  const ss = new SelfieSegmentation({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}`
+  });
+
+  ss.setOptions({ modelSelection: 1 });
+
+  const mc = document.createElement("canvas");
+  mc.width = img.width;
+  mc.height = img.height;
+
+  await new Promise((resolve) => {
+    ss.onResults((r) => {
+      const m = mc.getContext("2d");
+      m.drawImage(r.segmentationMask, 0, 0, img.width, img.height);
+      resolve();
+    });
+    ss.send({ image: img });
+  });
+
+  return mc;
+}
+
+// 5. AUTH & STATE
 
 function updatePlanUI() {
   try {
     // If Studio exists, redraw to remove/add watermark immediately
-    if (typeof Studio !== 'undefined' && Studio.redraw) {
+    if (typeof Studio !== "undefined" && Studio.redraw) {
       Studio.redraw();
     }
   } catch (e) {
@@ -572,16 +582,14 @@ function setPro(on) {
 
 async function refreshUserPlan() {
   const user = auth.currentUser;
-  const elUpgrade = document.getElementById('upgradeMsg');
+  const elUpgrade = document.getElementById("upgradeMsg");
 
-  // default
   setPro(false);
 
   if (!user) {
-    if (elTrialLeft) elTrialLeft.style.display = 'none';
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
-    if (elStatus) elStatus.textContent = 'Not signed in';
-    setPro(false);
+    if (elTrialLeft) elTrialLeft.style.display = "none";
+    if (elUpgrade) elUpgrade.style.display = "inline-block";
+    if (elStatus) elStatus.textContent = "Not signed in";
     return;
   }
 
@@ -589,10 +597,10 @@ async function refreshUserPlan() {
   if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
     if (elTrialLeft) {
       elTrialLeft.textContent = "👑 Owner Mode";
-      elTrialLeft.style.display = 'inline-block';
+      elTrialLeft.style.display = "inline-block";
     }
-    if (elUpgrade) elUpgrade.style.display = 'none';
-    if (elStatus) elStatus.textContent = 'Pro active (owner)';
+    if (elUpgrade) elUpgrade.style.display = "none";
+    if (elStatus) elStatus.textContent = "Pro active (owner)";
     setPro(true);
     return;
   }
@@ -609,7 +617,7 @@ async function refreshUserPlan() {
 
     const data = await res.json();
 
-    if (data.premium === true) {
+    if (data && data.premium === true) {
       setPro(true);
 
       if (elStatus) {
@@ -617,85 +625,43 @@ async function refreshUserPlan() {
         elStatus.textContent = `Pro active${planLabel}`;
       }
 
-      if (elUpgrade) elUpgrade.style.display = 'none';
+      if (elUpgrade) elUpgrade.style.display = "none";
+
+      if (elTrialLeft) {
+        elTrialLeft.textContent = "Pro Active";
+        elTrialLeft.style.display = "inline-block";
+      }
+
       return;
     }
 
     if (elStatus) elStatus.textContent = "Free plan";
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    if (elUpgrade) elUpgrade.style.display = "inline-block";
+    if (elTrialLeft) elTrialLeft.style.display = "none";
     setPro(false);
 
   } catch (err) {
     console.error("premium check failed", err);
     if (elStatus) elStatus.textContent = "Free plan";
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    if (elUpgrade) elUpgrade.style.display = "inline-block";
+    if (elTrialLeft) elTrialLeft.style.display = "none";
     setPro(false);
   }
 }
-
-  try {
-    const snap = await db.collection('users').doc(user.uid).get();
-    let isPro = false;
-    let expiresAtMillis = null;
-    let planKey = "free";
-
-    if (snap.exists) {
-      const d = snap.data() || {};
-      isPro = !!d.isPro || d.tier === 'pro';
-      
-      // Check subscription.expiry for new format
-      if (d.subscription?.expiresAt?.toMillis) {
-        expiresAtMillis = d.subscription.expiresAt.toMillis();
-        planKey = d.subscription?.type || "pro";
-      }
-      // Fallback to old trial format
-      else if (d.trial?.endsAt?.toMillis) {
-        expiresAtMillis = d.trial.endsAt.toMillis();
-        planKey = "trial7";
-      }
-    }
-    
-    const now = Date.now();
-    const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
-    const hasProTier = !!d.isPro || d.tier === "pro";
-    isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
-
-    if (isPro) {
-      if (elTrialLeft) {
-        if (expiresAtMillis) {
-          const leftMs = expiresAtMillis - now;
-          const days = Math.ceil(leftMs / 86400000);
-          const hours = Math.ceil(leftMs / 3600000);
-          const label =
-            planKey === "day" ? "Day Pass" :
-            planKey === "month" ? "Monthly Pro" :
-            planKey === "trial7" ? "Trial" :
-            planKey === "year" ? "Yearly Pro" : "Pro";
-          
-          elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
-        } else {
-          elTrialLeft.textContent = "Pro Active";
-        }
-        elTrialLeft.style.display = "inline-block";
-      }
-      if (elUpgrade) elUpgrade.style.display = "none";
-      setPro(true);
-      return;
-    }
-    
-    // Trial ended or no subscription
-    if (elTrialLeft) {
-      elTrialLeft.textContent = 'Trial ended';
-      elTrialLeft.style.display = 'inline-block';
-    }
     if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false);
-  } catch (e) {
-    console.error("Plan check error:", e);
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
-    setPro(false);
-  }
+  
 
+
+auth.onAuthStateChan
+  /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
+  setPayButtonsEnabled(!!user);
+  /* ==================================================ged asyncUser => =========== */
+
+  if (!user) 
+    elStatus.style.display = 'none';
+    btnLogout.style.display = 'none';
+    if(navSignIn) navSignIn.style.display = 'inline-block';
 
 auth.onAuthStateChanged(async user => {
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */

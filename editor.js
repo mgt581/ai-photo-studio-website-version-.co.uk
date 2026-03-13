@@ -28,14 +28,14 @@ async function refreshProFlag(user) {
   try {
     // Android stays watermark-free
     if (isAndroidApp) {
-      window.proEnabled = true;
+    setPro (true);
       return;
     }
 
     // If running standalone (editor.html), check Firestore
     if (typeof db === "undefined") {
       console.warn("Firestore 'db' not found. proEnabled forced false.");
-      window.proEnabled = false;
+      setPro(false);
       return;
     }
 
@@ -47,7 +47,7 @@ async function refreshProFlag(user) {
     const now = Math.floor(Date.now() / 1000);
 
     if (!snap.exists()) {
-      window.proEnabled = false;
+     setPro(false);
       return;
     }
 
@@ -65,7 +65,7 @@ async function refreshProFlag(user) {
     console.log("✅ proEnabled:", window.proEnabled, data);
   } catch (e) {
     console.error("refreshProFlag failed:", e);
-    window.proEnabled = false;
+    setPro(false);
   }
 }
 
@@ -98,17 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Android stays watermark-free
       if (isAndroidApp) {
-        window.proEnabled = true;
+        setPro(false);
         return;
       }
 
       // Initialize proEnabled to false for standalone use
-      window.proEnabled = false;
+      setPro(false);
 
       // Check if Firebase auth is available (defined in firebase-app-compat.js)
       if (typeof firebase === "undefined" || typeof firebase.auth === "undefined") {
         console.warn("Firebase 'auth' not found. proEnabled default false.");
-        window.proEnabled = false;
+        setPro(false);
         return;
       }
 
@@ -118,12 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
           await refreshProFlag(user);
         } else {
-          window.proEnabled = false;
+          setPro(false);
         }
       });
     } catch (e) {
       console.warn("Auth listener setup failed:", e);
-      window.proEnabled = false;
+      setPro(false);
     }
   })();
 });

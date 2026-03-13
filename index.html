@@ -247,28 +247,79 @@
     // Note: Firebase Functions not initialized - would require firebase-functions-compat.js
     // Uncomment the following line if firebase-functions is needed:
     // const functions = firebase.functions ? firebase.functions() : null;
+/* ===== 2. PAYMENT LINKS (Worker-based checkout) ===== */
 
-    // 2. PAYMENT LINKS
-    const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
-    const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
-    const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08";
-    
-    const btnDaily      = document.getElementById("btnDaily");
-    const btnMonthly    = document.getElementById("btnMonthly");
-    const btnTrialStart = document.getElementById("btnTrialStart");
+const btnDaily      = document.getElementById("btnDaily");
+const btnMonthly    = document.getElementById("btnMonthly");
+const btnTrialStart = document.getElementById("btnTrialStart");
 
-    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-/* ===== ADDED: Stripe gating (must be signed in) ===== */
-    function showPaySignInRequired() {
-      const msg = document.getElementById("payMsg");
-      if (msg) msg.style.display = "block";
-      // Use window.toast which is now exposed globally
-      if (typeof window.toast === "function") {
-        window.toast("Please sign in to start a Pro plan.");
+/* Start Stripe checkout through Worker */
+async function startCheckout(plan) {
+  const user = auth.currentUser;
+
+  if (!user || !user.uid) {
+    showPaySignInRequired();
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      "https://premium-status.alexbryant3234.workers.dev/create-checkout-session",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email || "",
+          plan: plan
+        })
       }
+    );
+
+    if (!res.ok) {
+      throw new Error("Checkout session failed");
     }
+
+    const data = await res.json();
+
+    if (!data.url) {
+      throw new Error("Stripe session URL missing");
+    }
+
+    window.location.href = data.url;
+
+  } catch (err) {
+    console.error("Checkout error:", err);
+    alert("Payment could not start. Please try again.");
+  }
+}
+
+/* Button bindings */
+if (btnDaily) {
+  btnDaily.onclick = () => startCheckout("day");
+}
+
+if (btnMonthly) {
+  btnMonthly.onclick = () => startCheckout("month");
+}
+
+if (btnTrialStart) {
+  btnTrialStart.onclick = () => startCheckout("trial7");
+}
+
+/* ===== Stripe gating (must be signed in) ===== */
+function showPaySignInRequired() {
+  const msg = document.getElementById("payMsg");
+
+  if (msg) msg.style.display = "block";
+
+  if (typeof window.toast === "function") {
+    window.toast("Please sign in to start a Pro plan.");
+  }
+}
+
 function requireSignInOrRedirect(actionLabel) {
   const user = auth.currentUser;
   if (user) return true;
@@ -283,7 +334,7 @@ function requireSignInOrRedirect(actionLabel) {
 
   return false;
 }
-    
+
 function hidePaySignInRequired() {
   const msg = document.getElementById("payMsg");
   if (msg) msg.style.display = "none";
@@ -300,27 +351,15 @@ function setPayButtonsEnabled(enabled) {
   if (enabled) hidePaySignInRequired();
 }
 
-function openStripe(url) {
-  const user = auth.currentUser;
-  if (!user) {
-    showPaySignInRequired();
-    return;
-  }
-  hidePaySignInRequired();
-  window.location.href = url;
-}
+
 /* ===================================================== */
 
 // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
 setPayButtonsEnabled(false);
 
-// Hook up buttons (kept, but now gated)
-if (btnDaily) btnDaily.onclick = () => openStripe(STRIPE_DAILY);
-if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
-if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
+
 
 window.onload = function () {
-
   // Always refresh plan when page loads
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -332,6 +371,9 @@ window.onload = function () {
     }
   });
 
+  }
+};
+
   const urlParams = new URLSearchParams(window.location.search);
 
   if (urlParams.get("payment") === "success") {
@@ -342,7 +384,6 @@ window.onload = function () {
       if (!user) return;
 
       if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
-        await activatePlan(plan, "Stripe");
         await refreshUserPlan();
       } else {
         toast("Payment success received, but plan missing.");
@@ -367,44 +408,9 @@ const PLANS = {
   year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
 };
 
-// Activate a specific plan
-async function activatePlan(planKey, source) {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const plan = PLANS[planKey];
-  if (!plan) {
-    console.error("Unknown plan:", planKey);
-    return;
-  }
-
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
-
-  const ref = db.collection("users").doc(user.uid);
-  await ref.set({
-    tier: "pro",
-    planType: plan.name,
-    subscription: {
-      type: planKey,
-      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt: expiresAt,
-      source: source
-    }
-  }, { merge: true });
-
-  // keep global state in sync immediately
-  setPro(true);
-
-  toast(`✅ ${plan.name} activated! Pro features unlocked.`);
-  await refreshUserPlan();
-}
-
-// Backwards compatibility
-async function activatePro(type) {
-  await activatePlan("year", type);
-}
-
+// keep global state in sync immediately
+setPro(false);
+  
 // 3. APP VARIABLES & DOM
 const elStatus    = document.getElementById("authStatus");
 const btnLogout   = document.getElementById("btnLogout");
@@ -457,7 +463,7 @@ function drawChecker() {
   }
 }
 
-Watermark() 
+function stampWatermark() {
   // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
@@ -546,7 +552,8 @@ const loadImage = (src) => new Promise((res, rej) => {
       return mc;
     }
 
-  // 5. AUTH & STATEfunction stamp
+  // 5. AUTH & STATE
+
 function updatePlanUI() {
   try {
     // If Studio exists, redraw to remove/add watermark immediately
@@ -565,20 +572,34 @@ function setPro(on) {
 
 async function refreshUserPlan() {
   const user = auth.currentUser;
+  const elUpgrade = document.getElementById('upgradeMsg');
 
   // default
-setPro(false);
+  setPro(false);
 
   if (!user) {
-    if (elStatus) elStatus.textContent = "Not signed in";
+    if (elTrialLeft) elTrialLeft.style.display = 'none';
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+    if (elStatus) elStatus.textContent = 'Not signed in';
+    setPro(false);
+    return;
+  }
+
+  // owner bypass
+  if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
+    if (elTrialLeft) {
+      elTrialLeft.textContent = "👑 Owner Mode";
+      elTrialLeft.style.display = 'inline-block';
+    }
+    if (elUpgrade) elUpgrade.style.display = 'none';
+    if (elStatus) elStatus.textContent = 'Pro active (owner)';
+    setPro(true);
     return;
   }
 
   try {
-    const uid = user.uid;
-
     const res = await fetch(
-      `https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(uid)}`,
+      `https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`,
       { method: "GET" }
     );
 
@@ -589,28 +610,26 @@ setPro(false);
     const data = await res.json();
 
     if (data.premium === true) {
-    setPro(true);
+      setPro(true);
 
       if (elStatus) {
         const planLabel = data.plan ? ` (${data.plan})` : "";
         elStatus.textContent = `Pro active${planLabel}`;
       }
 
+      if (elUpgrade) elUpgrade.style.display = 'none';
       return;
     }
 
+    if (elStatus) elStatus.textContent = "Free plan";
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false);
 
-    if (elStatus) {
-      elStatus.textContent = "Free plan";
-    }
   } catch (err) {
-    console.error("refreshUserPlan error:", err);
+    console.error("premium check failed", err);
+    if (elStatus) elStatus.textContent = "Free plan";
+    if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false);
-
-    if (elStatus) {
-      elStatus.textContent = "Free plan";
-    }
   }
 }
 
@@ -1146,7 +1165,7 @@ async function applyInpaintHDPlus() {
         mhd.filter = 'none'; mhd.globalCompositeOperation = 'source-over';
       } catch(_) {}
 
-      const inputImage = await createImageBitmap(off);
+const inputImage = await createImageBitmap(off);
       const maskImage  = await createImageBitmap(maskHD);
 
       let pct = 0; showProgress('HD+ inpainting…', pct);

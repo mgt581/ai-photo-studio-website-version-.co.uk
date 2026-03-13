@@ -1,4 +1,4 @@
-name = "premium-status"
+name = "premuim-status"
 main = "worker.js"
 compatibility_date = "2026-03-12"
 workers_dev = true

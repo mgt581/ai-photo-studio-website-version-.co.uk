@@ -584,32 +584,42 @@ async function refreshUserPlan() {
     return;
   }
 
-  try {
+    try {
     const snap = await db.collection('users').doc(user.uid).get();
+    const d = snap.exists ? (snap.data() || {}) : {};
+
     let isPro = false;
     let expiresAtMillis = null;
     let planKey = "free";
 
-    if (snap.exists) {
-      const d = snap.data() || {};
-      isPro = !!d.isPro || d.tier === 'pro';
-      
-      // Check subscription.expiry for new format
-      if (d.subscription?.expiresAt?.toMillis) {
-        expiresAtMillis = d.subscription.expiresAt.toMillis();
-        planKey = d.subscription?.type || "pro";
-      }
-      // Fallback to old trial format
-      else if (d.trial?.endsAt?.toMillis) {
-        expiresAtMillis = d.trial.endsAt.toMillis();
-        planKey = "trial7";
-      }
+    if (d.subscription?.expiresAt?.toMillis) {
+      expiresAtMillis = d.subscription.expiresAt.toMillis();
+      planKey = d.subscription?.type || "pro";
+    } else if (d.trial?.endsAt?.toMillis) {
+      expiresAtMillis = d.trial.endsAt.toMillis();
+      planKey = "trial7";
     }
-    
+
     const now = Date.now();
     const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
     const hasProTier = !!d.isPro || d.tier === "pro";
     isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
+
+    // Fallback to worker premium check
+    if (!isPro) {
+      try {
+        const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+        const workerData = await res.json();
+
+        if (workerData && workerData.premium === true) {
+          isPro = true;
+          expiresAtMillis = workerData.expiresAt || null;
+          planKey = workerData.plan || "pro";
+        }
+      } catch (err) {
+        console.warn("Worker premium check failed:", err);
+      }
+    }
 
     if (isPro) {
       if (elTrialLeft) {
@@ -617,36 +627,83 @@ async function refreshUserPlan() {
           const leftMs = expiresAtMillis - now;
           const days = Math.ceil(leftMs / 86400000);
           const hours = Math.ceil(leftMs / 3600000);
+
           const label =
             planKey === "day" ? "Day Pass" :
             planKey === "month" ? "Monthly Pro" :
             planKey === "trial7" ? "Trial" :
             planKey === "year" ? "Yearly Pro" : "Pro";
-          
-          elTrialLeft.textContent = days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
+
+          elTrialLeft.textContent =
+            days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
         } else {
           elTrialLeft.textContent = "Pro Active";
         }
+
         elTrialLeft.style.display = "inline-block";
       }
+
       if (elUpgrade) elUpgrade.style.display = "none";
       setPro(true);
       return;
     }
-    
-    // Trial ended or no subscription
+
     if (elTrialLeft) {
-      elTrialLeft.textContent = 'Trial ended';
-      elTrialLeft.style.display = 'inline-block';
+      elTrialLeft.textContent = "Trial ended";
+      elTrialLeft.style.display = "inline-block";
     }
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+
+    if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
+
   } catch (e) {
     console.error("Plan check error:", e);
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
+
+    // Last-resort fallback: try worker even if Firestore check throws
+    try {
+      const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+      const workerData = await res.json();
+
+      if (workerData && workerData.premium === true) {
+        if (elUpgrade) elUpgrade.style.display = "none";
+
+        if (elTrialLeft) {
+          const now = Date.now();
+          const expiresAtMillis = workerData.expiresAt || null;
+          const planKey = workerData.plan || "pro";
+
+          if (expiresAtMillis) {
+            const leftMs = expiresAtMillis - now;
+            const days = Math.ceil(leftMs / 86400000);
+            const hours = Math.ceil(leftMs / 3600000);
+
+            const label =
+              planKey === "day" ? "Day Pass" :
+              planKey === "month" ? "Monthly Pro" :
+              planKey === "trial7" ? "Trial" :
+              planKey === "year" ? "Yearly Pro" : "Yearly Pro";
+
+            elTrialLeft.textContent =
+              days > 0 ? `${label} • ${days}d left` : `${label} • ${hours}h left`;
+          } else {
+            elTrialLeft.textContent = "Pro Active";
+          }
+
+          elTrialLeft.style.display = "inline-block";
+        }
+
+        setPro(true);
+        return;
+      }
+    } catch (err) {
+      console.warn("Worker fallback also failed:", err);
+    }
+
+    if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
   }
-}
+}    
+    
 
 auth.onAuthStateChanged(async user => {
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */

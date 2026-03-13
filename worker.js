@@ -1,4 +1,4 @@
- // worker.js (Cloudflare Worker - Module syntax)
+// worker.js (Cloudflare Worker - Module syntax)
 // live test deploy
 
 const CORS_HEADERS = {

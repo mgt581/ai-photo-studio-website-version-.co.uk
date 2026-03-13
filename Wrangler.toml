@@ -1,0 +1,8 @@
+name = "premium-status"
+main = "worker.js"
+compatibility_date = "2026-03-12"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "PREMIUM"
+id = "e993a4cd441f45e4a1b2a6c88031f41c"

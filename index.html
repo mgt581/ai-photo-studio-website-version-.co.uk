@@ -327,7 +327,7 @@ window.onload = function () {
       await refreshUserPlan();
       setPayButtonsEnabled(true);
     } else {
-      window.proEnabled = false;
+      setPro(false);
       setPayButtonsEnabled(false);
     }
   });
@@ -394,7 +394,7 @@ async function activatePlan(planKey, source) {
   }, { merge: true });
 
   // keep global state in sync immediately
-  window.proEnabled = true;
+  setPro(true);
 
   toast(`✅ ${plan.name} activated! Pro features unlocked.`);
   await refreshUserPlan();
@@ -413,7 +413,7 @@ const navSignIn   = document.getElementById("navSignIn");
 const navSignUp   = document.getElementById("navSignUp");
 
 // IMPORTANT: use one global source of truth
-window.proEnabled = false;
+setPro(false);
 
 const $status = document.getElementById("status");
 const stage   = document.getElementById("stage");
@@ -457,7 +457,7 @@ function drawChecker() {
   }
 }
 
-function stampWatermark() {
+Watermark() 
   // Android app version = never show watermark
   if (window.__AIPS_IS_ANDROID_APP__) return;
 
@@ -498,7 +498,7 @@ function stampWatermark() {
   ctx.fillText(text, x, y);
 
   ctx.restore();
-}
+
 
 const readFileURL = (f) => new Promise((res, rej) => { 
   if (!f) return res(null); 
@@ -546,7 +546,7 @@ const loadImage = (src) => new Promise((res, rej) => {
       return mc;
     }
 
-  // 5. AUTH & STATE
+  // 5. AUTH & STATEfunction stamp
 function updatePlanUI() {
   try {
     // If Studio exists, redraw to remove/add watermark immediately
@@ -565,24 +565,54 @@ function setPro(on) {
 
 async function refreshUserPlan() {
   const user = auth.currentUser;
-  const elUpgrade = document.getElementById('upgradeMsg');
 
-  if (!user) { 
-    if (elTrialLeft) elTrialLeft.style.display = 'none';
-    if (elUpgrade) elUpgrade.style.display = 'inline-block';
-    setPro(false); 
-    return; 
-  }
-  
-  if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
-    if (elTrialLeft) {
-      elTrialLeft.textContent = '👑 Owner Mode';
-      elTrialLeft.style.display = 'inline-block';
-    }
-    if (elUpgrade) elUpgrade.style.display = 'none';
-    setPro(true); 
+  // default
+setPro(false);
+
+  if (!user) {
+    if (elStatus) elStatus.textContent = "Not signed in";
     return;
   }
+
+  try {
+    const uid = user.uid;
+
+    const res = await fetch(
+      `https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(uid)}`,
+      { method: "GET" }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Worker check failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    if (data.premium === true) {
+    setPro(true);
+
+      if (elStatus) {
+        const planLabel = data.plan ? ` (${data.plan})` : "";
+        elStatus.textContent = `Pro active${planLabel}`;
+      }
+
+      return;
+    }
+
+    setPro(false);
+
+    if (elStatus) {
+      elStatus.textContent = "Free plan";
+    }
+  } catch (err) {
+    console.error("refreshUserPlan error:", err);
+    setPro(false);
+
+    if (elStatus) {
+      elStatus.textContent = "Free plan";
+    }
+  }
+}
 
   try {
     const snap = await db.collection('users').doc(user.uid).get();
@@ -646,7 +676,7 @@ async function refreshUserPlan() {
     if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false);
   }
-}
+
 
 auth.onAuthStateChanged(async user => {
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */

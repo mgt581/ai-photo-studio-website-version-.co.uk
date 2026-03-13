@@ -199,7 +199,7 @@
       <div class="content">
         <div style="padding:10px 0;">
           <p style="font-size:14px; color:#374151; margin-bottom:12px;">Need assistance? We are here to help.</p>
-          <button class="btn btn-subtle" onclick="window.location.href='mailto:support@aiphotostudio.co.uk'">Contact Support</button>
+          <button class="btn btn-subtle" onclick="window.location.href='mailto:alex@bryantdigitalsolutions.com'">Contact Support</button>
           <div style="margin-top:16px; font-size:13px; color:#6b7280; text-align:center;">
             <p>Version: 2.5.0</p>
             <p>
@@ -267,10 +267,10 @@
     let expiresAtMillis = null;
 
     try {
-      const res = await fetch(`https://premium-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+      const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);      
       const data = await res.json();
 
-      if (data && data.premium === true) {
+    if (data && data.premium === true) {
         const now = Date.now();
         const expiresAt = Number(data.expiresAt || 0);
         expiresAtMillis = expiresAt > now ? expiresAt : null;

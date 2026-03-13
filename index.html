@@ -367,6 +367,24 @@ const PLANS = {
   year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
 };
 
+    // PREMIUM SECURITY CHECK
+async function verifyPremiumAccess() {
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  try {
+    const res = await fetch(
+      `https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`
+    );
+
+    const data = await res.json();
+    return data && data.premium === true;
+
+  } catch (e) {
+    console.warn("Premium verification failed:", e);
+    return false;
+  }
+}    
 // Activate a specific plan
 async function activatePlan(planKey, source) {
   const user = auth.currentUser;

@@ -77,7 +77,9 @@
       const hasAndroidBridge = typeof window.Android !== 'undefined';
       let androidInterfaceActive = false;
       if (hasAndroidBridge) {
-        try { androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true; } catch (e) {}
+        try { androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true; } catch (e) {
+          console.warn('[AIPS] Android bridge check failed:', e);
+        }
       }
       window.__AIPS_IS_ANDROID_APP__ = forcedApp || androidInterfaceActive || (isAndroid && (isWv || hasAndroidBridge));
     })();

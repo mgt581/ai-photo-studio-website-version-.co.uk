@@ -144,13 +144,25 @@
             const actions = document.createElement("div");
             actions.className = "actions";
 
-            // Download Link
-            const dlBtn = document.createElement("a");
+            // Save to device button (fetch-as-blob so cross-origin download works)
+            const dlBtn = document.createElement("button");
             dlBtn.className = "btn btn-sm btn-outline";
             dlBtn.textContent = "Save";
-            dlBtn.href = data.url;
-            dlBtn.target = "_blank";
-            dlBtn.download = "ai-photo.png";
+            dlBtn.onclick = async () => {
+              try {
+                const resp = await fetch(data.url);
+                const blob = await resp.blob();
+                const objUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = objUrl;
+                link.download = "ai-photo.png";
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(objUrl), 500);
+              } catch (e) {
+                console.error("Save failed:", e);
+                window.open(data.url, "_blank");
+              }
+            };
 
             // Delete Button
             const delBtn = document.createElement("button");

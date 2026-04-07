@@ -67,6 +67,27 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
   <script>
+    // Play Store / Android WebView detection (mirrors index.html logic)
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+      const hasAndroidBridge = typeof window.Android !== 'undefined';
+      let androidInterfaceActive = false;
+      if (hasAndroidBridge) {
+        try { androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true; } catch (e) {
+          console.warn('[AIPS] Android bridge check failed:', e);
+        }
+      }
+      window.__AIPS_IS_ANDROID_APP__ = forcedApp || androidInterfaceActive || (isAndroid && (isWv || hasAndroidBridge));
+    })();
+
+    // In Play Store / Android WebView, the cloud gallery is not available
+    if (window.__AIPS_IS_ANDROID_APP__) {
+      document.getElementById("status").textContent = "Gallery is not available in the app. Your images are saved locally on your device.";
+    } else {
     const firebaseConfig = {
       apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
       authDomain: "ai-photo-studio-24354.firebaseapp.com",
@@ -168,6 +189,8 @@
         alert("Failed to delete. Check if your Firebase Storage Rules allow deletion.");
       }
     }
+
+    } // end !isPlayApp
   </script>
 
 </body>

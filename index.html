@@ -122,6 +122,16 @@
     html.android-app #upgradeMsg {
       display: none !important;
     }
+
+    /* Android app: hide all authentication UI (sign-in, sign-up, sign-out, status, gallery link) */
+    html.android-app #navSignIn,
+    html.android-app #navSignUp,
+    html.android-app #btnLogout,
+    html.android-app #authStatus,
+    html.android-app #payMsg,
+    html.android-app a[href="gallery.html"] {
+      display: none !important;
+    }
     
     /* Also hide watermark on editor.html for Android app users */
     html.android-app .watermark {
@@ -312,7 +322,9 @@ function openStripe(url) {
 /* ===================================================== */
 
 // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
-setPayButtonsEnabled(false);
+if (!window.__AIPS_IS_ANDROID_APP__) {
+  setPayButtonsEnabled(false);
+}
 
 // Hook up buttons (kept, but now gated)
 if (btnDaily) btnDaily.onclick = () => openStripe(STRIPE_DAILY);
@@ -321,41 +333,44 @@ if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
 
 window.onload = function () {
 
-  // Always refresh plan when page loads
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      await refreshUserPlan();
-      setPayButtonsEnabled(true);
-    } else {
-      window.proEnabled = false;
-      setPayButtonsEnabled(false);
-    }
-  });
-
-  const urlParams = new URLSearchParams(window.location.search);
-
-  if (urlParams.get("payment") === "success") {
-
-    const plan = (urlParams.get("plan") || "").toLowerCase();
-
+  // Auth-dependent initialisation: skip entirely in Play Store / Android WebView
+  if (!window.__AIPS_IS_ANDROID_APP__) {
+    // Always refresh plan when page loads
     auth.onAuthStateChanged(async (user) => {
-      if (!user) return;
-
-      if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
-        await activatePlan(plan, "Stripe");
+      if (user) {
         await refreshUserPlan();
+        setPayButtonsEnabled(true);
       } else {
-        toast("Payment success received, but plan missing.");
+        window.proEnabled = false;
+        setPayButtonsEnabled(false);
       }
-
-      window.history.replaceState({}, document.title, "/");
     });
-  }
 
-  if (urlParams.get("payment") === "cancel") {
-    toast("Payment cancelled");
-    window.history.replaceState({}, document.title, "/");
-  }
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.get("payment") === "success") {
+
+      const plan = (urlParams.get("plan") || "").toLowerCase();
+
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) return;
+
+        if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
+          await activatePlan(plan, "Stripe");
+          await refreshUserPlan();
+        } else {
+          toast("Payment success received, but plan missing.");
+        }
+
+        window.history.replaceState({}, document.title, "/");
+      });
+    }
+
+    if (urlParams.get("payment") === "cancel") {
+      toast("Payment cancelled");
+      window.history.replaceState({}, document.title, "/");
+    }
+  } // end !isPlayApp
 
 };
 
@@ -724,6 +739,9 @@ async function refreshUserPlan() {
     
 
 auth.onAuthStateChanged(async user => {
+  // Skip all auth UI logic when running inside Play Store / Android WebView
+  if (window.__AIPS_IS_ANDROID_APP__) return;
+
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
   setPayButtonsEnabled(!!user);
   /* ============================================================= */

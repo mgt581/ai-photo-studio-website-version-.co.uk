@@ -122,6 +122,11 @@
     html.android-app #upgradeMsg {
       display: none !important;
     }
+
+    /* Android app: hide all header buttons, keep web unchanged */
+    html.android-app header .row {
+      display: none !important;
+    }
     
     /* Also hide watermark on editor.html for Android app users */
     html.android-app .watermark {

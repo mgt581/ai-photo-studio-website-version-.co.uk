@@ -62,6 +62,15 @@
       if (isAndroidApp) {
         document.documentElement.classList.add('android-app');
         console.log('[AIPS] Android app detected:', { isPlatformAndroid, androidInterfaceActive, isAndroid, isWv, hasAndroidBridge, isSecure });
+        // Update save button label and hint for Android app users
+        document.addEventListener('DOMContentLoaded', function () {
+          var btn = document.getElementById('btnSaveGallery');
+          if (btn) btn.textContent = 'Save to Device';
+          var hints = document.querySelectorAll('.card.actions .hint');
+          hints.forEach(function (h) {
+            h.textContent = 'Images are saved directly to your device.';
+          });
+        });
       }
     })();
   </script>
@@ -770,6 +779,8 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
     // 6. GALLERY SAVING
     async function saveToGalleryIfSignedIn(blob, type){
+      // Android app users: skip cloud gallery — images are saved directly to device
+      if (window.__AIPS_IS_ANDROID_APP__) return;
       const user = auth.currentUser;
       if (!user) return; 
 

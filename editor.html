@@ -183,6 +183,41 @@
       if (btn) btn.textContent = 'Save to Device';
     }
   })();
+
+  // ── TEMPORARY DEBUG PANEL ──────────────────────────────────────────────────
+  // Remove this block once the Android save issue is confirmed fixed.
+  (function () {
+    var checks = [
+      ['Page is editor.html',        /editor\.html/i.test(window.location.pathname) || window.location.pathname === '/'],
+      ['isAndroidApp',               typeof isAndroidApp !== 'undefined' ? isAndroidApp : '(not defined)'],
+      ['navigator.share available',  typeof navigator.share === 'function'],
+      ['saveBtn → downloadFinalImage()', (function () {
+        var btn = document.getElementById('saveBtn');
+        if (!btn) return false;
+        var attr = btn.getAttribute('onclick') || '';
+        return /downloadFinalImage\s*\(\s*\)/.test(attr);
+      })()]
+    ];
+
+    var panel = document.createElement('div');
+    panel.id = 'aips-debug-panel';
+    panel.style.cssText = [
+      'position:fixed', 'bottom:10px', 'left:10px', 'right:10px',
+      'background:rgba(0,0,0,0.82)', 'color:#fff', 'font:13px/1.6 monospace',
+      'padding:10px 14px', 'border-radius:8px', 'z-index:99999',
+      'pointer-events:none', 'white-space:pre-wrap'
+    ].join(';');
+
+    var lines = ['🛠 AIPS debug (editor)'];
+    checks.forEach(function (c) {
+      var ok = c[1] === true;
+      var icon = ok ? '✅' : (c[1] === false ? '❌' : '⚠️');
+      lines.push(icon + ' ' + c[0] + ': ' + c[1]);
+    });
+    panel.textContent = lines.join('\n');
+    document.body.appendChild(panel);
+  })();
+  // ── END TEMPORARY DEBUG PANEL ──────────────────────────────────────────────
 </script>
 
 </body>

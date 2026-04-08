@@ -107,6 +107,23 @@
 
     <!-- ONNX RUNTIME -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
+    <!-- Android app detection (mirrors index.html logic) -->
+    <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
+      var ua = navigator.userAgent || '';
+      var isAndroid = /Android/i.test(ua);
+      var isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+      var hasAndroidBridge = typeof window.Android !== 'undefined';
+      var androidInterfaceActive = false;
+      if (hasAndroidBridge) {
+        try { androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true; } catch (e) {}
+      }
+      window.__AIPS_IS_ANDROID_APP__ = forcedApp || androidInterfaceActive || (isAndroid && (isWv || hasAndroidBridge));
+    })();
+    </script>
 </head>
 
 <body>
@@ -140,7 +157,7 @@
 
     <div id="toolControls" class="tool-controls"></div>
 
-    <button class="download-btn pill-btn" onclick="downloadFinalImage()">Download Image</button>
+    <button class="download-btn pill-btn" id="saveBtn" onclick="downloadFinalImage()">Download Image</button>
 
 </div>
 
@@ -158,6 +175,14 @@
     // This is a fallback for any direct calls
     console.log("Color picker should be accessed via the 'Choose Color' mode button");
   }
+
+  // Update save button label for Android users
+  (function () {
+    if (window.__AIPS_IS_ANDROID_APP__) {
+      var btn = document.getElementById('saveBtn');
+      if (btn) btn.textContent = 'Save to Device';
+    }
+  })();
 </script>
 
 </body>

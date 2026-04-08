@@ -16,9 +16,23 @@ let imageElement = null;
 // For editor.html standalone use, we check auth and Firestore
 
 /**
- * Check if running in Android app (WebView)
+ * Check if running in Android app (TWA / WebView).
+ * editor.html may be navigated to directly (without the index.html detection
+ * script), so we also check the URL parameter and user-agent as fallbacks.
  */
-const isAndroidApp = window.__AIPS_IS_ANDROID_APP__ === true;
+const isAndroidApp = (() => {
+  if (window.__AIPS_IS_ANDROID_APP__ === true) return true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if ((params.get('app') === '1') || (params.get('platform') === 'android')) return true;
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+    const hasAndroidBridge = typeof window.Android !== 'undefined';
+    if (isAndroid && (isWv || hasAndroidBridge)) return true;
+  } catch (_) {}
+  return false;
+})();
 
 /**
  * Web app: reads pro status from Firestore users/{uid}
@@ -608,6 +622,9 @@ function updatePreview() {
  * ✅ Download the final edited image (TRUE transparent PNG)
  * - Never bakes the checkerboard
  * - Keeps alpha when transparent selected
+ * - On Android (TWA) uses the Web Share API so the image lands in the
+ *   device Photos/Gallery app; falls back to a DOM-attached anchor for
+ *   desktop browsers that don't support file sharing.
  */
 function downloadFinalImage() {
     if (!editorCanvas) return;
@@ -637,13 +654,43 @@ function downloadFinalImage() {
         octx.drawImage(editorCanvas, 0, 0);
     }
 
-    out.toBlob((blob) => {
+    out.toBlob(async (blob) => {
         if (!blob) return;
+
+        const filename = 'ai-photo-studio-edited.png';
+
+        // On Android, use the Web Share API with a File object.
+        // This opens the system share-sheet and lets the user save directly
+        // to the Photos / Gallery app (or any other app).
+        if (isAndroidApp && navigator.share) {
+            try {
+                const file = new File([blob], filename, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'AI Photo Studio'
+                    });
+                    return;
+                }
+            } catch (err) {
+                // User cancelled or share failed — fall through to anchor download
+                if (err && err.name !== 'AbortError') {
+                    console.warn('[AIPS] Web Share failed, falling back to download:', err);
+                }
+            }
+        }
+
+        // Fallback: create a DOM-attached anchor and trigger a file download.
+        // Attaching to the document ensures the click works in all browsers
+        // (detached anchors are unreliable in some Chrome versions).
+        const objUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = 'ai-photo-studio-edited.png';
-        link.href = URL.createObjectURL(blob);
+        link.href = objUrl;
+        link.download = filename;
+        document.body.appendChild(link);
         link.click();
-        setTimeout(() => URL.revokeObjectURL(link.href), 500);
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(objUrl), 500);
     }, 'image/png', 0.95);
 }
 

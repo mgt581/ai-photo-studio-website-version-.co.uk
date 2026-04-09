@@ -42,7 +42,7 @@ async function refreshProFlag(user) {
   try {
     // Android stays watermark-free
     if (isAndroidApp) {
-    setPro (true);
+    setPro(true);
       return;
     }
 
@@ -110,9 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hook into auth state so proEnabled updates after login (web)
   (async () => {
     try {
-      // Android stays watermark-free
+      // Android stays watermark-free (no subscription required)
       if (isAndroidApp) {
-        setPro(false);
+        setPro(true);
         return;
       }
 
@@ -662,15 +662,39 @@ function downloadFinalImage() {
         // On Android, use the Web Share API with a File object.
         // This opens the system share-sheet and lets the user save directly
         // to the Photos / Gallery app (or any other app).
-        if (isAndroidApp && navigator.share) {
+        if (isAndroidApp && typeof navigator.share === 'function') {
+            // Debug: log share capability so issues can be diagnosed
+            console.log('[AIPS] isAndroidApp:', isAndroidApp);
+            console.log('[AIPS] typeof navigator.share:', typeof navigator.share);
+            console.log('[AIPS] typeof navigator.canShare:', typeof navigator.canShare);
+
             try {
                 const file = new File([blob], filename, { type: 'image/png' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+                const canShareFiles = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+                console.log('[AIPS] canShare({ files }):', canShareFiles);
+
+                if (canShareFiles) {
+                    // Prefer file share — lands directly in Photos/Gallery
                     await navigator.share({
                         files: [file],
                         title: 'AI Photo Studio'
                     });
                     return;
+                }
+
+                // File sharing not supported; fall back to URL-based share so the
+                // user still gets a system share-sheet rather than a silent anchor click.
+                const objUrlShare = URL.createObjectURL(blob);
+                try {
+                    await navigator.share({
+                        title: 'AI Photo Studio',
+                        text: 'Save this edited image',
+                        url: objUrlShare
+                    });
+                    return;
+                } finally {
+                    setTimeout(() => URL.revokeObjectURL(objUrlShare), 500);
                 }
             } catch (err) {
                 // User cancelled or share failed — fall through to anchor download

@@ -1310,13 +1310,28 @@ if ('serviceWorker' in navigator) {
 document.getElementById('btnSaveGallery').addEventListener('click', () => {
   stage.toBlob((blob) => {
     if (!blob) return alert("No image to save.");
+
+    // ✅ ANDROID APP — use native save
+    if (window.Android && typeof window.Android.saveBase64Image === "function") {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result.split(",")[1];
+        window.Android.saveBase64Image(base64, "photo-studio.png", "image/png");
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+
+    // 🌐 WEB — normal behaviour
     saveToGalleryIfSignedIn(blob, "png");
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "photo-studio.png";
     a.click();
     URL.revokeObjectURL(url);
+
   }, "image/png", 0.95);
 });
 

@@ -42,7 +42,7 @@ async function refreshProFlag(user) {
   try {
     // Android stays watermark-free
     if (isAndroidApp) {
-    setPro (true);
+      setPro(true);
       return;
     }
 
@@ -61,7 +61,7 @@ async function refreshProFlag(user) {
     const now = Math.floor(Date.now() / 1000);
 
     if (!snap.exists()) {
-     setPro(false);
+      setPro(false);
       return;
     }
 
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Android stays watermark-free
       if (isAndroidApp) {
-        setPro(false);
+        setPro(true);
         return;
       }
 
@@ -622,9 +622,8 @@ function updatePreview() {
  * ✅ Download the final edited image (TRUE transparent PNG)
  * - Never bakes the checkerboard
  * - Keeps alpha when transparent selected
- * - On Android (TWA) uses the Web Share API so the image lands in the
- *   device Photos/Gallery app; falls back to a DOM-attached anchor for
- *   desktop browsers that don't support file sharing.
+ * - On Android (TWA) prefers Web Share; falls back to normal share,
+ *   then finally to a DOM-attached anchor download.
  */
 function downloadFinalImage() {
     if (!editorCanvas) return;
@@ -632,7 +631,11 @@ function downloadFinalImage() {
     // If the picker exists and is currently "transparent", prefer exporting from snapshot
     let wantTransparent = false;
     try {
-        if (typeof BackgroundColorPicker !== 'undefined' && BackgroundColorPicker && BackgroundColorPicker.getSelectedColor) {
+        if (
+            typeof BackgroundColorPicker !== 'undefined' &&
+            BackgroundColorPicker &&
+            BackgroundColorPicker.getSelectedColor
+        ) {
             wantTransparent = (BackgroundColorPicker.getSelectedColor() === null);
         }
     } catch (_) {}
@@ -646,7 +649,12 @@ function downloadFinalImage() {
     // Always clear first => alpha guaranteed
     octx.clearRect(0, 0, out.width, out.height);
 
-    if (wantTransparent && transparentSnapshot && snapshotW === out.width && snapshotH === out.height) {
+    if (
+        wantTransparent &&
+        transparentSnapshot &&
+        snapshotW === out.width &&
+        snapshotH === out.height
+    ) {
         // ✅ Export the true-alpha pixels (not the possibly flattened preview)
         octx.putImageData(transparentSnapshot, 0, 0);
     } else {
@@ -659,18 +667,42 @@ function downloadFinalImage() {
 
         const filename = 'ai-photo-studio-edited.png';
 
-        // On Android, use the Web Share API with a File object.
-        // This opens the system share-sheet and lets the user save directly
-        // to the Photos / Gallery app (or any other app).
-        if (isAndroidApp && navigator.share) {
+        console.log('[AIPS save debug]', {
+            isAndroidApp,
+            hasShare: typeof navigator.share === 'function',
+            hasCanShare: typeof navigator.canShare === 'function'
+        });
+
+        // Android app path
+        if (isAndroidApp && typeof navigator.share === 'function') {
             try {
                 const file = new File([blob], filename, { type: 'image/png' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+                // Best case: Android supports file sharing directly
+                if (
+                    typeof navigator.canShare === 'function' &&
+                    navigator.canShare({ files: [file] })
+                ) {
+                    console.log('[AIPS save debug] using navigator.share with file');
                     await navigator.share({
                         files: [file],
                         title: 'AI Photo Studio'
                     });
                     return;
+                }
+
+                // Still try standard share before dropping to anchor download
+                const objUrl = URL.createObjectURL(blob);
+                try {
+                    console.log('[AIPS save debug] using navigator.share with url fallback');
+                    await navigator.share({
+                        title: 'AI Photo Studio',
+                        text: 'Save this edited image',
+                        url: objUrl
+                    });
+                    return;
+                } finally {
+                    setTimeout(() => URL.revokeObjectURL(objUrl), 1500);
                 }
             } catch (err) {
                 // User cancelled or share failed — fall through to anchor download
@@ -680,9 +712,7 @@ function downloadFinalImage() {
             }
         }
 
-        // Fallback: create a DOM-attached anchor and trigger a file download.
-        // Attaching to the document ensures the click works in all browsers
-        // (detached anchors are unreliable in some Chrome versions).
+        // Final fallback: create a DOM-attached anchor and trigger a file download.
         const objUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objUrl;
@@ -690,7 +720,7 @@ function downloadFinalImage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(objUrl), 500);
+        setTimeout(() => URL.revokeObjectURL(objUrl), 1500);
     }, 'image/png', 0.95);
 }
 

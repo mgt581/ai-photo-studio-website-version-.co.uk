@@ -86,3 +86,22 @@
   justify-content: center;
 }
 
+/* Site-wide footer */
+.site-footer {
+  padding: 20px 16px;
+  text-align: center;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.7;
+}
+.site-footer a {
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 600;
+}
+.site-footer a:hover {
+  text-decoration: underline;
+}
+

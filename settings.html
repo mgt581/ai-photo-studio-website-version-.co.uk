@@ -105,6 +105,9 @@
     .footer { padding: 24px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; }
     .back-link { text-decoration: none; color: #6b7280; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; transition: background 0.2s; }
     .back-link:hover { background: #e5e7eb; color: #111827; }
+    .site-footer { padding: 20px 16px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; line-height: 1.7; }
+    .site-footer a { color: #4f46e5; text-decoration: none; font-weight: 600; }
+    .site-footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -418,5 +421,11 @@
   if (nEmail) nEmail.addEventListener('change', e => localStorage.setItem('set_notif_email', e.target.checked));
   if (nBrowser) nBrowser.addEventListener('change', e => localStorage.setItem('set_notif_browser', e.target.checked));
 </script>
+
+<footer class="site-footer">
+  AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a><br>
+  Built for fast, professional image editing<br>
+  Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>
+</footer>
 </body>
 </html>

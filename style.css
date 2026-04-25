@@ -4,22 +4,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  padding: 12px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #18c8ee, #5ad2df);
   color: #ffffff;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 850;
   cursor: pointer;
-  transition: all 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  transition: all 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 16px 32px rgba(13, 165, 213, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-decoration: none;
 }
 
 .pill-btn:hover {
-  background: linear-gradient(135deg, #4338ca, #4f46e5);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45);
+  filter: brightness(1.06);
+  box-shadow: 0 20px 38px rgba(13, 165, 213, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .pill-btn:active {
@@ -28,31 +28,31 @@
 
 .pill-btn:disabled,
 .pill-btn[disabled] {
-  opacity: 0.5;
+  opacity: 0.62;
+  color: rgba(238, 246, 255, 0.66);
   cursor: not-allowed;
+  filter: grayscale(0.35);
   box-shadow: none;
 }
 
 /* Secondary button - slate gray */
 .pill-btn-secondary {
-  background: linear-gradient(135deg, #64748b, #788292);
-  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+  background: linear-gradient(135deg, #22324a, #5f7187);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .pill-btn-secondary:hover {
-  background: linear-gradient(135deg, #475569, #64748b);
-  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.4);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* Success button - green */
 .pill-btn-success {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+  background: linear-gradient(135deg, #13c873, #43d98f);
+  box-shadow: 0 16px 32px rgba(19, 200, 115, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .pill-btn-success:hover {
-  background: linear-gradient(135deg, #15803d, #16a34a);
-  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45);
+  box-shadow: 0 20px 38px rgba(19, 200, 115, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* Danger button - red */
@@ -68,13 +68,12 @@
 
 /* Warning button - amber/orange */
 .pill-btn-warning {
-  background: linear-gradient(135deg, #d97706, #f59e0b);
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+  background: linear-gradient(135deg, #7a43ea, #2ea7e6);
+  box-shadow: 0 16px 32px rgba(79, 70, 229, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .pill-btn-warning:hover {
-  background: linear-gradient(135deg, #b45309, #d97706);
-  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.45);
+  box-shadow: 0 20px 38px rgba(79, 70, 229, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* container helpers for grouping action buttons */
@@ -90,14 +89,14 @@
 .site-footer {
   padding: 20px 16px;
   text-align: center;
-  background: #07145f;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(7, 19, 35, 0.58);
+  border-top: 1px solid rgba(160, 184, 213, 0.18);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.82);
+  color: #9aaac0;
   line-height: 1.7;
 }
 .site-footer a {
-  color: #ffffff;
+  color: #eef6ff;
   text-decoration: none;
   font-weight: 600;
 }

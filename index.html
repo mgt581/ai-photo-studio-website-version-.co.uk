@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#4f46e5"> 
+  <meta name="theme-color" content="#0b1729">
 
   <!-- Force all relative links/resources to resolve to the production domain -->
   <base href="https://aiphotostudio.co.uk/">
@@ -76,30 +76,36 @@
   </script>
 
   <style>
-    :root{--grad:linear-gradient(90deg,#6366f1,#8b5cf6)}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f5f5f5;color:#111827}
+    :root{--grad:linear-gradient(135deg,#18bee7,#5ad2df);--app-bg:#0b1729;--app-bg-2:#112a48;--app-bg-3:#139fd1;--panel:#071323;--panel-soft:#0b1a2d;--panel-line:rgba(160,184,213,.18);--text:#eef6ff;--muted:#9aaac0;--accent:#29b8f6;--accent-2:#6e45e7;--soft-white:rgba(238,246,255,.86)}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--app-bg) 0%,#10213d 44%,#123c62 70%,var(--app-bg-3) 100%);background-attachment:fixed;color:var(--text)}
 
     /* Header & Nav */
-    header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #e5e7eb;background:#fff}
+    header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--panel-line);background:rgba(7,19,35,.76);backdrop-filter:blur(18px);box-shadow:0 18px 45px rgba(0,0,0,.18)}
     .brand{display:flex;align-items:center;gap:10px}
-    .brand-img{width:28px;height:28px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-    .brand-text{font-size:20px;font-weight:800;letter-spacing:.2px}
+    .brand-img{width:28px;height:28px;border-radius:8px;box-shadow:0 8px 18px rgba(41,184,246,.22)}
+    .brand-text{font-size:20px;font-weight:850;color:var(--text);letter-spacing:0}
     .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .ghost{background:#eef2ff;color:#4338ca;border:0;padding:8px 12px;border-radius:10px;font-weight:700;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px}
-    .muted{color:#6b7280;font-size:13px}
+    .ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--panel-line);padding:8px 12px;border-radius:999px;font-weight:800;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+    .ghost:hover{background:rgba(255,255,255,.13);border-color:rgba(160,184,213,.3)}
+    .muted{color:var(--muted);font-size:13px}
 
     /* Pricing Buttons */
-    .pricing-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
-    .btn-price { padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform 0.1s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .btn-price:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+    .pricing-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 24px; background:rgba(7,19,35,.54); border-bottom: 1px solid var(--panel-line); }
+    .btn-price { padding: 11px 18px; border-radius: 999px !important; border: 1px solid rgba(255,255,255,.14); cursor: pointer; font-size: 13px; font-weight: 850; color: white; transition: transform 0.1s, box-shadow 0.2s, filter .2s; box-shadow: 0 14px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16); }
+    .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
     .btn-price:active { transform: scale(0.97); }
+    #btnDaily{background:linear-gradient(135deg,#22324a,#5f7187)!important}
+    #btnMonthly{background:linear-gradient(135deg,#7a43ea,#2ea7e6)!important}
+    #btnTrialStart{background:linear-gradient(135deg,#18c8ee,#5ad2df)!important}
 
     /* Upgrade Message */
     #upgradeMsg {
-      background: #eef2ff;
-      color: #4f46e5;
+      background: rgba(41,184,246,.14);
+      color: #6dd8ff;
       padding: 6px 12px;
-      border-radius: 10px;
+      border: 1px solid rgba(41,184,246,.28);
+      border-radius: 999px;
       font-size: 12px;
       font-weight: 800;
       cursor: pointer;
@@ -109,14 +115,14 @@
     /* ===== ADDED: Sign-in required message + disabled style for Stripe buttons ===== */
     #payMsg {
       display: none;
-      background: #fff3cd;
-      color: #664d03;
+      background: rgba(245,158,11,.14);
+      color: #fde68a;
       padding: 10px 14px;
       margin: 12px 24px 0 24px;
       border-radius: 10px;
       font-size: 13px;
       font-weight: 800;
-      border: 1px solid rgba(102, 77, 3, 0.15);
+      border: 1px solid rgba(245,158,11,.24);
     }
     .pay-disabled {
       opacity: 0.55;
@@ -149,25 +155,28 @@
 
     /* Layout */
     .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
-    .card{background:#fff;padding:20px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    .card{background:var(--panel);padding:22px;border:1px solid var(--panel-line);border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);color:var(--text)}
+    .status{margin-top:0;color:var(--text);font-weight:750}
     
     /* Beta Tag */
     .tag-beta{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;vertical-align:middle}
     
     /* Canvas */
-    .stage{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative;background-image:linear-gradient(45deg,#e5e7eb 25%,transparent 25%),linear-gradient(-45deg,#e5e7eb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e7eb 75%),linear-gradient(-45deg,transparent 75%,#e5e7eb 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:transparent}
+    .stage{border:1px solid var(--panel-line);border-radius:20px;overflow:hidden;position:relative;background-image:linear-gradient(45deg,rgba(229,231,235,.72) 25%,transparent 25%),linear-gradient(-45deg,rgba(229,231,235,.72) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(229,231,235,.72) 75%),linear-gradient(-45deg,transparent 75%,rgba(229,231,235,.72) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:rgba(255,255,255,.92)}
     canvas#stage{width:100%;height:auto;display:block;background:transparent}
     canvas#mask{position:absolute;left:0;top:0;width:100%;height:100%;display:none;cursor:crosshair}
     
     .actions{display:grid;gap:12px}
-    .hint{font-size:13px;color:#6b7280;text-align:center}
+    .hint{font-size:13px;color:var(--muted);text-align:center}
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:9999}
     .toolbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
     
     /* Generic button style */
-    .btn{padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.35);transition:all 0.2s}
-    .btn:hover{background:linear-gradient(135deg,#4338ca,#4f46e5);box-shadow:0 6px 16px rgba(79,70,229,0.45)}
+    .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:linear-gradient(135deg,#7a43ea,#2ea7e6);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 32px rgba(25,113,194,.28), inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
+    .btn:hover{filter:brightness(1.06);box-shadow:0 20px 38px rgba(25,113,194,.34), inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
+    .site-footer{background:rgba(7,19,35,.58);border-top:1px solid var(--panel-line);color:var(--muted)}
+    .site-footer a{color:var(--text)}
   </style>
 </head>
 <body>
@@ -1030,6 +1039,55 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         setStatus("Brush canceled.");
       }
 
+      function getImageDrawMetrics(img, targetW = stage.width, targetH = stage.height) {
+        const scale = Math.min(targetW / img.width, targetH / img.height);
+        const drawW = Math.round(img.width * scale);
+        const drawH = Math.round(img.height * scale);
+        const drawX = Math.round((targetW - drawW) / 2);
+        const drawY = Math.round((targetH - drawH) / 2);
+        return { drawX, drawY, drawW, drawH };
+      }
+
+      function getPaintedPixelCount() {
+        const maskImg = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        let painted = 0;
+        for (let i = 0; i < maskImg.data.length; i += 4) {
+          if (maskImg.data[i + 3] > 0) painted++;
+        }
+        return painted;
+      }
+
+      function buildRemovalMaskCanvas(metrics, outW, outH, mode = 'alpha') {
+        const maskHD = document.createElement('canvas');
+        maskHD.width = outW;
+        maskHD.height = outH;
+        const mhd = maskHD.getContext('2d', { willReadFrequently: true });
+
+        mhd.drawImage(
+          maskCanvas,
+          metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH,
+          0, 0, outW, outH
+        );
+
+        const imgData = mhd.getImageData(0, 0, outW, outH);
+        for (let i = 0; i < imgData.data.length; i += 4) {
+          const selected = imgData.data[i + 3] > 8;
+          if (mode === 'luma') {
+            imgData.data[i] = selected ? 255 : 0;
+            imgData.data[i + 1] = selected ? 255 : 0;
+            imgData.data[i + 2] = selected ? 255 : 0;
+            imgData.data[i + 3] = 255;
+          } else {
+            imgData.data[i] = 255;
+            imgData.data[i + 1] = 255;
+            imgData.data[i + 2] = 255;
+            imgData.data[i + 3] = selected ? 255 : 0;
+          }
+        }
+        mhd.putImageData(imgData, 0, 0);
+        return maskHD;
+      }
+
       async function applyInpaint() {
         try {
           setBusy(true);
@@ -1041,16 +1099,9 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
           const img = await loadImage(baseSrc);
           const stageW = stage.width, stageH = stage.height;
-          const scale = Math.min(stageW / img.width, stageH / img.height);
-          const drawW = Math.round(img.width * scale);
-          const drawH = Math.round(img.height * scale);
-          const drawX = Math.round((stageW - drawW) / 2);
-          const drawY = Math.round((stageH - drawH) / 2);
+          const metrics = getImageDrawMetrics(img, stageW, stageH);
 
-          const maskImg = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-          let painted = 0; 
-          for (let i=0;i<maskImg.data.length;i+=4) 
-            if (maskImg.data[i+3] > 0) painted++;
+          const painted = getPaintedPixelCount();
           if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return; }
 
           const MAX_SIDE = 2048;
@@ -1065,16 +1116,8 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
           oc.drawImage(img, 0, 0, hdW, hdH);
 
-          const maskHD = document.createElement('canvas'); 
-          maskHD.width = hdW; maskHD.height = hdH;
-          const mhd = maskHD.getContext('2d');
-          mhd.fillStyle = 'black'; mhd.fillRect(0,0,hdW,hdH);
-          mhd.drawImage(maskCanvas, drawX, drawY, drawW, drawH, 0, 0, hdW, hdH);
-          try {
-            mhd.globalCompositeOperation = 'source-in';
-            mhd.filter = 'blur(0.8px)'; mhd.drawImage(maskHD, 0, 0);
-            mhd.filter = 'none'; mhd.globalCompositeOperation = 'source-over';
-          } catch(_) {}
+          const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'alpha');
+          const mhd = fixedMaskHD.getContext('2d', { willReadFrequently: true });
 
           const srcHD_RGBA  = oc.getImageData(0, 0, hdW, hdH);
           const maskHD_RGBA = mhd.getImageData(0, 0, hdW, hdH);
@@ -1090,13 +1133,13 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
               mask.ucharPtr(y, x)[0] = 255;
             }
           }
-          const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+          const kernel = cv.Mat.ones(5, 5, cv.CV_8U);
           const maskDil = new cv.Mat();
-          cv.dilate(mask, maskDil, kernel, new cv.Point(-1,-1), 1);
+          cv.dilate(mask, maskDil, kernel, new cv.Point(-1,-1), 2);
 
           const pass1 = new cv.Mat(), pass2 = new cv.Mat();
-          cv.inpaint(src3, maskDil, pass1, 3, cv.INPAINT_TELEA);
-          cv.inpaint(src3, maskDil, pass2, 6, cv.INPAINT_TELEA);
+          cv.inpaint(src3, maskDil, pass1, 5, cv.INPAINT_TELEA);
+          cv.inpaint(src3, maskDil, pass2, 9, cv.INPAINT_TELEA);
           const blended = new cv.Mat();
           cv.addWeighted(pass1, 0.6, pass2, 0.4, 0.0, blended);
 
@@ -1110,13 +1153,16 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, stageW, stageH);
           }
-          ctx.drawImage(off, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
+          ctx.drawImage(off, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
           src4.delete(); src3.delete(); mask.delete();
           kernel.delete(); maskDil.delete(); pass1.delete(); pass2.delete();
           blended.delete(); out4.delete();
 
-          cancelBrush(); stampWatermark(); setStatus("Person removed (HD).");
+          mainSrc = off.toDataURL('image/png', 0.95);
+          if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
+
+          cancelBrush(); stampWatermark(); setStatus("Selected area removed.");
           
           // Auto-save to gallery after person removal
           stage.toBlob((b) => {
@@ -1189,14 +1235,9 @@ async function applyInpaintHDPlus() {
 
       const img = await loadImage(baseSrc);
       const stageW = stage.width, stageH = stage.height;
-      const scale = Math.min(stageW / img.width, stageH / img.height);
-      const drawW = Math.round(img.width * scale);
-      const drawH = Math.round(img.height * scale);
-      const drawX = Math.round((stageW - drawW) / 2);
-      const drawY = Math.round((stageH - drawH) / 2);
+      const metrics = getImageDrawMetrics(img, stageW, stageH);
 
-      const maskImg = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-      let painted = 0; for (let i=0;i<maskImg.data.length;i+=4) if (maskImg.data[i+3]>0) painted++;
+      const painted = getPaintedPixelCount();
       if (painted < 50) { alert("Paint over the person, then Apply HD+ again."); return; }
 
       const MAX_SIDE = 2048;
@@ -1210,18 +1251,10 @@ async function applyInpaintHDPlus() {
       oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
       oc.drawImage(img, 0, 0, hdW, hdH);
 
-      const maskHD = document.createElement('canvas'); maskHD.width = hdW; maskHD.height = hdH;
-      const mhd = maskHD.getContext('2d');
-      mhd.fillStyle = 'black'; mhd.fillRect(0,0,hdW,hdH);
-      mhd.drawImage(maskCanvas, drawX, drawY, drawW, drawH, 0, 0, hdW, hdH);
-      try {
-        mhd.globalCompositeOperation = 'source-in';
-        mhd.filter = 'blur(0.8px)'; mhd.drawImage(maskHD, 0, 0);
-        mhd.filter = 'none'; mhd.globalCompositeOperation = 'source-over';
-      } catch(_) {}
+      const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'luma');
 
       const inputImage = await createImageBitmap(off);
-      const maskImage  = await createImageBitmap(maskHD);
+      const maskImage  = await createImageBitmap(fixedMaskHD);
 
       let pct = 0; showProgress('HD+ inpainting…', pct);
       const result = await _sdPipe(inputImage, {
@@ -1246,9 +1279,17 @@ async function applyInpaintHDPlus() {
         outBitmap = tmp;
       }
       if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaint(); }
-      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, drawX, drawY, drawW, drawH);
+      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
-      cancelBrush(); stampWatermark(); setStatus("Person removed (HD+).");
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = hdW;
+      finalCanvas.height = hdH;
+      const finalCtx = finalCanvas.getContext('2d');
+      finalCtx.drawImage(outBitmap, 0, 0, hdW, hdH);
+      mainSrc = finalCanvas.toDataURL('image/png', 0.95);
+      if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
+
+      cancelBrush(); stampWatermark(); setStatus("Selected area removed (HD+).");
       
       // Auto-save to gallery after HD+ person removal
       stage.toBlob((b) => {

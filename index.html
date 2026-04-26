@@ -1016,9 +1016,9 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         btnHDPlus = document.createElement('button');
         btnHDPlus.id = 'btnHDPlus';
         btnHDPlus.className = 'btn primary';
-        btnHDPlus.textContent = 'Apply Removal (HD+ Beta)';
+        btnHDPlus.textContent = 'Apply AI Removal';
         btnHDPlus.style.display = 'none';
-        btnHDPlus.onclick = () => Studio.applyInpaintHDPlus();
+        btnHDPlus.onclick = () => Studio.applyInpaint();
         bar.insertBefore(btnHDPlus, document.getElementById('btnCancel') || null);
       })();
 
@@ -1033,7 +1033,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         if (btnHDPlus) btnHDPlus.style.display = 'inline-block';
         mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
         mctx.lineCap = 'round'; mctx.lineJoin = 'round'; mctx.strokeStyle = 'rgba(255,0,0,0.95)'; mctx.lineWidth = brushSize;
-        setStatus("Paint over the person to remove, then choose Apply or HD+ (Beta).");
+        setStatus("Paint over the person to remove, then choose Apply Removal.");
       }
       function cancelBrush(){
         brushing = false; brushDown = false;
@@ -1093,10 +1093,117 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         return maskHD;
       }
 
+      function canvasToBlob(canvas, type = 'image/png', quality = 0.95) {
+        return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+      }
+
+      function toModelDimension(value) {
+        return Math.max(256, Math.min(1536, Math.round(value / 8) * 8));
+      }
+
+      async function applyInpaintWithApi() {
+        const baseSrc = mainSrc || cutoutURL;
+        if (!baseSrc) { alert("Load an image first."); return false; }
+
+        const img = await loadImage(baseSrc);
+        const stageW = stage.width, stageH = stage.height;
+        const metrics = getImageDrawMetrics(img, stageW, stageH);
+
+        const painted = getPaintedPixelCount();
+        if (painted < 50) {
+          alert("Paint directly over the person to remove, then Apply again.");
+          return true;
+        }
+
+        const MAX_SIDE = 1536;
+        const maxSide = Math.max(img.width, img.height);
+        const minSide = Math.max(1, Math.min(img.width, img.height));
+        const ratio = Math.min(MAX_SIDE / maxSide, Math.max(1, 256 / minSide));
+        const outW = toModelDimension(img.width * ratio);
+        const outH = toModelDimension(img.height * ratio);
+
+        const imageCanvas = document.createElement('canvas');
+        imageCanvas.width = outW;
+        imageCanvas.height = outH;
+        const imageCtx = imageCanvas.getContext('2d', { willReadFrequently: true });
+        imageCtx.imageSmoothingEnabled = true;
+        imageCtx.imageSmoothingQuality = 'high';
+        imageCtx.drawImage(img, 0, 0, outW, outH);
+
+        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
+        const imageBlob = await canvasToBlob(imageCanvas, 'image/png', 0.95);
+        const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
+        if (!imageBlob || !maskBlob) throw new Error('image-export-failed');
+
+        const form = new FormData();
+        form.append('image', imageBlob, 'image.png');
+        form.append('mask', maskBlob, 'mask.png');
+        form.append('width', String(outW));
+        form.append('height', String(outH));
+        form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
+
+        setStatus("AI removing selected area…");
+        showProgress('AI removing object…', 15);
+        const response = await fetch('/api/remove-object', { method: 'POST', body: form });
+        if (!response.ok) {
+          let message = `remove-object-api-${response.status}`;
+          try {
+            const data = await response.json();
+            message = data?.error || message;
+          } catch (_) {}
+          throw new Error(message);
+        }
+
+        updateProgress('Finishing image…', 90);
+        const resultBlob = await response.blob();
+        if (!resultBlob || !resultBlob.type.startsWith('image/')) throw new Error('remove-object-api-invalid-image');
+        const resultURL = URL.createObjectURL(resultBlob);
+        const resultImage = await loadImage(resultURL);
+
+        ctx.clearRect(0, 0, stageW, stageH);
+        if (bgColor) {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, stageW, stageH);
+        }
+        ctx.drawImage(resultImage, 0, 0, outW, outH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = outW;
+        finalCanvas.height = outH;
+        finalCanvas.getContext('2d').drawImage(resultImage, 0, 0, outW, outH);
+        mainSrc = finalCanvas.toDataURL('image/png', 0.95);
+        if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
+        URL.revokeObjectURL(resultURL);
+
+        cancelBrush();
+        stampWatermark();
+        setStatus("Selected area removed with AI.");
+        stage.toBlob((b) => {
+          if (b) saveToGalleryIfSignedIn(b, "png");
+        }, "image/png", 0.95);
+        updateProgress('Done', 100);
+        setTimeout(hideProgress, 350);
+        return true;
+      }
+
       async function applyInpaint() {
         try {
           setBusy(true);
-          setStatus("Removing selected area…");
+          await applyInpaintWithApi();
+        } catch (e) {
+          console.warn('AI remove-object API unavailable, using on-device fallback:', e);
+          hideProgress();
+          toast("AI removal unavailable. Using device fallback.");
+          await applyInpaintLocal();
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function applyInpaintLocal() {
+        try {
+          setBusy(true);
+          setStatus("Removing selected area… (device fallback)");
           await ensureOpenCVReady();
 
           const baseSrc = mainSrc || cutoutURL;
@@ -1167,7 +1274,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           mainSrc = off.toDataURL('image/png', 0.95);
           if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
 
-          cancelBrush(); stampWatermark(); setStatus("Selected area removed.");
+          cancelBrush(); stampWatermark(); setStatus("Selected area removed with device fallback.");
           
           // Auto-save to gallery after person removal
           stage.toBlob((b) => {
@@ -1248,7 +1355,7 @@ async function applyInpaintHDPlus() {
     try {
       setBusy(true); setStatus("HD+ (Beta): preparing…");
       await ensureSDInpaintReady();
-      if (!_sdPipe) { return await applyInpaint(); }
+      if (!_sdPipe) { return await applyInpaintLocal(); }
 
       const baseSrc = mainSrc || cutoutURL;
       if (!baseSrc) { alert("Load an image first."); return; }
@@ -1298,7 +1405,7 @@ async function applyInpaintHDPlus() {
         await (tmp.decode ? tmp.decode() : new Promise(r => tmp.onload = r));
         outBitmap = tmp;
       }
-      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaint(); }
+      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaintLocal(); }
       ctx.drawImage(outBitmap, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
       const finalCanvas = document.createElement('canvas');
@@ -1318,7 +1425,7 @@ async function applyInpaintHDPlus() {
     } catch (e) {
       console.error('HD+ inpaint error:', e);
       hideProgress();
-      try { await applyInpaint(); } catch(_) {
+      try { await applyInpaintLocal(); } catch(_) {
         alert("HD+ removal failed.");
         setStatus("Removal failed.");
       }

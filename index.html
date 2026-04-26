@@ -1011,15 +1011,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
       let btnHDPlus = null;
       (function injectHDPlusButton() {
-        const bar = document.querySelector('.toolbar');
-        if (!bar) return;
-        btnHDPlus = document.createElement('button');
-        btnHDPlus.id = 'btnHDPlus';
-        btnHDPlus.className = 'btn primary';
-        btnHDPlus.textContent = 'Apply AI Removal';
-        btnHDPlus.style.display = 'none';
-        btnHDPlus.onclick = () => Studio.applyInpaint();
-        bar.insertBefore(btnHDPlus, document.getElementById('btnCancel') || null);
+        btnHDPlus = null;
       })();
 
       function startBrush(){
@@ -1082,6 +1074,11 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
             imgData.data[i + 1] = selected ? 255 : 0;
             imgData.data[i + 2] = selected ? 255 : 0;
             imgData.data[i + 3] = 255;
+          } else if (mode === 'openai-alpha') {
+            imgData.data[i] = 0;
+            imgData.data[i + 1] = 0;
+            imgData.data[i + 2] = 0;
+            imgData.data[i + 3] = selected ? 0 : 255;
           } else {
             imgData.data[i] = 255;
             imgData.data[i + 1] = 255;
@@ -1130,14 +1127,17 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         imageCtx.imageSmoothingQuality = 'high';
         imageCtx.drawImage(img, 0, 0, outW, outH);
 
-        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
+        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'openai-alpha');
+        const cloudflareMaskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
         const imageBlob = await canvasToBlob(imageCanvas, 'image/png', 0.95);
         const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
-        if (!imageBlob || !maskBlob) throw new Error('image-export-failed');
+        const cloudflareMaskBlob = await canvasToBlob(cloudflareMaskCanvasHD, 'image/png', 0.95);
+        if (!imageBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
 
         const form = new FormData();
         form.append('image', imageBlob, 'image.png');
         form.append('mask', maskBlob, 'mask.png');
+        form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
         form.append('width', String(outW));
         form.append('height', String(outH));
         form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
@@ -1165,12 +1165,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           ctx.fillStyle = bgColor;
           ctx.fillRect(0, 0, stageW, stageH);
         }
-        ctx.drawImage(resultImage, 0, 0, outW, outH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
+        const resultW = resultImage.naturalWidth || resultImage.width || outW;
+        const resultH = resultImage.naturalHeight || resultImage.height || outH;
+        ctx.drawImage(resultImage, 0, 0, resultW, resultH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
         const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = outW;
-        finalCanvas.height = outH;
-        finalCanvas.getContext('2d').drawImage(resultImage, 0, 0, outW, outH);
+        finalCanvas.width = resultW;
+        finalCanvas.height = resultH;
+        finalCanvas.getContext('2d').drawImage(resultImage, 0, 0, resultW, resultH);
         mainSrc = finalCanvas.toDataURL('image/png', 0.95);
         if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
         URL.revokeObjectURL(resultURL);

@@ -14,7 +14,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
   <link rel="icon" type="image/png" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
 
-  <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/background-removal.min.js"></script>
+  <script type="module">
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs";
+    window.removeBackground = removeBackground;
+  </script>
 
   <script>
     // Detect Android *app* (WebView) environment and mark the page.
@@ -927,7 +930,8 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           const safeImg = await downscaleToMax(mainSrc, 1400);
           let blob;
           try {
-            blob = await removeBackground(safeImg, { model:"u2net", output:"image/png" });
+            if (typeof window.removeBackground !== 'function') throw new Error('background-removal-not-ready');
+            blob = await window.removeBackground(safeImg, { model:"u2net", output:"image/png" });
           } catch {
             const maskC = await maskWithSelfie(safeImg);
             const out = document.createElement('canvas'); 
@@ -1184,11 +1188,26 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         window.cv = { isLoading: true };
         await new Promise((resolve, reject) => {
           window.Module = window.Module || {};
-          window.Module['wasmBinaryFile'] = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv_js.wasm';
+          window.Module.onRuntimeInitialized = () => {
+            if (window.cv) cv.isLoading = false;
+            resolve();
+          };
           const s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv.js';
+          s.src = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.12.0-release.1/dist/opencv.js';
           s.async = true; s.crossOrigin = 'anonymous';
-          s.onload = () => { cv.onRuntimeInitialized = () => { cv.isLoading = false; resolve(); }; };
+          s.onload = () => {
+            if (window.cv && cv.Mat) {
+              cv.isLoading = false;
+              resolve();
+            } else if (window.cv) {
+              const prev = cv.onRuntimeInitialized;
+              cv.onRuntimeInitialized = () => {
+                prev && prev();
+                cv.isLoading = false;
+                resolve();
+              };
+            }
+          };
           s.onerror = () => reject(new Error('opencv-load-failed'));
           document.head.appendChild(s);
         });
@@ -1201,7 +1220,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           showProgress('Loading AI runtime…', 5);
           await new Promise((res, rej) => {
             const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js';
+            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
             s.async = true; s.crossOrigin = 'anonymous';
             s.onload = res; s.onerror = () => rej(new Error('transformers-load-failed'));
             document.head.appendChild(s);

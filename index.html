@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#0b1729">
+  <meta name="theme-color" content="#071426">
 
   <!-- Force all relative links/resources to resolve to the production domain -->
   <base href="https://aiphotostudio.co.uk/">
@@ -76,35 +76,34 @@
   </script>
 
   <style>
-    :root{--grad:linear-gradient(135deg,#18bee7,#5ad2df);--app-bg:#0b1729;--app-bg-2:#112a48;--app-bg-3:#139fd1;--panel:#071323;--panel-soft:#0b1a2d;--panel-line:rgba(160,184,213,.18);--text:#eef6ff;--muted:#9aaac0;--accent:#29b8f6;--accent-2:#6e45e7;--soft-white:rgba(238,246,255,.86)}
+    :root{--grad:linear-gradient(135deg,#7C3AED 0%,#2563EB 50%,#0EA5E9 100%);--app-bg:#071426;--app-bg-2:#0B1F3A;--app-bg-3:#102B4F;--panel:#0D1B2E;--panel-soft:#13243A;--panel-line:rgba(148,163,184,.18);--text:#F8FAFC;--secondary:#CBD5E1;--muted:#94A3B8;--success:#10B981;--danger:#EF4444}
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--app-bg) 0%,#10213d 44%,#123c62 70%,var(--app-bg-3) 100%);background-attachment:fixed;color:var(--text)}
+    body{margin:0;min-height:100vh;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(circle at 82% 0%,rgba(14,165,233,.2),transparent 32%),linear-gradient(135deg,var(--app-bg) 0%,var(--app-bg-2) 52%,var(--app-bg-3) 100%);background-attachment:fixed;color:var(--text)}
 
     /* Header & Nav */
-    header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--panel-line);background:rgba(7,19,35,.76);backdrop-filter:blur(18px);box-shadow:0 18px 45px rgba(0,0,0,.18)}
+    header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--panel-line);background:rgba(13,27,46,.82);backdrop-filter:blur(18px);box-shadow:0 18px 45px rgba(0,0,0,.22)}
     .brand{display:flex;align-items:center;gap:10px}
-    .brand-img{width:28px;height:28px;border-radius:8px;box-shadow:0 8px 18px rgba(41,184,246,.22)}
+    .brand-img{width:28px;height:28px;border-radius:8px;box-shadow:0 8px 18px rgba(14,165,233,.24)}
     .brand-text{font-size:20px;font-weight:850;color:var(--text);letter-spacing:0}
     .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--panel-line);padding:8px 12px;border-radius:999px;font-weight:800;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-    .ghost:hover{background:rgba(255,255,255,.13);border-color:rgba(160,184,213,.3)}
+    .ghost{background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.1);padding:8px 12px;border-radius:14px;font-weight:800;text-decoration:none;display:inline-block;cursor:pointer;font-size:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+    .ghost:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16)}
     .muted{color:var(--muted);font-size:13px}
 
     /* Pricing Buttons */
-    .pricing-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 24px; background:rgba(7,19,35,.54); border-bottom: 1px solid var(--panel-line); }
+    .pricing-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 24px; background:rgba(13,27,46,.58); border-bottom: 1px solid var(--panel-line); }
     .btn-price { padding: 11px 18px; border-radius: 999px !important; border: 1px solid rgba(255,255,255,.14); cursor: pointer; font-size: 13px; font-weight: 850; color: white; transition: transform 0.1s, box-shadow 0.2s, filter .2s; box-shadow: 0 14px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16); }
     .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
     .btn-price:active { transform: scale(0.97); }
-    #btnDaily{background:linear-gradient(135deg,#22324a,#5f7187)!important}
-    #btnMonthly{background:linear-gradient(135deg,#7a43ea,#2ea7e6)!important}
-    #btnTrialStart{background:linear-gradient(135deg,#18c8ee,#5ad2df)!important}
+    #btnDaily,#btnMonthly{background:rgba(255,255,255,.05)!important;color:var(--text);border-color:rgba(255,255,255,.1)}
+    #btnTrialStart{background:var(--grad)!important}
 
     /* Upgrade Message */
     #upgradeMsg {
-      background: rgba(41,184,246,.14);
-      color: #6dd8ff;
+      background: rgba(14,165,233,.12);
+      color: #BAE6FD;
       padding: 6px 12px;
-      border: 1px solid rgba(41,184,246,.28);
+      border: 1px solid rgba(14,165,233,.24);
       border-radius: 999px;
       font-size: 12px;
       font-weight: 800;
@@ -130,6 +129,8 @@
       transform: none !important;
       box-shadow: none !important;
     }
+    #trialLeft{background:rgba(16,185,129,.12)!important;color:#D1FAE5!important;border:1px solid rgba(16,185,129,.24)}
+    #btnLogout{background:rgba(239,68,68,.12)!important;color:#FECACA!important;border-color:rgba(239,68,68,.28)}
     /* =========================================================================== */
 
     /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
@@ -154,29 +155,29 @@
     }
 
     /* Layout */
-    .wrap{max-width:900px;margin:0 auto;padding:24px;display:grid;gap:16px}
-    .card{background:var(--panel);padding:22px;border:1px solid var(--panel-line);border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);color:var(--text)}
+    .wrap{max-width:420px;margin:0 auto;padding:24px 18px 34px;display:grid;gap:22px}
+    .card{background:linear-gradient(180deg,var(--panel-soft),var(--panel));padding:22px;border:1px solid var(--panel-line);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);color:var(--text)}
     .status{margin-top:0;color:var(--text);font-weight:750}
     
     /* Beta Tag */
     .tag-beta{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;vertical-align:middle}
     
     /* Canvas */
-    .stage{border:1px solid var(--panel-line);border-radius:20px;overflow:hidden;position:relative;background-image:linear-gradient(45deg,rgba(229,231,235,.72) 25%,transparent 25%),linear-gradient(-45deg,rgba(229,231,235,.72) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(229,231,235,.72) 75%),linear-gradient(-45deg,transparent 75%,rgba(229,231,235,.72) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:rgba(255,255,255,.92)}
+    .stage{padding:16px;border:1px solid var(--panel-line);border-radius:16px;overflow:hidden;position:relative;box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.04);background:linear-gradient(180deg,var(--panel-soft),var(--panel))}
+    .stage::before{content:"";position:absolute;inset:16px;border-radius:12px;background-image:linear-gradient(45deg,rgba(226,232,240,.76) 25%,transparent 25%),linear-gradient(-45deg,rgba(226,232,240,.76) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(226,232,240,.76) 75%),linear-gradient(-45deg,transparent 75%,rgba(226,232,240,.76) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:rgba(248,250,252,.94);pointer-events:none}
+    .stage canvas{position:relative;z-index:1;border-radius:12px;overflow:hidden}
     canvas#stage{width:100%;height:auto;display:block;background:transparent}
     canvas#mask{position:absolute;left:0;top:0;width:100%;height:100%;display:none;cursor:crosshair}
     
     .actions{display:grid;gap:12px}
     .hint{font-size:13px;color:var(--muted);text-align:center}
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:9999}
-    .toolbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+    .toolbar{display:flex;flex-direction:column;gap:16px;justify-content:center}
     
     /* Generic button style */
-    .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:linear-gradient(135deg,#7a43ea,#2ea7e6);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 32px rgba(25,113,194,.28), inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
-    .btn:hover{filter:brightness(1.06);box-shadow:0 20px 38px rgba(25,113,194,.34), inset 0 1px 0 rgba(255,255,255,.2)}
+    .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:var(--grad);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 34px rgba(37,99,235,.28),0 0 22px rgba(14,165,233,.12),inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
+    .btn:hover{filter:brightness(1.06);box-shadow:0 20px 42px rgba(37,99,235,.34),0 0 28px rgba(14,165,233,.18),inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
-    .site-footer{background:rgba(7,19,35,.58);border-top:1px solid var(--panel-line);color:var(--muted)}
-    .site-footer a{color:var(--text)}
   </style>
 </head>
 <body>
@@ -197,7 +198,7 @@
       <a href="signup.html" class="ghost" id="navSignUp">Sign Up</a>
       
       <span id="authStatus" class="muted" style="display:none"></span>
-      <button id="btnLogout" class="ghost" style="display:none; background:#fee2e2; color:#991b1b;">Sign out</button>
+      <button id="btnLogout" class="ghost" style="display:none;">Sign out</button>
     </div>
   </header>
 
@@ -207,7 +208,7 @@
 
   <div class="pricing-row">
      <button id="btnDaily" class="btn-price" style="background: linear-gradient(135deg, #64748b, #788292); border-radius: 10px;">Day Pass £1</button>
-     <button id="btnMonthly" class="btn-price" style="background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 10px;">Monthly £4.99</button>
+     <button id="btnMonthly" class="btn-price">Monthly £4.99</button>
      <button id="btnTrialStart" class="btn-price" style="background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 10px;">Start Free Trial (Yearly)</button>
   </div>
        
@@ -216,7 +217,7 @@
       <p class="status" id="status">Upload a photo to begin.</p>
       <div class="actions">
         <div class="toolbar">
-          <button class="pill-btn" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
+          <button class="pill-btn pill-btn-primary" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
           
           <input id="mainInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadMain(this.files[0]); this.value=''" />
           
@@ -1386,14 +1387,14 @@ function showColorPicker() {
   
   // Create modal overlay
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(3,7,18,0.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)';
   
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:white;padding:24px;border-radius:16px;max-width:320px;width:90%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.3)';
+  modal.style.cssText = 'background:linear-gradient(180deg,#13243A,#0D1B2E);padding:24px;border-radius:16px;max-width:320px;width:90%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);border:1px solid rgba(148,163,184,0.18)';
   
   const title = document.createElement('h3');
   title.textContent = 'Choose Background Color';
-  title.style.cssText = 'margin:0 0 16px 0;font-size:18px;color:#111827';
+  title.style.cssText = 'margin:0 0 16px 0;font-size:18px;color:#F8FAFC';
   modal.appendChild(title);
   
   const colorGrid = document.createElement('div');
@@ -1401,7 +1402,7 @@ function showColorPicker() {
   
   colors.forEach(color => {
     const btn = document.createElement('button');
-    btn.style.cssText = `width:40px;height:40px;border-radius:50%;border:2px solid #ddd;background:${color};cursor:pointer`;
+    btn.style.cssText = `width:40px;height:40px;border-radius:50%;border:2px solid rgba(248,250,252,0.72);background:${color};cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,0.24)`;
     btn.onclick = () => {
       Studio.setBgColor(color);
       overlay.remove();
@@ -1413,7 +1414,7 @@ function showColorPicker() {
   // Transparent option
   const transBtn = document.createElement('button');
   transBtn.textContent = 'Transparent (No Background)';
-  transBtn.style.cssText = 'padding:10px 20px;border-radius:8px;border:2px solid #ddd;background:#f9fafb;cursor:pointer;font-weight:600;width:100%';
+  transBtn.style.cssText = 'padding:11px 20px;border-radius:14px;border:1px solid rgba(148,163,184,0.18);background:rgba(255,255,255,0.05);color:#F8FAFC;cursor:pointer;font-weight:800;width:100%;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)';
   transBtn.onclick = () => {
     Studio.setBgColor(null); 
     overlay.remove();
@@ -1423,7 +1424,7 @@ function showColorPicker() {
   // Close button
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Cancel';
-  closeBtn.style.cssText = 'margin-top:12px;padding:8px 16px;border:none;background:none;color:#6b7280;cursor:pointer;font-size:14px';
+  closeBtn.style.cssText = 'margin-top:12px;padding:8px 16px;border:none;background:none;color:#94A3B8;cursor:pointer;font-size:14px;font-weight:700';
   closeBtn.onclick = () => overlay.remove();
   modal.appendChild(closeBtn);
   
@@ -1435,12 +1436,6 @@ function showColorPicker() {
   };
 }
 </script>
-
-<footer class="site-footer">
-  AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a><br>
-  Built for fast, professional image editing<br>
-  Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>
-</footer>
 </body>
 </html>
 ]

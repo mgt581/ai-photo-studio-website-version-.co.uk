@@ -4,38 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Create Account • AI Photo Studio</title>
+  <link rel="stylesheet" href="style.css">
   <style>
-    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:#f5f5f5; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-    .box { width:100%; max-width:400px; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); text-align:center; }
-    h2 { margin-top:0; color:#111827; }
-    input { width:100%; padding:12px; margin-bottom:12px; border:1px solid #e5e7eb; border-radius:8px; box-sizing:border-box; font-size:16px; }
+    body { display:flex; justify-content:center; align-items:center; }
+    .box { width:100%; max-width:420px; padding:28px; border-radius:16px; text-align:center; }
+    h2 { margin:0; color:var(--aips-text); font-size:28px; }
+    .subtitle { color:var(--aips-secondary); font-size:14px; margin:8px 0 22px; }
+    input { width:100%; padding:13px 14px; margin-bottom:12px; border:1px solid var(--aips-border); border-radius:12px; box-sizing:border-box; font-size:16px; background:rgba(255,255,255,.05); color:var(--aips-text); }
+    input::placeholder { color:var(--aips-muted); }
     
-    .btn { width:100%; padding:12px; border:0; border-radius:10px; cursor:pointer; font-size:16px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; justify-content:center; }
-    .btn-primary { background: linear-gradient(135deg, #4f46e5, #6366f1); color:white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35); }
-    .btn-primary:hover { background: linear-gradient(135deg, #4338ca, #4f46e5); }
+    .btn { width:100%; padding:13px; border:1px solid var(--aips-border); border-radius:14px; cursor:pointer; font-size:16px; font-weight:800; margin-bottom:14px; display:flex; align-items:center; justify-content:center; }
+    .btn-primary { background:var(--aips-primary); color:white; box-shadow:0 16px 34px rgba(37,99,235,.28); }
+    .btn-primary:hover { filter:brightness(1.06); }
     
-    .btn-google { background:white; color:#374151; border:1px solid #d1d5db; }
-    .btn-google:hover { background:#f9fafb; }
+    .btn-google { background:rgba(255,255,255,.05); color:var(--aips-text); border:1px solid var(--aips-border); }
+    .btn-google:hover { background:rgba(255,255,255,.09); }
 
-    .or { margin: 15px 0; color:#9ca3af; font-size:14px; position: relative; }
-    .or::before, .or::after { content: ""; display: block; height: 1px; background: #e5e7eb; position: absolute; top: 50%; width: 42%; }
+    .or { margin: 16px 0; color:var(--aips-muted); font-size:14px; position: relative; }
+    .or::before, .or::after { content: ""; display: block; height: 1px; background: var(--aips-border); position: absolute; top: 50%; width: 42%; }
     .or::before { left: 0; }
     .or::after { right: 0; }
 
     .links { font-size:14px; margin-top:15px; }
-    .link { color:#4f46e5; text-decoration:none; font-weight:600; cursor:pointer; }
+    .link { color:#93C5FD; text-decoration:none; font-weight:700; cursor:pointer; }
     .link:hover { text-decoration:underline; }
-    .back { display:block; margin-top:30px; color:#6b7280; text-decoration:none; font-size:14px; }
-    .site-footer { padding: 20px 16px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; line-height: 1.7; }
-    .site-footer a { color: #4f46e5; text-decoration: none; font-weight: 600; }
-    .site-footer a:hover { text-decoration: underline; }
+    .back { display:block; margin-top:30px; color:var(--aips-muted); text-decoration:none; font-size:14px; }
   </style>
 </head>
-<body>
+<body class="aips-page">
 
-  <div class="box">
+  <div class="box aips-card">
     <h2>Create Account</h2>
-    <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Start your free trial today</p>
+    <p class="subtitle">Start your free trial today</p>
 
     <button class="btn btn-google" onclick="googleLogin()">
       <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" height="20" style="margin-right:8px;">
@@ -90,12 +90,6 @@
         .catch(err => alert("Error: " + err.message));
     }
   </script>
-
-<footer class="site-footer">
-  AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a><br>
-  Built for fast, professional image editing<br>
-  Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>
-</footer>
 
 </body>
 </html>

@@ -5,27 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Your Gallery • AI Photo Studio</title>
   <link rel="icon" type="image/png" href="/logo-192.png?v=3">
+  <link rel="stylesheet" href="style.css">
 
   <style>
-    body { margin:0; font-family:ui-sans-serif,system-ui,-apple-system,sans-serif; background:#f5f5f5; padding:20px; color:#111827; }
+    body { color:var(--aips-text); }
     
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
-    h2 { margin:0; font-size:24px; }
+    .gallery-shell { width:100%; max-width:920px; margin:0 auto; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:24px; }
+    h2 { margin:0; font-size:26px; color:var(--aips-text); }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
-      background-color: #4f46e5; color: white;
-      padding: 8px 16px; text-decoration: none; border-radius: 10px;
-      font-weight: 600; font-size: 14px; border: none; cursor: pointer;
-      transition: background 0.2s;
+      background: var(--aips-primary); color: white;
+      padding: 9px 14px; text-decoration: none; border-radius: 12px;
+      font-weight: 800; font-size: 14px; border: 1px solid rgba(255,255,255,.14); cursor: pointer;
+      transition: all 0.2s; box-shadow:0 16px 34px rgba(37,99,235,.24);
     }
-    .btn:hover { background-color: #4338ca; }
-    .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
-    .btn-outline:hover { background: #f3f4f6; }
+    .btn:hover { filter:brightness(1.06); }
+    .btn-outline { background:rgba(255,255,255,.05); color:var(--aips-text); border:1px solid var(--aips-border); box-shadow:none; }
+    .btn-outline:hover { background:rgba(255,255,255,.09); }
 
     /* Delete Button Styling */
-    .btn-delete { background-color: #ef4444; color: white; }
-    .btn-delete:hover { background-color: #dc2626; }
+    .btn-delete { background:var(--aips-danger); color: white; box-shadow:0 12px 26px rgba(239,68,68,.2); }
+    .btn-delete:hover { background:#dc2626; }
 
     .grid {
       display:grid;
@@ -34,27 +36,25 @@
     }
     
     .card {
-      background:white; border-radius:12px; padding:8px;
-      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+      background:linear-gradient(180deg,var(--aips-card-2),var(--aips-card)); border:1px solid var(--aips-border); border-radius:16px; padding:10px;
+      box-shadow:0 20px 40px rgba(0,0,0,.32);
       transition: transform 0.2s; display:flex; flex-direction:column; gap:8px;
     }
-    .card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .card:hover { transform:translateY(-2px); box-shadow:0 24px 50px rgba(0,0,0,.38); }
 
     img {
-      width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; background:#f3f4f6;
+      width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:12px; background:#0D1B2E;
     }
     
     .actions { display:flex; gap:4px; }
     .btn-sm { flex:1; padding:6px; font-size:11px; text-align:center; border-radius: 8px; }
 
-    #status { text-align:center; color:#6b7280; margin-top:40px; }
-    .site-footer { padding: 20px 16px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; line-height: 1.7; }
-    .site-footer a { color: #4f46e5; text-decoration: none; font-weight: 600; }
-    .site-footer a:hover { text-decoration: underline; }
+    #status { text-align:center; color:var(--aips-muted); margin-top:40px; }
   </style>
 </head>
 
-<body>
+<body class="aips-page">
+<main class="gallery-shell">
 
   <header>
     <h2>Your Gallery</h2>
@@ -218,11 +218,7 @@
     } // end !isPlayApp
   </script>
 
-<footer class="site-footer">
-  AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a><br>
-  Built for fast, professional image editing<br>
-  Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>
-</footer>
+</main>
 
 </body>
 </html>

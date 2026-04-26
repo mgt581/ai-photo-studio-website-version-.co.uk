@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings • AI Photo Studio</title>
+  <link rel="stylesheet" href="style.css">
   
   <script>
     // Detect Android app (WebView) environment
@@ -33,86 +34,86 @@
   
   <style>
     /* Reset & Base */
-    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:#f5f5f5; display:flex; justify-content:center; padding: 20px; min-height: 100vh; }
+    body { display:flex; justify-content:center; }
     
     /* Main Card */
-    .card { background:white; width:100%; max-width:480px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.06); overflow:hidden; display: flex; flex-direction: column; height: fit-content; margin-top: 20px; }
+    .card { width:100%; max-width:480px; border-radius:16px; overflow:hidden; display: flex; flex-direction: column; height: fit-content; margin-top: 20px; }
     
     /* Header */
-    .header { padding: 24px 24px 10px 24px; border-bottom: 1px solid #f3f4f6; }
-    h1 { margin:0; font-size:24px; font-weight:800; color:#111827; }
-    .subtitle { font-size:14px; color:#6b7280; margin-top:4px; }
+    .header { padding: 24px 24px 14px 24px; border-bottom: 1px solid var(--aips-border); }
+    h1 { margin:0; font-size:26px; font-weight:850; color:var(--aips-text); }
+    .subtitle { font-size:14px; color:var(--aips-secondary); margin-top:4px; }
 
     /* List Items */
     .settings-list { list-style:none; padding:0; margin:0; }
-    .item { border-bottom:1px solid #f3f4f6; }
+    .item { border-bottom:1px solid var(--aips-border); }
     .item:last-child { border-bottom:none; }
 
     /* Category Header (Clickable) */
     .cat-head {
       display: flex; justify-content: space-between; align-items: center;
       padding: 18px 24px; cursor: pointer; transition: background 0.15s;
-      background: #fff;
+      background: transparent;
       user-select: none;
     }
-    .cat-head:hover { background: #f9fafb; }
-    .cat-title { font-weight: 600; font-size: 16px; color: #1f2937; display: flex; align-items: center; gap: 10px; }
-    .cat-icon { font-size: 18px; color: #6b7280; width: 24px; text-align: center; }
+    .cat-head:hover { background: rgba(255,255,255,.04); }
+    .cat-title { font-weight: 750; font-size: 16px; color: var(--aips-text); display: flex; align-items: center; gap: 10px; }
+    .cat-icon { font-size: 18px; color: var(--aips-muted); width: 24px; text-align: center; }
     
     /* Chevron Icon */
-    .chevron { width: 8px; height: 8px; border-right: 2px solid #9ca3af; border-bottom: 2px solid #9ca3af; transform: rotate(45deg); transition: transform 0.2s; margin-right: 4px; }
-    .expanded .chevron { transform: rotate(225deg); border-color: #4f46e5; }
-    .expanded .cat-title { color: #4f46e5; }
+    .chevron { width: 8px; height: 8px; border-right: 2px solid var(--aips-muted); border-bottom: 2px solid var(--aips-muted); transform: rotate(45deg); transition: transform 0.2s; margin-right: 4px; }
+    .expanded .chevron { transform: rotate(225deg); border-color: #93C5FD; }
+    .expanded .cat-title { color: #BAE6FD; }
 
     /* Expandable Content */
-    .content { display: none; background: #f9fafb; padding: 0 24px 20px 24px; border-top: 1px solid #f3f4f6; }
+    .content { display: none; background: rgba(255,255,255,.035); padding: 0 24px 20px 24px; border-top: 1px solid var(--aips-border); }
     .item.expanded .content { display: block; }
-    .item.expanded .cat-head { background: #f3f4f6; }
+    .item.expanded .cat-head { background: rgba(255,255,255,.045); }
 
     /* Content Elements */
-    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--aips-border); font-size: 14px; }
     .info-row:last-child { border-bottom: none; }
-    .info-label { color: #6b7280; font-weight: 500; }
-    .info-val { color: #111827; font-weight: 600; text-align: right; }
+    .info-label { color: var(--aips-muted); font-weight: 650; }
+    .info-val { color: var(--aips-text); font-weight: 700; text-align: right; }
     
     /* Special Styles for Plans */
-    .plan-badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .plan-badge.free { background: #f3f4f6; color: #4b5563; }
+    .plan-badge { background: rgba(16,185,129,.14); color: #D1FAE5; border:1px solid rgba(16,185,129,.24); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plan-badge.free { background: rgba(255,255,255,.05); color: var(--aips-secondary); border-color:var(--aips-border); }
 
     /* Buttons */
-    .btn { padding: 12px 16px; border-radius: 10px; border: 0; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; transition: all 0.2s; }
+    .btn { padding: 12px 16px; border-radius: 14px; border: 1px solid var(--aips-border); font-size: 14px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 10px; transition: all 0.2s; }
     .btn:active { opacity: 0.9; transform: scale(0.98); }
-    .btn-subtle { background: linear-gradient(135deg, #64748b, #788292); color: white; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3); }
-    .btn-subtle:hover { background: linear-gradient(135deg, #475569, #64748b); }
-    .btn-primary { background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35); }
-    .btn-primary:hover { background: linear-gradient(135deg, #4338ca, #4f46e5); }
-    .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
-    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #dc2626); }
+    .btn-subtle { background: rgba(255,255,255,.05); color: var(--aips-text); }
+    .btn-subtle:hover { background: rgba(255,255,255,.09); }
+    .btn-primary { background: var(--aips-primary); color: white; box-shadow: 0 16px 34px rgba(37,99,235,.28); }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-danger { background: var(--aips-danger); color: white; box-shadow: 0 16px 32px rgba(239,68,68,.24); }
+    .btn-danger:hover { background: #dc2626; }
     
     /* Updated Link Style */
-    .policy-link { color: #4f46e5; text-decoration: underline; font-size: 13px; cursor: pointer; background: none; border: none; padding: 0; }
-    .policy-link:hover { color: #4338ca; }
+    .policy-link { color: #93C5FD; text-decoration: underline; font-size: 13px; cursor: pointer; background: none; border: none; padding: 0; }
+    .policy-link:hover { color: #BAE6FD; }
 
     /* Toggles */
     .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
     .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: .3s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
-    input:checked + .slider { background-color: #4f46e5; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,.12); transition: .3s; border-radius: 34px; border:1px solid var(--aips-border); }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    input:checked + .slider { background-color: #2563EB; }
     input:checked + .slider:before { transform: translateX(20px); }
 
     /* Footer */
-    .footer { padding: 24px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; }
-    .back-link { text-decoration: none; color: #6b7280; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; transition: background 0.2s; }
-    .back-link:hover { background: #e5e7eb; color: #111827; }
-    .site-footer { padding: 20px 16px; text-align: center; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; line-height: 1.7; }
-    .site-footer a { color: #4f46e5; text-decoration: none; font-weight: 600; }
-    .site-footer a:hover { text-decoration: underline; }
+    .footer { padding: 24px; text-align: center; background: rgba(255,255,255,.035); border-top: 1px solid var(--aips-border); }
+    .back-link { text-decoration: none; color: var(--aips-secondary); font-weight: 750; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px; transition: background 0.2s; }
+    .back-link:hover { background: rgba(255,255,255,.08); color: var(--aips-text); }
+    .about-card { margin-top:16px; padding:14px; border:1px solid var(--aips-border); border-radius:14px; background:rgba(255,255,255,.04); color:var(--aips-secondary); font-size:13px; line-height:1.6; }
+    .about-card a { color:#BAE6FD; font-weight:750; text-decoration:none; }
+    .about-card a:hover { text-decoration:underline; }
   </style>
 </head>
-<body>
+<body class="aips-page">
 
-<div class="card">
+<div class="card aips-card">
   <div class="header">
     <h1>Settings</h1>
     <div class="subtitle">Manage your preferences and account</div>
@@ -132,7 +133,7 @@
         </div>
         <div class="info-row">
           <span class="info-label">User ID</span>
-          <span class="info-val" style="font-family:monospace; font-size:12px; color:#9ca3af;" id="uID">...</span>
+          <span class="info-val" style="font-family:monospace; font-size:12px; color:var(--aips-muted);" id="uID">...</span>
         </div>
         <div style="margin-top:16px;">
           <button class="btn btn-subtle" onclick="resetPassword()">Reset Password via Email</button>
@@ -160,7 +161,7 @@
           <span class="info-val" id="uTrial">...</span>
         </div>
         <div style="margin-top:16px; text-align:center;">
-          <p style="font-size:13px; color:#6b7280; margin-bottom:12px; line-height:1.4;">
+          <p style="font-size:13px; color:var(--aips-secondary); margin-bottom:12px; line-height:1.4;">
             Manage billing, update payment methods, or cancel securely via Stripe.
           </p>
           <button class="btn btn-primary" onclick="manageSub()">Manage Subscription</button>
@@ -188,7 +189,7 @@
             <span class="slider"></span>
           </label>
         </div>
-        <p style="font-size:12px; color:#9ca3af; margin-top:10px;">
+        <p style="font-size:12px; color:var(--aips-muted); margin-top:10px;">
           We only send essential updates regarding your account service.
         </p>
       </div>
@@ -201,14 +202,19 @@
       </div>
       <div class="content">
         <div style="padding:10px 0;">
-          <p style="font-size:14px; color:#374151; margin-bottom:12px;">Need assistance? We are here to help.</p>
+          <p style="font-size:14px; color:var(--aips-secondary); margin-bottom:12px;">Need assistance? We are here to help.</p>
           <button class="btn btn-subtle" onclick="window.location.href='mailto:alex@bryantdigitalsolutions.com'">Contact Support</button>
-          <div style="margin-top:16px; font-size:13px; color:#6b7280; text-align:center;">
+          <div style="margin-top:16px; font-size:13px; color:var(--aips-muted); text-align:center;">
             <p>Version: 2.5.0</p>
             <p>
               <a href="privacy.html" class="policy-link">Privacy Policy</a> &bull; 
               <a href="terms.html" class="policy-link">Terms of Service</a>
             </p>
+          </div>
+          <div class="about-card">
+            AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a>.<br>
+            Built for fast, professional image editing.<br>
+            Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>.
           </div>
         </div>
       </div>
@@ -260,7 +266,7 @@
       badge.innerHTML = `<span class="plan-badge">👑 Owner Mode</span>`;
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "Full access";
-      document.getElementById('uTrial').style.color = '#16a34a';
+      document.getElementById('uTrial').style.color = '#10B981';
       return;
     }
 
@@ -336,12 +342,12 @@
           badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = timeLeft;
-          document.getElementById('uTrial').style.color = '#16a34a';
+          document.getElementById('uTrial').style.color = '#10B981';
         } else {
           badge.innerHTML = `<span class="plan-badge free">Expired</span>`;
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = "Expired";
-          document.getElementById('uTrial').style.color = '#991b1b';
+          document.getElementById('uTrial').style.color = '#EF4444';
         }
       } else {
         badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
@@ -351,7 +357,7 @@
       badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "No active subscription";
-      document.getElementById('uTrial').style.color = '#6b7280';
+      document.getElementById('uTrial').style.color = '#94A3B8';
     }
   });
 
@@ -421,11 +427,5 @@
   if (nEmail) nEmail.addEventListener('change', e => localStorage.setItem('set_notif_email', e.target.checked));
   if (nBrowser) nBrowser.addEventListener('change', e => localStorage.setItem('set_notif_browser', e.target.checked));
 </script>
-
-<footer class="site-footer">
-  AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a><br>
-  Built for fast, professional image editing<br>
-  Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>
-</footer>
 </body>
 </html>

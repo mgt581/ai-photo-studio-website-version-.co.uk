@@ -1,25 +1,77 @@
-/* Shared CSS for squared pill-shaped action buttons */
+/* Shared AI Photo Studio SaaS theme */
+
+:root {
+  --aips-bg-1: #071426;
+  --aips-bg-2: #0B1F3A;
+  --aips-bg-3: #102B4F;
+  --aips-card: #0D1B2E;
+  --aips-card-2: #13243A;
+  --aips-card-3: #162B45;
+  --aips-primary: linear-gradient(135deg, #7C3AED 0%, #2563EB 50%, #0EA5E9 100%);
+  --aips-text: #F8FAFC;
+  --aips-secondary: #CBD5E1;
+  --aips-muted: #94A3B8;
+  --aips-border: rgba(148, 163, 184, 0.18);
+  --aips-danger: #EF4444;
+  --aips-success: #10B981;
+  --aips-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.aips-page {
+  margin: 0;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.2), transparent 32%),
+    linear-gradient(135deg, var(--aips-bg-1) 0%, var(--aips-bg-2) 52%, var(--aips-bg-3) 100%);
+  background-attachment: fixed;
+  color: var(--aips-text);
+}
+
+.aips-shell {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.aips-shell-wide {
+  max-width: 920px;
+}
+
+.aips-card {
+  background: linear-gradient(180deg, var(--aips-card-2), var(--aips-card));
+  border: 1px solid var(--aips-border);
+  border-radius: 16px;
+  box-shadow: var(--aips-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--aips-text);
+}
 
 .pill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 12px 24px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #18c8ee, #5ad2df);
-  color: #ffffff;
+  border: 1px solid var(--aips-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--aips-text);
   font-size: 15px;
   font-weight: 850;
   cursor: pointer;
   transition: all 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 16px 32px rgba(13, 165, 213, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   text-decoration: none;
 }
 
 .pill-btn:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 20px 38px rgba(13, 165, 213, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .pill-btn:active {
@@ -29,51 +81,67 @@
 .pill-btn:disabled,
 .pill-btn[disabled] {
   opacity: 0.62;
-  color: rgba(238, 246, 255, 0.66);
+  color: rgba(248, 250, 252, 0.58);
   cursor: not-allowed;
   filter: grayscale(0.35);
   box-shadow: none;
 }
 
+.pill-btn-primary {
+  background: var(--aips-primary);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.28), 0 0 22px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.pill-btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 20px 42px rgba(37, 99, 235, 0.34), 0 0 28px rgba(14, 165, 233, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 /* Secondary button - slate gray */
 .pill-btn-secondary {
-  background: linear-gradient(135deg, #22324a, #5f7187);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--aips-text);
+  border-color: var(--aips-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .pill-btn-secondary:hover {
-  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Success button - green */
 .pill-btn-success {
-  background: linear-gradient(135deg, #13c873, #43d98f);
-  box-shadow: 0 16px 32px rgba(19, 200, 115, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--aips-success);
+  box-shadow: 0 16px 32px rgba(16, 185, 129, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .pill-btn-success:hover {
-  box-shadow: 0 20px 38px rgba(19, 200, 115, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: #059669;
+  box-shadow: 0 20px 38px rgba(16, 185, 129, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* Danger button - red */
 .pill-btn-danger {
-  background: linear-gradient(135deg, #dc2626, #ef4444);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+  background: var(--aips-danger);
+  box-shadow: 0 16px 32px rgba(239, 68, 68, 0.24);
 }
 
 .pill-btn-danger:hover {
-  background: linear-gradient(135deg, #b91c1c, #dc2626);
-  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.45);
+  background: #dc2626;
+  box-shadow: 0 20px 38px rgba(239, 68, 68, 0.3);
 }
 
 /* Warning button - amber/orange */
 .pill-btn-warning {
-  background: linear-gradient(135deg, #7a43ea, #2ea7e6);
-  box-shadow: 0 16px 32px rgba(79, 70, 229, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--aips-primary);
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.28), 0 0 22px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .pill-btn-warning:hover {
-  box-shadow: 0 20px 38px rgba(79, 70, 229, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  filter: brightness(1.06);
+  box-shadow: 0 20px 42px rgba(37, 99, 235, 0.34), 0 0 28px rgba(14, 165, 233, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* container helpers for grouping action buttons */
@@ -83,23 +151,4 @@
   flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
-}
-
-/* Site-wide footer */
-.site-footer {
-  padding: 20px 16px;
-  text-align: center;
-  background: rgba(7, 19, 35, 0.58);
-  border-top: 1px solid rgba(160, 184, 213, 0.18);
-  font-size: 13px;
-  color: #9aaac0;
-  line-height: 1.7;
-}
-.site-footer a {
-  color: #eef6ff;
-  text-decoration: none;
-  font-weight: 600;
-}
-.site-footer a:hover {
-  text-decoration: underline;
 }

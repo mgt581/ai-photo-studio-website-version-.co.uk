@@ -10,7 +10,12 @@
     "directory": ".",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/check",
+      "/set",
+      "/remove",
+      "/create-checkout-session",
+      "/stripe-webhook"
     ]
   },
   "ai": {

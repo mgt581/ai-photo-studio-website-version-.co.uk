@@ -1066,9 +1066,26 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           0, 0, outW, outH
         );
 
+        const expansion = Math.max(10, Math.round(Math.max(outW, outH) * 0.012));
+        const expanded = document.createElement('canvas');
+        expanded.width = outW;
+        expanded.height = outH;
+        const ex = expanded.getContext('2d', { willReadFrequently: true });
+        ex.filter = `blur(${Math.max(4, Math.round(expansion * 0.35))}px)`;
+        ex.drawImage(maskHD, 0, 0);
+        ex.filter = 'none';
+        ex.globalCompositeOperation = 'source-over';
+        for (let dx = -expansion; dx <= expansion; dx += expansion) {
+          for (let dy = -expansion; dy <= expansion; dy += expansion) {
+            ex.drawImage(maskHD, dx, dy);
+          }
+        }
+        mhd.clearRect(0, 0, outW, outH);
+        mhd.drawImage(expanded, 0, 0);
+
         const imgData = mhd.getImageData(0, 0, outW, outH);
         for (let i = 0; i < imgData.data.length; i += 4) {
-          const selected = imgData.data[i + 3] > 8;
+          const selected = imgData.data[i + 3] > 3;
           if (mode === 'luma') {
             imgData.data[i] = selected ? 255 : 0;
             imgData.data[i + 1] = selected ? 255 : 0;
@@ -1147,11 +1164,19 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const response = await fetch('/api/remove-object', { method: 'POST', body: form });
         if (!response.ok) {
           let message = `remove-object-api-${response.status}`;
+          let code = message;
+          let requestId = '';
           try {
             const data = await response.json();
-            message = data?.error || message;
+            code = data?.error || message;
+            requestId = data?.requestId ? ` (${data.requestId})` : '';
+            const providerDetails = Array.isArray(data?.providerErrors) ? `: ${data.providerErrors.join(', ')}` : '';
+            message = `${code}${providerDetails}${requestId}`;
           } catch (_) {}
-          throw new Error(message);
+          const error = new Error(message);
+          error.apiStatus = response.status;
+          error.apiCode = code;
+          throw error;
         }
 
         updateProgress('Finishing image…', 90);
@@ -1195,7 +1220,17 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         } catch (e) {
           console.warn('AI remove-object API unavailable, using on-device fallback:', e);
           hideProgress();
-          toast("AI removal unavailable. Using device fallback.");
+          const providerFailed = e?.apiStatus && e.apiStatus >= 400;
+          const configuredButFailed = providerFailed && e.apiStatus !== 404 && e.apiStatus !== 405;
+          if (configuredButFailed) {
+            const message = e?.apiCode === 'remove-object-provider-failed'
+              ? "AI removal failed. Check Worker secrets/provider logs."
+              : `AI removal failed: ${e.message}`;
+            toast(message);
+            setStatus(message);
+            return;
+          }
+          toast("AI route unavailable. Using device fallback.");
           await applyInpaintLocal();
         } finally {
           setBusy(false);

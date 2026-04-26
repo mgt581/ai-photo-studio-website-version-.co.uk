@@ -1,6 +1,17 @@
 {
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "aiphoto-studio-website-version-co-uk-worker",
-  "main": "src/index.js",
-  "compatibility_date": "2026-04-08",
-  "compatibility_flags": ["nodejs_compat"]
+  "main": "src/worker.js",
+  "compatibility_date": "2026-04-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "workers_dev": true,
+  "vars": {
+    "APP_NAME": "AI Photo Studio",
+    "FIREBASE_PROJECT_ID": "ai-photo-studio-24354",
+    "FRONTEND_ORIGIN": "https://aiphotostudio.co.uk"
+  }
 }

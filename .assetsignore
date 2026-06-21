@@ -5,6 +5,9 @@ node_modules
 .assetsignore
 wrangler.jsonc
 .wrangler
+.idea
+.gitignore
+.nojekyll
 .gradle
 build
 app
@@ -14,3 +17,10 @@ gradlew
 gradlew.bat
 gradle.properties
 local.properties
+*.md
+README_DEPLOY.txt
+TODO.md
+firebaserc.txt
+firebase.json
+twa-manifest.json
+CNAME

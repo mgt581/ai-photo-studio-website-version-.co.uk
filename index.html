@@ -159,9 +159,6 @@
     .card{background:linear-gradient(180deg,var(--panel-soft),var(--panel));padding:22px;border:1px solid var(--panel-line);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);color:var(--text)}
     .status{margin-top:0;color:var(--text);font-weight:750}
     
-    /* Beta Tag */
-    .tag-beta{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;vertical-align:middle}
-    
     /* Canvas */
     .stage{padding:16px;border:1px solid var(--panel-line);border-radius:16px;overflow:hidden;position:relative;box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.04);background:linear-gradient(180deg,var(--panel-soft),var(--panel))}
     .stage::before{content:"";position:absolute;inset:16px;border-radius:12px;background-image:linear-gradient(45deg,rgba(226,232,240,.76) 25%,transparent 25%),linear-gradient(-45deg,rgba(226,232,240,.76) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(226,232,240,.76) 75%),linear-gradient(-45deg,transparent 75%,rgba(226,232,240,.76) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:rgba(248,250,252,.94);pointer-events:none}
@@ -228,9 +225,7 @@
           <button class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
           <button id="btnColorPicker" class="pill-btn" onclick="showColorPicker()">Background Color</button>
 
-          <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">
-            Remove Person <span class="tag-beta">Beta</span>
-          </button>
+          <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">Remove Object or Person</button>
 
           <button id="btnApply" class="pill-btn warn" style="display:none" onclick="Studio.applyInpaint()">Apply Removal</button>
           <button id="btnCancel" class="pill-btn" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
@@ -902,7 +897,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         mainSrc = await readFileURL(file);
         if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL=null; }
         await draw({img: mainSrc});
-        setStatus("Photo loaded — tap Remove Background or Remove Person.");
+        setStatus("Photo loaded — tap Remove Background or Remove Object or Person.");
         updateButtons();
         document.getElementById('btnBrush').disabled = false;
       }
@@ -1005,11 +1000,6 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         }, mime, .95);
       }
 
-      let btnHDPlus = null;
-      (function injectHDPlusButton() {
-        btnHDPlus = null;
-      })();
-
       function startBrush(){
         if (!mainSrc && !cutoutURL){ 
           alert("Load an image first."); 
@@ -1018,16 +1008,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         brushing = true;
         maskCanvas.style.display = 'block';
         btnApply.style.display   = btnCancel.style.display = 'inline-block';
-        if (btnHDPlus) btnHDPlus.style.display = 'inline-block';
         mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
         mctx.lineCap = 'round'; mctx.lineJoin = 'round'; mctx.strokeStyle = 'rgba(255,0,0,0.95)'; mctx.lineWidth = brushSize;
-        setStatus("Paint over the person to remove, then choose Apply Removal.");
+        setStatus("Paint over the object or person to remove, then choose Apply Removal.");
       }
       function cancelBrush(){
         brushing = false; brushDown = false;
         maskCanvas.style.display = 'none';
         btnApply.style.display   = btnCancel.style.display = 'none';
-        if (btnHDPlus) btnHDPlus.style.display = 'none';
         mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
         setStatus("Brush canceled.");
       }
@@ -1050,7 +1038,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         return painted;
       }
 
-      function buildRemovalMaskCanvas(metrics, outW, outH, mode = 'alpha') {
+      function buildRemovalMaskCanvas(metrics, outW, outH) {
         const maskHD = document.createElement('canvas');
         maskHD.width = outW;
         maskHD.height = outH;
@@ -1082,22 +1070,10 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const imgData = mhd.getImageData(0, 0, outW, outH);
         for (let i = 0; i < imgData.data.length; i += 4) {
           const selected = imgData.data[i + 3] > 3;
-          if (mode === 'luma') {
-            imgData.data[i] = selected ? 255 : 0;
-            imgData.data[i + 1] = selected ? 255 : 0;
-            imgData.data[i + 2] = selected ? 255 : 0;
-            imgData.data[i + 3] = 255;
-          } else if (mode === 'openai-alpha') {
-            imgData.data[i] = 0;
-            imgData.data[i + 1] = 0;
-            imgData.data[i + 2] = 0;
-            imgData.data[i + 3] = selected ? 0 : 255;
-          } else {
-            imgData.data[i] = 255;
-            imgData.data[i + 1] = 255;
-            imgData.data[i + 2] = 255;
-            imgData.data[i + 3] = selected ? 255 : 0;
-          }
+          imgData.data[i] = 0;
+          imgData.data[i + 1] = 0;
+          imgData.data[i + 2] = 0;
+          imgData.data[i + 3] = selected ? 0 : 255;
         }
         mhd.putImageData(imgData, 0, 0);
         return maskHD;
@@ -1108,7 +1084,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
       }
 
       function toModelDimension(value) {
-        return Math.max(256, Math.min(1536, Math.round(value / 8) * 8));
+        return Math.max(16, Math.min(2048, Math.ceil(value / 16) * 16));
       }
 
       async function applyInpaintWithApi() {
@@ -1125,10 +1101,15 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           return true;
         }
 
-        const MAX_SIDE = 1536;
+        const MAX_SIDE = 2048;
         const maxSide = Math.max(img.width, img.height);
         const minSide = Math.max(1, Math.min(img.width, img.height));
-        const ratio = Math.min(MAX_SIDE / maxSide, Math.max(1, 256 / minSide));
+        if (maxSide / minSide > 3) {
+          alert("Very wide or tall images are not supported by AI removal. Please crop the photo to a 3:1 ratio or less.");
+          return true;
+        }
+        const minimumPixelScale = Math.sqrt(655360 / (img.width * img.height));
+        const ratio = Math.min(MAX_SIDE / maxSide, Math.max(1, 512 / minSide, minimumPixelScale));
         const outW = toModelDimension(img.width * ratio);
         const outH = toModelDimension(img.height * ratio);
 
@@ -1140,20 +1121,17 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         imageCtx.imageSmoothingQuality = 'high';
         imageCtx.drawImage(img, 0, 0, outW, outH);
 
-        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'openai-alpha');
-        const cloudflareMaskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
+        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH);
         const imageBlob = await canvasToBlob(imageCanvas, 'image/png', 0.95);
         const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
-        const cloudflareMaskBlob = await canvasToBlob(cloudflareMaskCanvasHD, 'image/png', 0.95);
-        if (!imageBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
+        if (!imageBlob || !maskBlob) throw new Error('image-export-failed');
 
         const form = new FormData();
         form.append('image', imageBlob, 'image.png');
         form.append('mask', maskBlob, 'mask.png');
-        form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
         form.append('width', String(outW));
         form.append('height', String(outH));
-        form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
+        form.append('prompt', 'Remove only the masked object or person. Reconstruct the hidden background photorealistically from the surrounding scene. Preserve every unmasked pixel, subject, face, lighting condition, camera perspective, texture, colour, and composition. Do not add new people, objects, text, blur, smearing, shadows, reflections, or ghosting. The edit must be seamless and indistinguishable from an unedited photograph.');
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
@@ -1214,241 +1192,17 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           setBusy(true);
           await applyInpaintWithApi();
         } catch (e) {
-          console.warn('AI remove-object API unavailable, using on-device fallback:', e);
+          console.error('GPT Image removal failed:', e);
           hideProgress();
-          const providerFailed = e?.apiStatus && e.apiStatus >= 400;
-          const configuredButFailed = providerFailed && e.apiStatus !== 404 && e.apiStatus !== 405;
-          if (configuredButFailed) {
-            const message = e?.apiCode === 'remove-object-provider-failed'
-              ? "AI removal failed. Check Worker secrets/provider logs."
-              : `AI removal failed: ${e.message}`;
-            toast(message);
-            setStatus(message);
-            return;
-          }
-          toast("AI route unavailable. Using device fallback.");
-          await applyInpaintLocal();
+          const message = e?.apiCode === 'openai-api-key-missing'
+            ? "AI removal is not configured on this preview."
+            : "AI removal failed. Please try again in a moment.";
+          toast(message);
+          setStatus(message);
         } finally {
           setBusy(false);
         }
       }
-
-      async function applyInpaintLocal() {
-        try {
-          setBusy(true);
-          setStatus("Removing selected area… (device fallback)");
-          await ensureOpenCVReady();
-
-          const baseSrc = mainSrc || cutoutURL;
-          if (!baseSrc) { alert("Load an image first."); return; }
-
-          const img = await loadImage(baseSrc);
-          const stageW = stage.width, stageH = stage.height;
-          const metrics = getImageDrawMetrics(img, stageW, stageH);
-
-          const painted = getPaintedPixelCount();
-          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return; }
-
-          const MAX_SIDE = 2048;
-          const maxSide  = Math.max(img.width, img.height);
-          const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
-          const hdW = Math.max(1, Math.round(img.width * rHD));
-          const hdH = Math.max(1, Math.round(img.height * rHD));
-
-          const off = document.createElement('canvas'); 
-          off.width = hdW; off.height = hdH;
-          const oc  = off.getContext('2d', { willReadFrequently:true });
-          oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
-          oc.drawImage(img, 0, 0, hdW, hdH);
-
-          const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'alpha');
-          const mhd = fixedMaskHD.getContext('2d', { willReadFrequently: true });
-
-          const srcHD_RGBA  = oc.getImageData(0, 0, hdW, hdH);
-          const maskHD_RGBA = mhd.getImageData(0, 0, hdW, hdH);
-
-          const src4 = cv.matFromImageData(srcHD_RGBA);
-          const src3 = new cv.Mat();
-          cv.cvtColor(src4, src3, cv.COLOR_RGBA2RGB);
-
-          const mask = new cv.Mat.zeros(hdH, hdW, cv.CV_8UC1);
-          for (let i = 0; i < maskHD_RGBA.data.length; i += 4) {
-            if (maskHD_RGBA.data[i+3] > 0) {
-              const id = i / 4, y = (id / hdW) | 0, x = id % hdW;
-              mask.ucharPtr(y, x)[0] = 255;
-            }
-          }
-          const kernel = cv.Mat.ones(5, 5, cv.CV_8U);
-          const maskDil = new cv.Mat();
-          cv.dilate(mask, maskDil, kernel, new cv.Point(-1,-1), 2);
-
-          const pass1 = new cv.Mat(), pass2 = new cv.Mat();
-          cv.inpaint(src3, maskDil, pass1, 5, cv.INPAINT_TELEA);
-          cv.inpaint(src3, maskDil, pass2, 9, cv.INPAINT_TELEA);
-          const blended = new cv.Mat();
-          cv.addWeighted(pass1, 0.6, pass2, 0.4, 0.0, blended);
-
-          const out4  = new cv.Mat();
-          cv.cvtColor(blended, out4, cv.COLOR_RGB2RGBA);
-          const outImg = new ImageData(new Uint8ClampedArray(out4.data), hdW, hdH);
-          oc.putImageData(outImg, 0, 0);
-
-          ctx.clearRect(0,0,stageW,stageH);
-          if (bgColor) {
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, stageW, stageH);
-          }
-          ctx.drawImage(off, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
-
-          src4.delete(); src3.delete(); mask.delete();
-          kernel.delete(); maskDil.delete(); pass1.delete(); pass2.delete();
-          blended.delete(); out4.delete();
-
-          mainSrc = off.toDataURL('image/png', 0.95);
-          if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
-
-          cancelBrush(); stampWatermark(); setStatus("Selected area removed with device fallback.");
-          
-          // Auto-save to gallery after person removal
-          stage.toBlob((b) => {
-            if (b) saveToGalleryIfSignedIn(b, "png");
-          }, "image/png", 0.95);
-        } catch (e) {
-          console.error('HD inpaint error:', e);
-          toast("Removal failed.");
-        } finally { setBusy(false); }
-      }
-
-      async function ensureOpenCVReady() {
-        if (window.cv && cv.Mat && !cv['isLoading']) return;
-        if (window.cv && cv['onRuntimeInitialized'] && !cv.Mat) {
-          await new Promise(res => { const prev = cv.onRuntimeInitialized; cv.onRuntimeInitialized = () => { prev && prev(); res(); }; });
-          return;
-        }
-        window.cv = { isLoading: true };
-        await new Promise((resolve, reject) => {
-          window.Module = window.Module || {};
-          window.Module['wasmBinaryFile'] = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv_js.wasm';
-          const s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0/dist/opencv.js';
-          s.async = true; s.crossOrigin = 'anonymous';
-          s.onload = () => { cv.onRuntimeInitialized = () => { cv.isLoading = false; resolve(); }; };
-          s.onerror = () => reject(new Error('opencv-load-failed'));
-          document.head.appendChild(s);
-        });
-      }
-
-      let _sdPipe = null;
-      async function ensureSDInpaintReady() {
-        if (_sdPipe) return;
-        if (!window.transformers) {
-          showProgress('Loading AI runtime…', 5);
-          await new Promise((res, rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js';
-            s.async = true; s.crossOrigin = 'anonymous';
-            s.onload = res; s.onerror = () => rej(new Error('transformers-load-failed'));
-            document.head.appendChild(s);
-          });
-        }
-        const { pipeline, env } = window.transformers;
-        env.allowLocalModels = false; env.useBrowserCache = true;
-        if ('gpu' in navigator) { env.backends.onnx.wasm = undefined; env.backends.onnx.wasmNumThreads = 1; }
-
-        let lastPct = 10; 
-        showProgress('Downloading HD+ model…', lastPct);
-        _sdPipe = await pipeline('image-to-image', 'Xenova/stable-diffusion-inpainting', {
-          progress_callback: (evt) => {
-            if (evt.progress != null) {
-              lastPct = Math.max(lastPct, Math.round(evt.progress * 80) + 10);
-              updateProgress('Downloading HD+ model…', lastPct);
-            } else if (evt.status === 'ready') { updateProgress('Initializing model…', 95); }
-          }
-        });
-        updateProgress('HD+ model ready', 100); 
-        setTimeout(hideProgress, 400);
-      }
-
-async function applyInpaintHDPlus() {
-    try {
-      setBusy(true); setStatus("HD+ (Beta): preparing…");
-      await ensureSDInpaintReady();
-      if (!_sdPipe) { return await applyInpaintLocal(); }
-
-      const baseSrc = mainSrc || cutoutURL;
-      if (!baseSrc) { alert("Load an image first."); return; }
-
-      const img = await loadImage(baseSrc);
-      const stageW = stage.width, stageH = stage.height;
-      const metrics = getImageDrawMetrics(img, stageW, stageH);
-
-      const painted = getPaintedPixelCount();
-      if (painted < 50) { alert("Paint over the person, then Apply HD+ again."); return; }
-
-      const MAX_SIDE = 2048;
-      const maxSide  = Math.max(img.width, img.height);
-      const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
-      const hdW = Math.max(1, Math.round(img.width * rHD));
-      const hdH = Math.max(1, Math.round(img.height * rHD));
-
-      const off = document.createElement('canvas'); off.width = hdW; off.height = hdH;
-      const oc  = off.getContext('2d', { willReadFrequently:true });
-      oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
-      oc.drawImage(img, 0, 0, hdW, hdH);
-
-      const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'luma');
-
-      const inputImage = await createImageBitmap(off);
-      const maskImage  = await createImageBitmap(fixedMaskHD);
-
-      let pct = 0; showProgress('HD+ inpainting…', pct);
-      const result = await _sdPipe(inputImage, {
-        mask_image: maskImage,
-        prompt: "clean natural background, realistic textures, seamless fill, high quality, photography",
-        negative_prompt: "distortion, blur, artifacts, deformed, extra people, text",
-        strength: 1.0, guidance_scale: 7.5, num_inference_steps: 20,
-        progress_callback: (evt) => { if (evt.progress != null) { pct = Math.round(100 * evt.progress); updateProgress('HD+ inpainting…', pct); } }
-      });
-
-      updateProgress('Finalizing…', 100); setTimeout(hideProgress, 400);
-
-      ctx.clearRect(0,0,stageW,stageH);
-      if (bgColor) {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, stageW, stageH);
-      }
-      let outBitmap = result?.imageBitmap || (result?.images && result.images[0]) || null;
-      if (!outBitmap && result?.toDataURL) {
-        const tmp = new Image(); tmp.src = result.toDataURL();
-        await (tmp.decode ? tmp.decode() : new Promise(r => tmp.onload = r));
-        outBitmap = tmp;
-      }
-      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaintLocal(); }
-      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
-
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = hdW;
-      finalCanvas.height = hdH;
-      const finalCtx = finalCanvas.getContext('2d');
-      finalCtx.drawImage(outBitmap, 0, 0, hdW, hdH);
-      mainSrc = finalCanvas.toDataURL('image/png', 0.95);
-      if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
-
-      cancelBrush(); stampWatermark(); setStatus("Selected area removed (HD+).");
-      
-      // Auto-save to gallery after HD+ person removal
-      stage.toBlob((b) => {
-        if (b) saveToGalleryIfSignedIn(b, "png");
-      }, "image/png", 0.95);
-    } catch (e) {
-      console.error('HD+ inpaint error:', e);
-      hideProgress();
-      try { await applyInpaintLocal(); } catch(_) {
-        alert("HD+ removal failed.");
-        setStatus("Removal failed.");
-      }
-    } finally { setBusy(false); }
-  }
 
   function getPos(e){
     const r = maskCanvas.getBoundingClientRect();
@@ -1473,7 +1227,7 @@ async function applyInpaintHDPlus() {
 
   return {
     onUploadMain, onUploadBg, removeBg, changeBg,
-    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw,
+    handleDrop, startBrush, cancelBrush, applyInpaint, redraw,
     setBgColor
   };
 })();

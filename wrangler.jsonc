@@ -18,9 +18,6 @@
       "/stripe-webhook"
     ]
   },
-  "ai": {
-    "binding": "AI"
-  },
   "compatibility_flags": [
     "nodejs_compat"
   ]

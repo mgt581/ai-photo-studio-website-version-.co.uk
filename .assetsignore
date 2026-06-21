@@ -4,3 +4,13 @@ src
 node_modules
 .assetsignore
 wrangler.jsonc
+.wrangler
+.gradle
+build
+app
+gradle
+*.gradle
+gradlew
+gradlew.bat
+gradle.properties
+local.properties

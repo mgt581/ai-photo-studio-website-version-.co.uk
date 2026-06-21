@@ -26,8 +26,14 @@ function jsonResponse(request, body, status = 200) {
   });
 }
 
-function toByteArray(bytes) {
-  return Array.from(bytes);
+function hasAllowedOrigin(request) {
+  const origin = request.headers.get('Origin');
+  if (!origin) return true;
+  try {
+    return ALLOWED_ORIGINS.has(origin) || new URL(origin).host === new URL(request.url).host;
+  } catch (_) {
+    return false;
+  }
 }
 
 const PLAN_DAYS = {
@@ -280,7 +286,7 @@ async function handleStripeWebhook(request, env) {
 
 function toModelDimension(value) {
   const parsed = Number.parseInt(String(value || '1024'), 10) || 1024;
-  return Math.max(256, Math.min(1536, Math.round(parsed / 8) * 8));
+  return Math.max(16, Math.min(2048, Math.ceil(parsed / 16) * 16));
 }
 
 function isPng(bytes) {
@@ -316,11 +322,11 @@ async function readValidatedPng(blob, fieldName, expectedDimensions = null, opti
     return { error: `${fieldName}-invalid-png` };
   }
 
-  if (dimensions.width < 256 || dimensions.height < 256) {
+  if (dimensions.width < 16 || dimensions.height < 16) {
     return { error: `${fieldName}-too-small` };
   }
 
-  if (dimensions.width > 1536 || dimensions.height > 1536) {
+  if (dimensions.width > 2048 || dimensions.height > 2048) {
     return { error: `${fieldName}-too-large` };
   }
 
@@ -328,8 +334,8 @@ async function readValidatedPng(blob, fieldName, expectedDimensions = null, opti
     return { error: `${fieldName}-must-include-alpha-channel` };
   }
 
-  if (dimensions.width % 8 !== 0 || dimensions.height % 8 !== 0) {
-    return { error: `${fieldName}-dimensions-must-be-multiple-of-8` };
+  if (dimensions.width % 16 !== 0 || dimensions.height % 16 !== 0) {
+    return { error: `${fieldName}-dimensions-must-be-multiple-of-16` };
   }
 
   if (
@@ -360,14 +366,13 @@ async function callOpenAIImageEdit({ env, requestId, imageData, maskData, prompt
   }
 
   const form = new FormData();
-  form.append('model', env.OPENAI_IMAGE_MODEL || 'gpt-image-1');
-  form.append('image', new Blob([imageData.bytes], { type: 'image/png' }), 'image.png');
+  form.append('model', env.OPENAI_IMAGE_MODEL || 'gpt-image-2');
+  form.append('image[]', new Blob([imageData.bytes], { type: 'image/png' }), 'image.png');
   form.append('mask', new Blob([maskData.bytes], { type: 'image/png' }), 'mask.png');
   form.append('prompt', prompt);
   form.append('n', '1');
-  form.append('size', 'auto');
+  form.append('size', `${imageData.dimensions.width}x${imageData.dimensions.height}`);
   form.append('quality', 'high');
-  form.append('input_fidelity', 'high');
   form.append('output_format', 'png');
 
   const response = await fetch('https://api.openai.com/v1/images/edits', {
@@ -383,7 +388,9 @@ async function callOpenAIImageEdit({ env, requestId, imageData, maskData, prompt
       status: response.status,
       body: body.slice(0, 1200)
     });
-    return { error: 'openai-image-edit-failed', status: response.status };
+    let apiCode = 'openai-image-edit-failed';
+    try { apiCode = JSON.parse(body)?.error?.code || apiCode; } catch (_) {}
+    return { error: apiCode, status: response.status };
   }
 
   const data = await response.json();
@@ -411,38 +418,6 @@ async function callOpenAIImageEdit({ env, requestId, imageData, maskData, prompt
   return { error: 'openai-image-missing' };
 }
 
-async function callCloudflareInpaint({ env, requestId, imageData, maskData, prompt, width, height }) {
-  if (!env.AI) {
-    return { skipped: true, reason: 'workers-ai-binding-missing' };
-  }
-
-  try {
-    const result = await env.AI.run('@cf/runwayml/stable-diffusion-v1-5-inpainting', {
-      prompt,
-      negative_prompt: 'blur, smear, ghosting, duplicated people, distorted body, artifacts, text, watermark, low quality',
-      width,
-      height,
-      image: toByteArray(imageData.bytes),
-      mask: toByteArray(maskData.bytes),
-      num_steps: 30,
-      strength: 1,
-      guidance: 9
-    });
-
-    return {
-      provider: 'cloudflare',
-      bytes: result instanceof Uint8Array ? result : new Uint8Array(result)
-    };
-  } catch (error) {
-    console.error('remove-object Cloudflare failed', {
-      requestId,
-      message: error?.message || String(error),
-      stack: error?.stack || null
-    });
-    return { error: 'cloudflare-inpaint-failed' };
-  }
-}
-
 async function handleRemoveObject(request, env) {
   const requestId = crypto.randomUUID();
 
@@ -452,6 +427,10 @@ async function handleRemoveObject(request, env) {
 
   if (request.method !== 'POST') {
     return jsonResponse(request, { error: 'method-not-allowed' }, 405);
+  }
+
+  if (!hasAllowedOrigin(request)) {
+    return jsonResponse(request, { error: 'origin-not-allowed', requestId }, 403);
   }
 
   const contentType = request.headers.get('Content-Type') || '';
@@ -468,19 +447,18 @@ async function handleRemoveObject(request, env) {
 
   const image = form.get('image');
   const mask = form.get('mask');
-  const maskCf = form.get('mask_cf') || mask;
   const prompt = String(form.get('prompt') || '').trim() ||
     'remove the selected person or object, realistic clean natural background, seamless photo reconstruction';
   const width = toModelDimension(form.get('width'));
   const height = toModelDimension(form.get('height'));
 
-  if (!(image instanceof Blob) || !(mask instanceof Blob) || !(maskCf instanceof Blob)) {
+  if (!(image instanceof Blob) || !(mask instanceof Blob)) {
     return jsonResponse(request, { error: 'image-and-mask-required', requestId }, 400);
   }
 
   const maxImageBytes = 12 * 1024 * 1024;
   const maxMaskBytes = 4 * 1024 * 1024;
-  if (image.size > maxImageBytes || mask.size > maxMaskBytes || maskCf.size > maxMaskBytes) {
+  if (image.size > maxImageBytes || mask.size > maxMaskBytes) {
     return jsonResponse(request, { error: 'image-too-large', requestId }, 413);
   }
 
@@ -499,16 +477,6 @@ async function handleRemoveObject(request, env) {
     }, 400);
   }
 
-  const cloudflareMaskData = await readValidatedPng(maskCf, 'mask_cf', imageData.dimensions);
-  if (cloudflareMaskData.error) {
-    return jsonResponse(request, {
-      error: cloudflareMaskData.error,
-      requestId,
-      imageDimensions: stripInternalPngDetails(imageData.dimensions),
-      maskDimensions: stripInternalPngDetails(cloudflareMaskData.dimensions)
-    }, 400);
-  }
-
   if (imageData.dimensions.width !== width || imageData.dimensions.height !== height) {
     return jsonResponse(request, {
       error: 'submitted-dimensions-do-not-match-image',
@@ -518,7 +486,6 @@ async function handleRemoveObject(request, env) {
     }, 400);
   }
 
-  const providerErrors = [];
   const openAIResult = await callOpenAIImageEdit({ env, requestId, imageData, maskData, prompt });
   if (openAIResult.bytes) {
     return new Response(openAIResult.bytes, {
@@ -531,35 +498,11 @@ async function handleRemoveObject(request, env) {
       }
     });
   }
-  providerErrors.push(openAIResult.reason || openAIResult.error || 'openai-unavailable');
-
-  const cloudflareResult = await callCloudflareInpaint({
-    env,
-    requestId,
-    imageData,
-    maskData: cloudflareMaskData,
-    prompt,
-    width,
-    height
-  });
-  if (cloudflareResult.bytes) {
-    return new Response(cloudflareResult.bytes, {
-      headers: {
-        ...corsHeaders(request),
-        'Content-Type': 'image/png',
-        'X-AIPS-Provider': cloudflareResult.provider,
-        'X-Request-Id': requestId,
-        'Cache-Control': 'no-store'
-      }
-    });
-  }
-  providerErrors.push(cloudflareResult.reason || cloudflareResult.error || 'cloudflare-unavailable');
-
   return jsonResponse(request, {
-    error: 'remove-object-provider-failed',
+    error: openAIResult.reason || openAIResult.error || 'openai-image-edit-failed',
     requestId,
-    providerErrors
-  }, 502);
+    providerStatus: openAIResult.status || null
+  }, openAIResult.reason === 'openai-api-key-missing' ? 503 : 502);
 }
 
 export default {

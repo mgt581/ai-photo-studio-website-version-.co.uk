@@ -1192,10 +1192,10 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           setBusy(true);
           await applyInpaintWithApi();
         } catch (e) {
-          console.warn('AI remove-object API unavailable, using on-device fallback:', e);
+          console.error('AI remove-object API failed:', e);
           hideProgress();
-          toast("AI removal unavailable. Using device fallback.");
-          await applyInpaintLocal();
+          setStatus("AI removal failed. Please try again.");
+          toast("AI removal failed. Please try again.");
         } finally {
           setBusy(false);
         }

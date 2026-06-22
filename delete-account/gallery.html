@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Gallery • AI Photo Studio</title>
+  <link rel="icon" type="image/png" href="/logo-192.png?v=3">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body { color:var(--aips-text); }
+    
+    .gallery-shell { width:100%; max-width:920px; margin:0 auto; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:24px; }
+    h2 { margin:0; font-size:26px; color:var(--aips-text); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--aips-primary); color: white;
+      padding: 9px 14px; text-decoration: none; border-radius: 12px;
+      font-weight: 800; font-size: 14px; border: 1px solid rgba(255,255,255,.14); cursor: pointer;
+      transition: all 0.2s; box-shadow:0 16px 34px rgba(37,99,235,.24);
+    }
+    .btn:hover { filter:brightness(1.06); }
+    .btn-outline { background:rgba(255,255,255,.05); color:var(--aips-text); border:1px solid var(--aips-border); box-shadow:none; }
+    .btn-outline:hover { background:rgba(255,255,255,.09); }
+
+    /* Delete Button Styling */
+    .btn-delete { background:var(--aips-danger); color: white; box-shadow:0 12px 26px rgba(239,68,68,.2); }
+    .btn-delete:hover { background:#dc2626; }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      gap:16px;
+    }
+    
+    .card {
+      background:linear-gradient(180deg,var(--aips-card-2),var(--aips-card)); border:1px solid var(--aips-border); border-radius:16px; padding:10px;
+      box-shadow:0 20px 40px rgba(0,0,0,.32);
+      transition: transform 0.2s; display:flex; flex-direction:column; gap:8px;
+    }
+    .card:hover { transform:translateY(-2px); box-shadow:0 24px 50px rgba(0,0,0,.38); }
+
+    img {
+      width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:12px; background:#0D1B2E;
+    }
+    
+    .actions { display:flex; gap:4px; }
+    .btn-sm { flex:1; padding:6px; font-size:11px; text-align:center; border-radius: 8px; }
+
+    #status { text-align:center; color:var(--aips-muted); margin-top:40px; }
+  </style>
+</head>
+
+<body class="aips-page">
+<main class="gallery-shell">
+
+  <header>
+    <h2>Your Gallery</h2>
+    <a href="index.html" class="btn btn-outline">← Back to Studio</a>
+  </header>
+
+  <p id="status">Loading your saved images...</p>
+  <div id="gallery" class="grid"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script>
+    // Play Store / Android WebView detection (mirrors index.html logic)
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const forcedApp = (params.get('app') === '1') || (params.get('platform') === 'android');
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      const isWv = /\bwv\b/i.test(ua) || /Version\/\d+\.\d+.*Chrome\/\d+.*Mobile Safari/i.test(ua);
+      const hasAndroidBridge = typeof window.Android !== 'undefined';
+      let androidInterfaceActive = false;
+      if (hasAndroidBridge) {
+        try { androidInterfaceActive = window.Android && window.Android.isApp && window.Android.isApp() === true; } catch (e) {
+          console.warn('[AIPS] Android bridge check failed:', e);
+        }
+      }
+      window.__AIPS_IS_ANDROID_APP__ = forcedApp || androidInterfaceActive || (isAndroid && (isWv || hasAndroidBridge));
+    })();
+
+    // In Play Store / Android WebView, the cloud gallery is not available
+    if (window.__AIPS_IS_ANDROID_APP__) {
+      document.getElementById("status").textContent = "Gallery is not available in the app. Your images are saved locally on your device.";
+    } else {
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
+      authDomain: "ai-photo-studio-24354.firebaseapp.com",
+      projectId: "ai-photo-studio-24354",
+      storageBucket: "ai-photo-studio-24354.firebasestorage.app",
+      messagingSenderId: "411346648650",
+      appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
+      measurementId: "G-R3G160W8BQ"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+         document.getElementById("status").textContent = "Please sign in to view your gallery.";
+         return;
+      }
+      listenToGallery(user.uid);
+    });
+
+    function listenToGallery(uid) {
+      const galleryDiv = document.getElementById("gallery");
+      const status = document.getElementById("status");
+
+      db.collection("users")
+        .doc(uid)
+        .collection("gallery")
+        .orderBy("createdAt", "desc")
+        .onSnapshot(snap => {
+          if (snap.empty) {
+            status.textContent = "No images found. Go create some!";
+            status.style.display = 'block';
+            galleryDiv.innerHTML = "";
+            return;
+          }
+
+          status.style.display = 'none';
+          galleryDiv.innerHTML = "";
+
+          snap.forEach(doc => {
+            const data = doc.data();
+            if (!data.url) return;
+            
+            const card = document.createElement("div");
+            card.className = "card";
+            
+            const img = document.createElement("img");
+            img.src = data.url;
+            img.loading = "lazy";
+            
+            const actions = document.createElement("div");
+            actions.className = "actions";
+
+            // Save to device button
+            const dlBtn = document.createElement("button");
+            dlBtn.className = "btn btn-sm btn-outline";
+            dlBtn.textContent = "Save";
+            dlBtn.onclick = async () => {
+              if (window.__AIPS_IS_ANDROID_APP__) {
+                // Android app: fetch image as blob for reliable cross-origin download
+                try {
+                  const resp = await fetch(data.url);
+                  const blob = await resp.blob();
+                  const objUrl = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = objUrl;
+                  link.download = "ai-photo.png";
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(objUrl), 500);
+                } catch (e) {
+                  console.error("Save failed:", e);
+                  window.open(data.url, "_blank");
+                }
+              } else {
+                // Web browser: use direct link download
+                const link = document.createElement("a");
+                link.href = data.url;
+                link.download = "ai-photo.png";
+                link.target = "_blank";
+                link.click();
+              }
+            };
+
+            // Delete Button
+            const delBtn = document.createElement("button");
+            delBtn.className = "btn btn-sm btn-delete";
+            delBtn.textContent = "Delete";
+            // Passing the user ID, the Document ID, and the Storage URL
+            delBtn.onclick = () => deleteImage(uid, doc.id, data.url);
+
+            actions.appendChild(dlBtn);
+            actions.appendChild(delBtn);
+
+            card.appendChild(img);
+            card.appendChild(actions);
+            galleryDiv.appendChild(card);
+          });
+        }, error => {
+          console.error("Gallery error:", error);
+          status.textContent = "Error loading images.";
+        });
+    }
+
+    async function deleteImage(uid, docId, photoUrl) {
+      if (!confirm("Are you sure you want to delete this photo permanently?")) return;
+
+      try {
+        // 1. Delete the record from Firestore
+        await db.collection("users").doc(uid).collection("gallery").doc(docId).delete();
+
+        // 2. Delete the actual file from Firebase Storage
+        const fileRef = storage.refFromURL(photoUrl);
+        await fileRef.delete();
+
+        // Note: UI updates automatically because of .onSnapshot()
+      } catch (error) {
+        console.error("Error deleting:", error);
+        alert("Failed to delete. Check if your Firebase Storage Rules allow deletion.");
+      }
+    }
+
+    } // end !isPlayApp
+  </script>
+
+</main>
+
+</body>
+</html>

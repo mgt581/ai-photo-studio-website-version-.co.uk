@@ -1136,7 +1136,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
         form.append('width', String(outW));
         form.append('height', String(outH));
-        form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
+        form.append('prompt', 'Final image: the same photograph as the input, except the entire object, person, or text inside the transparent mask is completely absent. Fill the whole masked region only with a seamless continuation of the real background immediately surrounding it, matching its perspective, geometry, texture, lighting, colour, focus, grain, shadows, and reflections. Leave every unmasked pixel and every unmasked person, face, object, word, logo, and compositional element unchanged. The masked region must contain no trace, outline, fragment, lettering, duplicate, blur, smearing, patch, or ghost of the removed content. Do not introduce any new subject, object, person, text, or logo.');
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
@@ -1175,7 +1175,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
         cancelBrush();
         stampWatermark();
-        setStatus("Selected area removed with AI.");
+        setStatus("AI edit returned — check that the selected object is gone before saving.");
         stage.toBlob((b) => {
           if (b) saveToGalleryIfSignedIn(b, "png");
         }, "image/png", 0.95);

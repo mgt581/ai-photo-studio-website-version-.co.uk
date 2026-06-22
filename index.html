@@ -1217,9 +1217,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
   maskCanvas.addEventListener('touchstart', (e)=>{ if(!brushing) return; brushDown=true; const p=getPos(e); mctx.beginPath(); mctx.moveTo(p.x,p.y); e.preventDefault(); });
   maskCanvas.addEventListener('touchmove', (e)=>{ if(!brushing||!brushDown) return; const p=getPos(e); mctx.lineTo(p.x,p.y); mctx.stroke(); e.preventDefault(); });
-  window.addEventListener('touchend', ()=> brushDown=false);
-
-  function handleDrop(e){
+    function handleDrop(e) {
     e.preventDefault();
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) onUploadMain(f);
@@ -1230,25 +1228,24 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
     handleDrop, startBrush, cancelBrush, applyInpaint, redraw,
     setBgColor
   };
-})();
+})(); 
 
 // Initial draw - now uses CSS checkerboard, canvas stays transparent
-
-document.getElementById('mainInput').addEventListener('change', () => {
+document.getElementById('mainInput')?.addEventListener('change', () => {
   const brushBtn = document.getElementById('btnBrush');
   if (brushBtn) brushBtn.disabled = false;
 });
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Service worker registration disabled - no service-worker.js file
-    // To enable: create a service-worker.js file first
+    // Service worker registration disabled
     console.log("Service worker disabled - no service worker file found");
   });
 }
 
-document.getElementById('btnSaveGallery').addEventListener('click', () => {
+document.getElementById('btnSaveGallery')?.addEventListener('click', () => {
   stage.toBlob((blob) => {
+    if (!blob) return alert("No image to save.");  stage.toBlob((blob) => {
     if (!blob) return alert("No image to save.");
 
     // ✅ ANDROID APP — use native save

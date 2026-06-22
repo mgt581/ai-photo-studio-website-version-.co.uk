@@ -14,7 +14,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
   <link rel="icon" type="image/png" href="https://aiphotostudio.co.uk/logo-192.png?v=3">
 
-  <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/background-removal.min.js"></script>
+  <script type="module">
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs";
+    globalThis.removeBackground = removeBackground;
+  </script>
 
   <script>
     // Detect Android *app* (WebView) environment and mark the page.
@@ -1136,11 +1139,11 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
         form.append('width', String(outW));
         form.append('height', String(outH));
-        form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
+        form.append('prompt', 'Final image: the same photograph as the input, except the entire object, person, or text inside the transparent mask is completely absent. Fill the whole masked region only with a seamless continuation of the real background immediately surrounding it, matching its perspective, geometry, texture, lighting, colour, focus, grain, shadows, and reflections. Leave every unmasked pixel and every unmasked person, face, object, word, logo, and compositional element unchanged. The masked region must contain no trace, outline, fragment, lettering, duplicate, blur, smearing, patch, or ghost of the removed content. Do not introduce any new subject, object, person, text, or logo.');
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
-        const response = await fetch('/api/remove-object', { method: 'POST', body: form });
+        const response = await fetch('https://aips-gpt-image-2-preview.alexbryant.workers.dev/api/remove-object', { method: 'POST', body: form });
         if (!response.ok) {
           let message = `remove-object-api-${response.status}`;
           try {
@@ -1175,7 +1178,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
         cancelBrush();
         stampWatermark();
-        setStatus("Selected area removed with AI.");
+        setStatus("AI edit returned — check that the selected object is gone before saving.");
         stage.toBlob((b) => {
           if (b) saveToGalleryIfSignedIn(b, "png");
         }, "image/png", 0.95);

@@ -93,13 +93,21 @@
     .ghost:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16)}
     .muted{color:var(--muted);font-size:13px}
 
-    /* Pricing Buttons */
-    .pricing-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 24px; background:rgba(13,27,46,.58); border-bottom: 1px solid var(--panel-line); }
-    .btn-price { padding: 11px 18px; border-radius: 999px !important; border: 1px solid rgba(255,255,255,.14); cursor: pointer; font-size: 13px; font-weight: 850; color: white; transition: transform 0.1s, box-shadow 0.2s, filter .2s; box-shadow: 0 14px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16); }
+    /* Pricing */
+    .pricing-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px 24px;background:rgba(13,27,46,.58);border-bottom:1px solid var(--panel-line)}
+    .price-card{position:relative;display:grid;gap:10px;align-content:start;min-height:150px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05)}
+    .price-card.featured{border-color:rgba(14,165,233,.42);box-shadow:0 18px 38px rgba(14,165,233,.16),inset 0 1px 0 rgba(255,255,255,.08)}
+    .price-eyebrow{color:#BAE6FD;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+    .price-title{font-size:18px;font-weight:900;line-height:1.1}
+    .price-value{font-size:13px;color:var(--secondary);line-height:1.35}
+    .price-note{font-size:12px;color:var(--muted);line-height:1.35}
+    .price-badge{position:absolute;top:12px;right:12px;padding:4px 8px;border-radius:999px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.25);color:#D1FAE5;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+    .btn-price{width:100%;padding:11px 12px;border-radius:8px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:13px;font-weight:850;color:white;background:var(--grad);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
     .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
     .btn-price:active { transform: scale(0.97); }
-    #btnDaily,#btnMonthly{background:rgba(255,255,255,.05)!important;color:var(--text);border-color:rgba(255,255,255,.1)}
-    #btnTrialStart{background:var(--grad)!important}
+    #btnDaily{background:rgba(255,255,255,.05)!important;color:var(--text);border-color:rgba(255,255,255,.1)}
+    #btnMonthly{background:linear-gradient(135deg,#2563EB,#0EA5E9)!important}
+    #btnTrialStart{background:linear-gradient(135deg,#16A34A,#22C55E)!important}
 
     /* Upgrade Message */
     #upgradeMsg {
@@ -133,6 +141,7 @@
       box-shadow: none !important;
     }
     #trialLeft{background:rgba(16,185,129,.12)!important;color:#D1FAE5!important;border:1px solid rgba(16,185,129,.24)}
+    #creditStatus{display:none;background:rgba(14,165,233,.12)!important;color:#BAE6FD!important;border:1px solid rgba(14,165,233,.24);padding:4px 8px;border-radius:999px;font-weight:800}
     #btnLogout{background:rgba(239,68,68,.12)!important;color:#FECACA!important;border-color:rgba(239,68,68,.28)}
     /* =========================================================================== */
 
@@ -181,6 +190,7 @@
     .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:var(--grad);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 34px rgba(37,99,235,.28),0 0 22px rgba(14,165,233,.12),inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
     .btn:hover{filter:brightness(1.06);box-shadow:0 20px 42px rgba(37,99,235,.34),0 0 28px rgba(14,165,233,.18),inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
+    @media (max-width:760px){.pricing-row{grid-template-columns:1fr;padding:14px}.price-card{min-height:0}.wrap{padding-top:18px}}
   </style>
 </head>
 <body>
@@ -193,6 +203,7 @@
     <div class="row">
       <span id="upgradeMsg" onclick="window.scrollTo({top:0, behavior:'smooth'})">✨ Upgrade to remove watermark</span>
       <span id="trialLeft" class="muted" style="display:none; background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px; font-weight:bold;"></span>
+      <span id="creditStatus" class="muted"></span>
 
       <a href="gallery.html" class="ghost">Gallery</a>
       <a href="settings.html" class="ghost">Settings</a>
@@ -209,10 +220,29 @@
   <div id="payMsg">Please sign in or create an account to start a Pro plan.</div>
   <!-- =========================================================================== -->
 
-  <div class="pricing-row">
-     <button id="btnDaily" class="btn-price" style="background: linear-gradient(135deg, #64748b, #788292); border-radius: 10px;">Day Pass £1</button>
-     <button id="btnMonthly" class="btn-price">Monthly £4.99</button>
-     <button id="btnTrialStart" class="btn-price" style="background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 10px;">Start Free Trial (Yearly)</button>
+  <div class="pricing-row" aria-label="AI Photo Studio plans">
+    <div class="price-card">
+      <div class="price-eyebrow">Starter</div>
+      <div class="price-title">Day Pass</div>
+      <div class="price-value">£1 for quick one-off edits.</div>
+      <div class="price-note">Includes all tools for the day.</div>
+      <button id="btnDaily" class="btn-price">Get Day Pass</button>
+    </div>
+    <div class="price-card featured">
+      <span class="price-badge">Best value</span>
+      <div class="price-eyebrow">Pro</div>
+      <div class="price-title">Monthly</div>
+      <div class="price-value">£4.99/month for regular creators.</div>
+      <div class="price-note">Unlimited fair-use access to background and object tools.</div>
+      <button id="btnMonthly" class="btn-price">Go Monthly</button>
+    </div>
+    <div class="price-card">
+      <div class="price-eyebrow">Trial</div>
+      <div class="price-title">Yearly Pro</div>
+      <div class="price-value">Start with a 7-day free trial.</div>
+      <div class="price-note">For users who want all tools long term.</div>
+      <button id="btnTrialStart" class="btn-price">Start Free Trial</button>
+    </div>
   </div>
        
   <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
@@ -289,9 +319,15 @@
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
 
-    if (btnDaily)   btnDaily.onclick   = () => window.location.href = STRIPE_DAILY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=day&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnMonthly) btnMonthly.onclick = () => window.location.href = STRIPE_MONTHLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=month&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
-    if (btnTrialStart) btnTrialStart.onclick = () => window.location.href = STRIPE_YEARLY + "?success_url=https://aiphotostudio.co.uk/?payment=success&plan=trial7&cancel_url=https://aiphotostudio.co.uk/?payment=cancel";
+    const FREE_REMOVE_OBJECT_CREDITS = 3;
+    const REMOVE_OBJECT_CREDIT_COST = 1;
+
+    function buildCheckoutUrl(url, plan) {
+      const success = encodeURIComponent(`https://aiphotostudio.co.uk/?payment=success&plan=${plan}`);
+      const cancel = encodeURIComponent("https://aiphotostudio.co.uk/?payment=cancel");
+      const join = url.includes("?") ? "&" : "?";
+      return `${url}${join}success_url=${success}&cancel_url=${cancel}`;
+    }
 /* ===== ADDED: Stripe gating (must be signed in) ===== */
     function showPaySignInRequired() {
       const msg = document.getElementById("payMsg");
@@ -349,9 +385,9 @@ if (!window.__AIPS_IS_ANDROID_APP__) {
 }
 
 // Hook up buttons (kept, but now gated)
-if (btnDaily) btnDaily.onclick = () => openStripe(STRIPE_DAILY);
-if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
-if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
+if (btnDaily) btnDaily.onclick = () => openStripe(buildCheckoutUrl(STRIPE_DAILY, "day"));
+if (btnMonthly) btnMonthly.onclick = () => openStripe(buildCheckoutUrl(STRIPE_MONTHLY, "month"));
+if (btnTrialStart) btnTrialStart.onclick = () => openStripe(buildCheckoutUrl(STRIPE_YEARLY, "trial7"));
 
 window.onload = function () {
 
@@ -458,6 +494,89 @@ async function activatePlan(planKey, source) {
 // Backwards compatibility
 async function activatePro(type) {
   await activatePlan("year", type);
+}
+
+async function ensureRemoveObjectCredits(user) {
+  if (!user || window.proEnabled) return null;
+  const ref = db.collection("users").doc(user.uid);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? (snap.data() || {}) : {};
+    let credits = Number(data.usage?.removeObjectCredits);
+    if (!Number.isFinite(credits)) {
+      credits = FREE_REMOVE_OBJECT_CREDITS;
+      tx.set(ref, {
+        usage: {
+          removeObjectCredits: credits,
+          removeObjectCreditsGrantedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }
+      }, { merge: true });
+    }
+    return credits;
+  });
+}
+
+async function refreshCreditStatus() {
+  const elCredits = document.getElementById("creditStatus");
+  if (!elCredits || window.__AIPS_IS_ANDROID_APP__) return;
+  const user = auth.currentUser;
+  if (!user) {
+    elCredits.style.display = "none";
+    return;
+  }
+  if (window.proEnabled) {
+    elCredits.textContent = "Remove Person: unlimited fair use";
+    elCredits.style.display = "inline-block";
+    return;
+  }
+  try {
+    const credits = await ensureRemoveObjectCredits(user);
+    elCredits.textContent = `Remove Person: ${credits} free credit${credits === 1 ? "" : "s"}`;
+    elCredits.style.display = "inline-block";
+  } catch (e) {
+    console.warn("Credit status failed:", e);
+    elCredits.style.display = "none";
+  }
+}
+
+async function canUseRemoveObjectCredit() {
+  if (window.__AIPS_IS_ANDROID_APP__ || window.proEnabled) return true;
+  const user = auth.currentUser;
+  if (!user) {
+    requireSignInOrRedirect("use Remove Person");
+    return false;
+  }
+  const credits = await ensureRemoveObjectCredits(user);
+  if (credits >= REMOVE_OBJECT_CREDIT_COST) return true;
+  toast("Free Remove Person credits used. Choose a Pro plan for unlimited fair use.");
+  const msg = document.getElementById("payMsg");
+  if (msg) {
+    msg.textContent = "Your free Remove Person credits are used. Upgrade to keep editing with unlimited fair use.";
+    msg.style.display = "block";
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  return false;
+}
+
+async function recordRemoveObjectCreditUse() {
+  if (window.__AIPS_IS_ANDROID_APP__ || window.proEnabled) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  const ref = db.collection("users").doc(user.uid);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? (snap.data() || {}) : {};
+    const current = Number.isFinite(Number(data.usage?.removeObjectCredits))
+      ? Number(data.usage.removeObjectCredits)
+      : FREE_REMOVE_OBJECT_CREDITS;
+    tx.set(ref, {
+      usage: {
+        removeObjectCredits: Math.max(0, current - REMOVE_OBJECT_CREDIT_COST),
+        removeObjectLastUsedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    }, { merge: true });
+  });
+  await refreshCreditStatus();
 }
 
 // 3. APP VARIABLES & DOM
@@ -626,6 +745,7 @@ async function refreshUserPlan() {
     if (elTrialLeft) elTrialLeft.style.display = 'none';
     if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false); 
+    await refreshCreditStatus();
     return; 
   }
   
@@ -636,6 +756,7 @@ async function refreshUserPlan() {
     }
     if (elUpgrade) elUpgrade.style.display = 'none';
     setPro(true); 
+    await refreshCreditStatus();
     return;
   }
 
@@ -700,6 +821,7 @@ async function refreshUserPlan() {
 
       if (elUpgrade) elUpgrade.style.display = "none";
       setPro(true);
+      await refreshCreditStatus();
       return;
     }
 
@@ -710,6 +832,7 @@ async function refreshUserPlan() {
 
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
+    await refreshCreditStatus();
 
   } catch (e) {
     console.error("Plan check error:", e);
@@ -748,6 +871,7 @@ async function refreshUserPlan() {
         }
 
         setPro(true);
+        await refreshCreditStatus();
         return;
       }
     } catch (err) {
@@ -756,6 +880,7 @@ async function refreshUserPlan() {
 
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
+    await refreshCreditStatus();
   }
 }    
     
@@ -774,6 +899,7 @@ auth.onAuthStateChanged(async user => {
     if(navSignIn) navSignIn.style.display = 'inline-block';
     if(navSignUp) navSignUp.style.display = 'inline-block';
     setPro(false);
+    await refreshCreditStatus();
     return;
   }
 
@@ -786,6 +912,7 @@ auth.onAuthStateChanged(async user => {
   btnLogout.style.display = 'inline-block';
   if(navSignIn) navSignIn.style.display = 'none';
   if(navSignUp) navSignUp.style.display = 'none';
+  await refreshCreditStatus();
 });
 
 if(btnLogout) btnLogout.onclick = () => auth.signOut();
@@ -1423,6 +1550,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           alert("Paint directly over the person to remove, then Apply again.");
           return true;
         }
+        if (!(await canUseRemoveObjectCredit())) return false;
 
         const MAX_SIDE = 1536;
         const maxSide = Math.max(img.width, img.height);
@@ -1482,6 +1610,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         if (!resultBlob || !resultBlob.type.startsWith('image/')) throw new Error('remove-object-api-invalid-image');
         const resultImage = await blobToImage(resultBlob);
         const compositedCanvas = compositeMaskedResult(resultImage, imageCanvas, imageCtx, blendAlpha, cropRect, outW, outH);
+        await recordRemoveObjectCreditUse();
 
         ctx.clearRect(0, 0, stageW, stageH);
         if (bgColor) {

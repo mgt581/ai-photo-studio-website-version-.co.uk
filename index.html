@@ -1206,7 +1206,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const out = output.getContext('2d');
         const pixels = out.createImageData(width, height);
         for (let i = 0, p = 0; i < pixels.data.length; i += 4, p += 1) {
-          const value = Math.round(255 * maskAlpha[p]);
+          const value = Math.round(255 * (1 - maskAlpha[p]));
           pixels.data[i] = value;
           pixels.data[i + 1] = value;
           pixels.data[i + 2] = value;

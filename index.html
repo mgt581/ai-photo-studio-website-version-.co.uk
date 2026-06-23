@@ -94,20 +94,14 @@
     .muted{color:var(--muted);font-size:13px}
 
     /* Pricing */
-    .pricing-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px 24px;background:rgba(13,27,46,.58);border-bottom:1px solid var(--panel-line)}
-    .price-card{position:relative;display:grid;gap:10px;align-content:start;min-height:150px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05)}
-    .price-card.featured{border-color:rgba(14,165,233,.42);box-shadow:0 18px 38px rgba(14,165,233,.16),inset 0 1px 0 rgba(255,255,255,.08)}
-    .price-eyebrow{color:#BAE6FD;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
-    .price-title{font-size:18px;font-weight:900;line-height:1.1}
-    .price-value{font-size:13px;color:var(--secondary);line-height:1.35}
-    .price-note{font-size:12px;color:var(--muted);line-height:1.35}
-    .price-badge{position:absolute;top:12px;right:12px;padding:4px 8px;border-radius:999px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.25);color:#D1FAE5;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
-    .btn-price{width:100%;padding:11px 12px;border-radius:8px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:13px;font-weight:850;color:white;background:var(--grad);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
-    .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
-    .btn-price:active { transform: scale(0.97); }
-    #btnDaily{background:rgba(255,255,255,.05)!important;color:var(--text);border-color:rgba(255,255,255,.1)}
-    #btnMonthly{background:linear-gradient(135deg,#2563EB,#0EA5E9)!important}
-    #btnTrialStart{background:linear-gradient(135deg,#16A34A,#22C55E)!important}
+    .pricing-row{padding:10px 16px;background:rgba(13,27,46,.58);border-bottom:1px solid var(--panel-line)}
+    .home-offer{width:100%;min-height:52px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:linear-gradient(90deg,rgba(14,165,233,.2),rgba(37,99,235,.18)),linear-gradient(135deg,rgba(15,23,42,.95),rgba(30,41,59,.8));color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;cursor:pointer;box-shadow:0 14px 30px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08);transition:filter .2s,transform .1s}
+    .home-offer:hover{filter:brightness(1.08)}
+    .home-offer:active{transform:scale(.99)}
+    .home-offer-main{display:flex;align-items:center;gap:12px;min-width:0}
+    .home-offer-icon{width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,#22D3EE,#2563EB);display:grid;place-items:center;font-size:13px;box-shadow:0 8px 18px rgba(14,165,233,.25)}
+    .home-offer-text{font-size:16px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .home-offer-action{font-size:24px;line-height:1;color:#E0F2FE}
 
     /* Upgrade Message */
     #upgradeMsg {
@@ -190,7 +184,7 @@
     .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:var(--grad);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 34px rgba(37,99,235,.28),0 0 22px rgba(14,165,233,.12),inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
     .btn:hover{filter:brightness(1.06);box-shadow:0 20px 42px rgba(37,99,235,.34),0 0 28px rgba(14,165,233,.18),inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
-    @media (max-width:760px){.pricing-row{grid-template-columns:1fr;padding:14px}.price-card{min-height:0}.wrap{padding-top:18px}}
+    @media (max-width:760px){.home-offer-text{font-size:14px}.wrap{padding-top:18px}}
   </style>
 </head>
 <body>
@@ -220,29 +214,16 @@
   <div id="payMsg">Please sign in or create an account to start a Pro plan.</div>
   <!-- =========================================================================== -->
 
-  <div class="pricing-row" aria-label="AI Photo Studio plans">
-    <div class="price-card">
-      <div class="price-eyebrow">Starter</div>
-      <div class="price-title">Day Pass</div>
-      <div class="price-value">£1 for quick one-off edits.</div>
-      <div class="price-note">Includes all tools for the day.</div>
-      <button id="btnDaily" class="btn-price">Get Day Pass</button>
-    </div>
-    <div class="price-card featured">
-      <span class="price-badge">Best value</span>
-      <div class="price-eyebrow">Pro</div>
-      <div class="price-title">Monthly</div>
-      <div class="price-value">£4.99/month for regular creators.</div>
-      <div class="price-note">Unlimited fair-use access to background and object tools.</div>
-      <button id="btnMonthly" class="btn-price">Go Monthly</button>
-    </div>
-    <div class="price-card">
-      <div class="price-eyebrow">Trial</div>
-      <div class="price-title">Yearly Pro</div>
-      <div class="price-value">Start with a 7-day free trial.</div>
-      <div class="price-note">For users who want all tools long term.</div>
-      <button id="btnTrialStart" class="btn-price">Start Free Trial</button>
-    </div>
+  <div class="pricing-row" aria-label="AI Photo Studio offer">
+    <button id="btnDaily" class="home-offer">
+      <span class="home-offer-main">
+        <span class="home-offer-icon">◆</span>
+        <span class="home-offer-text">Restart Pro for only £1</span>
+      </span>
+      <span class="home-offer-action">⌕</span>
+    </button>
+    <button id="btnMonthly" type="button" style="display:none"></button>
+    <button id="btnTrialStart" type="button" style="display:none"></button>
   </div>
        
   <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">

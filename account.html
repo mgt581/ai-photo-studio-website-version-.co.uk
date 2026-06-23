@@ -6,35 +6,85 @@
   <title>My Account</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    body{display:flex;align-items:flex-start;justify-content:center}
-    .card{width:100%;max-width:420px;margin:28px auto;padding:26px;text-align:center}
-    h1{margin:0 0 18px;color:var(--aips-text);font-size:28px}
-    .val{font-size:15px;color:var(--aips-secondary);font-weight:650;margin-bottom:14px;background:rgba(255,255,255,.05);border:1px solid var(--aips-border);padding:12px;border-radius:12px}
-    .btn{display:block;width:100%;padding:13px 16px;border:1px solid var(--aips-border);border-radius:14px;font-weight:800;cursor:pointer;text-decoration:none;margin-top:12px;box-sizing:border-box;transition:all .2s}
-    .btn-primary{background:var(--aips-primary);color:#fff;box-shadow:0 16px 34px rgba(37,99,235,.28)}
-    .btn-primary:hover{filter:brightness(1.06)}
-    .btn-sec{background:rgba(255,255,255,.05);color:var(--aips-text)}
-    .btn-sec:hover{background:rgba(255,255,255,.09)}
-    .btn-red{background:var(--aips-danger);color:white;box-shadow:0 16px 32px rgba(239,68,68,.24)}
-    .btn-red:hover{background:#dc2626}
+    :root{--page:#F4FBFF;--ink:#070B18;--muted:#667085;--line:#E5ECF3;--cyan:#B9F1FF}
+    body{margin:0;min-height:100vh;background:var(--page);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .account-shell{width:100%;max-width:480px;margin:0 auto;padding:34px 20px 28px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+    .mini-offer{display:inline-flex;align-items:center;gap:10px;max-width:76%;padding:10px 14px;border:0;border-radius:999px;background:#EAF5FA;color:#667085;font-size:15px;font-weight:750;text-decoration:none}
+    .mini-offer span:first-child{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#67E8F9,#2563EB);display:grid;place-items:center;color:white;font-size:12px}
+    .gear{width:44px;height:44px;border:0;background:transparent;color:#0B1220;font-size:30px;text-decoration:none;display:grid;place-items:center}
+    .profile{display:flex;align-items:center;gap:18px;margin:18px 0 28px}
+    .avatar{width:92px;height:92px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#67E8F9,#2563EB);display:grid;place-items:center;color:white;font-size:34px;font-weight:900;border:4px solid white;box-shadow:0 12px 28px rgba(15,23,42,.12)}
+    .avatar.initials{line-height:92px;text-align:center}
+    .who{min-width:0}
+    .name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .username{font-size:25px;font-weight:900;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px}
+    .plan-chip{border:1px solid #D8E2EF;color:#94A3B8;border-radius:10px;padding:4px 9px;font-weight:850;font-size:14px}
+    .view-profile{margin-top:6px;color:#667085;font-size:20px;font-weight:750}
+    .offer-card{background:var(--cyan);border-radius:22px;padding:26px 24px;margin-bottom:26px;box-shadow:0 16px 34px rgba(14,165,233,.14)}
+    .offer-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+    .offer-title{font-size:24px;font-weight:950}
+    .offer-copy{margin-top:8px;color:#526677;font-size:17px;font-weight:700}
+    .claim{border:0;border-radius:14px;background:#0B0F14;color:white;padding:14px 20px;font-size:16px;font-weight:900;white-space:nowrap;cursor:pointer}
+    .benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px;text-align:center}
+    .benefit-icon{font-size:28px;line-height:1}
+    .benefit-label{margin-top:8px;color:#526677;font-size:13px;font-weight:850}
+    .menu{background:white;border-radius:18px;overflow:hidden;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+    .menu-row{display:flex;align-items:center;gap:18px;padding:20px 18px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:20px;font-weight:800}
+    .menu-row:last-child{border-bottom:0}
+    .menu-icon{width:34px;text-align:center;font-size:24px;color:#0B1220}
+    .chev{margin-left:auto;color:#98A2B3;font-size:24px}
+    .btn-red{color:#DC2626;background:white;border:0;width:100%;text-align:left;cursor:pointer}
+    @media(max-width:420px){.account-shell{padding:26px 16px}.username{font-size:22px;max-width:210px}.avatar{width:82px;height:82px}.benefit-label{font-size:12px}.offer-card{padding:22px 18px}.claim{padding:12px 14px}}
   </style>
 </head>
-<body class="aips-page">
-<div class="card aips-card">
-  <h1>My Profile</h1>
-  <div class="val" id="uEmail">Loading...</div>
-  <div class="val" id="uPlan">Checking Plan...</div>
-  
-  <a href="index.html" class="btn btn-primary">Back to Home</a>
-  <a href="settings.html" class="btn btn-sec">Settings</a>
-  <button id="btnSignOut" class="btn btn-red">Sign Out</button>
-</div>
+<body>
+<main class="account-shell">
+  <div class="topbar">
+    <a class="mini-offer" href="index.html?upgrade=1"><span>◆</span><span>Extra value on Pro access</span><span>›</span></a>
+    <a class="gear" href="settings.html" aria-label="Settings">⌾</a>
+  </div>
+
+  <section class="profile">
+    <img id="avatarImg" class="avatar" alt="Profile image" style="display:none">
+    <div id="avatarFallback" class="avatar initials">A</div>
+    <div class="who">
+      <div class="name-row">
+        <div id="uName" class="username">Loading...</div>
+        <span id="uPlan" class="plan-chip">Standard</span>
+      </div>
+      <div class="view-profile" id="uEmail">View profile ›</div>
+    </div>
+  </section>
+
+  <section class="offer-card">
+    <div class="offer-head">
+      <div>
+        <div class="offer-title">◆ Pro</div>
+        <div class="offer-copy">Restart Pro for only £1</div>
+      </div>
+      <button class="claim" onclick="claimOffer()">Claim offer</button>
+    </div>
+    <div class="benefits">
+      <div><div class="benefit-icon">▧</div><div class="benefit-label">Edits</div></div>
+      <div><div class="benefit-icon">◇</div><div class="benefit-label">Pro tools</div></div>
+      <div><div class="benefit-icon">✧</div><div class="benefit-label">AI effects</div></div>
+      <div><div class="benefit-icon">◉</div><div class="benefit-label">Retouch</div></div>
+    </div>
+  </section>
+
+  <nav class="menu">
+    <a class="menu-row" href="index.html"><span class="menu-icon">✂</span><span>Edit</span><span class="chev">›</span></a>
+    <a class="menu-row" href="gallery.html"><span class="menu-icon">□</span><span>Gallery</span><span class="chev">›</span></a>
+    <a class="menu-row" href="settings.html"><span class="menu-icon">?</span><span>Help & Settings</span><span class="chev">›</span></a>
+    <button id="btnSignOut" class="menu-row btn-red"><span class="menu-icon">↻</span><span>Sign Out</span><span class="chev">›</span></button>
+  </nav>
+</main>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  // Firebase config - unified across all pages
   const firebaseConfig = {
     apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
     authDomain: "premuim-status.alexbryant.workers.dev",
@@ -47,19 +97,54 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const STRIPE_DAILY = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
+
+  function checkoutUrl(url, plan) {
+    const success = encodeURIComponent(`https://aiphotostudio.co.uk/?payment=success&plan=${plan}`);
+    const cancel = encodeURIComponent("https://aiphotostudio.co.uk/?payment=cancel");
+    return `${url}?success_url=${success}&cancel_url=${cancel}`;
+  }
+
+  function claimOffer() {
+    window.location.href = checkoutUrl(STRIPE_DAILY, "day");
+  }
+
+  function usernameFor(user) {
+    const base = user.displayName || (user.email ? user.email.split("@")[0] : "Creator");
+    return base.replace(/[._-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 24);
+  }
+
+  async function planFor(user) {
+    if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") return "Owner";
+    try {
+      const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+      const data = await res.json();
+      if (data?.premium) return data.plan === "month" ? "Pro" : data.plan === "day" ? "Day Pass" : "Pro";
+    } catch (_) {}
+    try {
+      const snap = await db.collection("users").doc(user.uid).get();
+      const data = snap.exists ? snap.data() : {};
+      if (data?.tier === "pro" || data?.isPro) return "Pro";
+    } catch (_) {}
+    return "Standard";
+  }
 
   auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = "signin.html"; return; }
-    document.getElementById('uEmail').textContent = user.email;
-    const snap = await db.collection('users').doc(user.uid).get();
-    if(snap.exists && (snap.data().isPro || snap.data().tier === 'pro')) {
-       document.getElementById('uPlan').textContent = "✅ Pro Active";
-    } else {
-       document.getElementById('uPlan').textContent = "Free Tier";
+    const name = usernameFor(user);
+    document.getElementById("uName").textContent = name;
+    document.getElementById("uEmail").textContent = user.email || "View profile ›";
+    document.getElementById("avatarFallback").textContent = name.trim().charAt(0).toUpperCase() || "A";
+    if (user.photoURL) {
+      const img = document.getElementById("avatarImg");
+      img.src = user.photoURL;
+      img.style.display = "block";
+      document.getElementById("avatarFallback").style.display = "none";
     }
+    document.getElementById("uPlan").textContent = await planFor(user);
   });
 
-  document.getElementById('btnSignOut').onclick = () => {
+  document.getElementById("btnSignOut").onclick = () => {
     auth.signOut().then(() => window.location.href = "signin.html");
   };
 </script>

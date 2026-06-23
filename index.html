@@ -1097,6 +1097,319 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         return Math.max(256, Math.min(1536, Math.round(value / 8) * 8));
       }
 
+      function buildRemovalSelection(metrics, outW, outH) {
+        const alphaMask = buildRemovalMaskCanvas(metrics, outW, outH, 'alpha');
+        const data = alphaMask.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, outW, outH);
+        const selection = new Uint8Array(outW * outH);
+        for (let i = 0, p = 0; i < data.data.length; i += 4, p += 1) {
+          if (data.data[i + 3] > 8) selection[p] = 1;
+        }
+        return selection;
+      }
+
+      function dilateSelection(selection, width, height, radius) {
+        if (radius <= 0) return selection;
+        const horizontal = new Uint8Array(width * height);
+        const output = new Uint8Array(width * height);
+        for (let y = 0; y < height; y += 1) {
+          let count = 0;
+          for (let x = -radius; x <= radius; x += 1) {
+            if (x >= 0 && x < width) count += selection[y * width + x];
+          }
+          for (let x = 0; x < width; x += 1) {
+            horizontal[y * width + x] = count > 0 ? 1 : 0;
+            const removeX = x - radius;
+            const addX = x + radius + 1;
+            if (removeX >= 0) count -= selection[y * width + removeX];
+            if (addX < width) count += selection[y * width + addX];
+          }
+        }
+        for (let x = 0; x < width; x += 1) {
+          let count = 0;
+          for (let y = -radius; y <= radius; y += 1) {
+            if (y >= 0 && y < height) count += horizontal[y * width + x];
+          }
+          for (let y = 0; y < height; y += 1) {
+            output[y * width + x] = count > 0 ? 1 : 0;
+            const removeY = y - radius;
+            const addY = y + radius + 1;
+            if (removeY >= 0) count -= horizontal[removeY * width + x];
+            if (addY < height) count += horizontal[addY * width + x];
+          }
+        }
+        return output;
+      }
+
+      function boxBlurValues(values, width, height, radius) {
+        if (radius <= 0) return values;
+        const horizontal = new Float32Array(width * height);
+        const output = new Float32Array(width * height);
+        const size = radius * 2 + 1;
+        for (let y = 0; y < height; y += 1) {
+          let sum = 0;
+          for (let x = -radius; x <= radius; x += 1) {
+            const clampedX = Math.min(width - 1, Math.max(0, x));
+            sum += values[y * width + clampedX];
+          }
+          for (let x = 0; x < width; x += 1) {
+            horizontal[y * width + x] = sum / size;
+            const removeX = Math.min(width - 1, Math.max(0, x - radius));
+            const addX = Math.min(width - 1, Math.max(0, x + radius + 1));
+            sum += values[y * width + addX] - values[y * width + removeX];
+          }
+        }
+        for (let x = 0; x < width; x += 1) {
+          let sum = 0;
+          for (let y = -radius; y <= radius; y += 1) {
+            const clampedY = Math.min(height - 1, Math.max(0, y));
+            sum += horizontal[clampedY * width + x];
+          }
+          for (let y = 0; y < height; y += 1) {
+            output[y * width + x] = sum / size;
+            const removeY = Math.min(height - 1, Math.max(0, y - radius));
+            const addY = Math.min(height - 1, Math.max(0, y + radius + 1));
+            sum += horizontal[addY * width + x] - horizontal[removeY * width + x];
+          }
+        }
+        return output;
+      }
+
+      function featheredAlpha(selection, width, height, featherRadius, passes = 2) {
+        let alpha = new Float32Array(width * height);
+        for (let i = 0; i < selection.length; i += 1) alpha[i] = selection[i] > 0 ? 1 : 0;
+        for (let pass = 0; pass < passes; pass += 1) alpha = boxBlurValues(alpha, width, height, featherRadius);
+        for (let i = 0; i < alpha.length; i += 1) alpha[i] = Math.min(1, Math.max(0, alpha[i]));
+        return alpha;
+      }
+
+      function buildOpenAiMask(maskAlpha, width, height) {
+        const output = document.createElement('canvas');
+        output.width = width;
+        output.height = height;
+        const out = output.getContext('2d');
+        const pixels = out.createImageData(width, height);
+        for (let i = 0, p = 0; i < pixels.data.length; i += 4, p += 1) {
+          const editable = maskAlpha[p];
+          pixels.data[i] = 0;
+          pixels.data[i + 1] = 0;
+          pixels.data[i + 2] = 0;
+          pixels.data[i + 3] = Math.round(255 * (1 - editable));
+        }
+        out.putImageData(pixels, 0, 0);
+        return output;
+      }
+
+      function buildCloudflareLumaMask(maskAlpha, width, height) {
+        const output = document.createElement('canvas');
+        output.width = width;
+        output.height = height;
+        const out = output.getContext('2d');
+        const pixels = out.createImageData(width, height);
+        for (let i = 0, p = 0; i < pixels.data.length; i += 4, p += 1) {
+          const value = Math.round(255 * maskAlpha[p]);
+          pixels.data[i] = value;
+          pixels.data[i + 1] = value;
+          pixels.data[i + 2] = value;
+          pixels.data[i + 3] = 255;
+        }
+        out.putImageData(pixels, 0, 0);
+        return output;
+      }
+
+      function cropCanvas(source, rect) {
+        const output = document.createElement('canvas');
+        output.width = rect.width;
+        output.height = rect.height;
+        output.getContext('2d').drawImage(source, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+        return output;
+      }
+
+      function selectionCropRect(selection, width, height) {
+        let minX = width, minY = height, maxX = -1, maxY = -1;
+        for (let y = 0; y < height; y += 1) {
+          for (let x = 0; x < width; x += 1) {
+            if (selection[y * width + x] > 0) {
+              minX = Math.min(minX, x);
+              minY = Math.min(minY, y);
+              maxX = Math.max(maxX, x);
+              maxY = Math.max(maxY, y);
+            }
+          }
+        }
+        if (maxX < minX || maxY < minY) return { x: 0, y: 0, width, height };
+        const selectedW = maxX - minX + 1;
+        const selectedH = maxY - minY + 1;
+        const pad = Math.max(96, Math.round(Math.max(selectedW, selectedH) * 0.5));
+        let x1 = Math.max(0, minX - pad);
+        let y1 = Math.max(0, minY - pad);
+        let x2 = Math.min(width, maxX + pad + 1);
+        let y2 = Math.min(height, maxY + pad + 1);
+        const growTo = (targetW, targetH) => {
+          const addW = Math.max(0, targetW - (x2 - x1));
+          const addH = Math.max(0, targetH - (y2 - y1));
+          x1 = Math.max(0, x1 - Math.floor(addW / 2));
+          x2 = Math.min(width, x2 + Math.ceil(addW / 2));
+          y1 = Math.max(0, y1 - Math.floor(addH / 2));
+          y2 = Math.min(height, y2 + Math.ceil(addH / 2));
+          if (x2 - x1 < targetW) x1 = Math.max(0, x2 - targetW);
+          if (x2 - x1 < targetW) x2 = Math.min(width, x1 + targetW);
+          if (y2 - y1 < targetH) y1 = Math.max(0, y2 - targetH);
+          if (y2 - y1 < targetH) y2 = Math.min(height, y1 + targetH);
+        };
+        growTo(Math.min(width, 320), Math.min(height, 320));
+        growTo(Math.min(width, Math.ceil((x2 - x1) / 16) * 16), Math.min(height, Math.ceil((y2 - y1) / 16) * 16));
+        return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+      }
+
+      function buildCloudflareInput(imageCanvas, selection, width, height) {
+        const output = document.createElement('canvas');
+        output.width = width;
+        output.height = height;
+        const out = output.getContext('2d', { willReadFrequently: true });
+        out.drawImage(imageCanvas, 0, 0);
+        const pixels = out.getImageData(0, 0, width, height);
+        const original = new Uint8ClampedArray(pixels.data);
+        for (let y = 0; y < height; y += 1) {
+          let x = 0;
+          while (x < width) {
+            while (x < width && selection[y * width + x] === 0) x += 1;
+            if (x >= width) break;
+            const runStart = x;
+            while (x < width && selection[y * width + x] > 0) x += 1;
+            const runEnd = x - 1;
+            const left = runStart > 0 ? runStart - 1 : -1;
+            const right = runEnd + 1 < width ? runEnd + 1 : -1;
+            for (let fillX = runStart; fillX <= runEnd; fillX += 1) {
+              const outIndex = (y * width + fillX) * 4;
+              if (left >= 0 && right >= 0) {
+                const leftWeight = (runEnd - fillX + 1) / (runEnd - runStart + 2);
+                const rightWeight = 1 - leftWeight;
+                const leftIndex = (y * width + left) * 4;
+                const rightIndex = (y * width + right) * 4;
+                for (let channel = 0; channel < 3; channel += 1) {
+                  pixels.data[outIndex + channel] = Math.round(original[leftIndex + channel] * leftWeight + original[rightIndex + channel] * rightWeight);
+                }
+              } else {
+                const source = left >= 0 ? left : right;
+                if (source >= 0) {
+                  const sourceIndex = (y * width + source) * 4;
+                  pixels.data[outIndex] = original[sourceIndex];
+                  pixels.data[outIndex + 1] = original[sourceIndex + 1];
+                  pixels.data[outIndex + 2] = original[sourceIndex + 2];
+                }
+              }
+              pixels.data[outIndex + 3] = 255;
+            }
+          }
+        }
+        out.putImageData(pixels, 0, 0);
+        return output;
+      }
+
+      async function blobToImage(blob) {
+        const url = URL.createObjectURL(blob);
+        try {
+          const image = new Image();
+          image.decoding = 'async';
+          image.src = url;
+          await (image.decode ? image.decode() : new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; }));
+          return image;
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      function smoothLayerInsideMask(layerCtx, blendAlpha, cropRect, width) {
+        const pixels = layerCtx.getImageData(0, 0, cropRect.width, cropRect.height);
+        const source = new Uint8ClampedArray(pixels.data);
+        for (let y = 1; y < cropRect.height - 1; y += 1) {
+          for (let x = 1; x < cropRect.width - 1; x += 1) {
+            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
+            if (alpha < 0.2) continue;
+            const index = (y * cropRect.width + x) * 4;
+            for (let channel = 0; channel < 3; channel += 1) {
+              let sum = 0;
+              sum += source[index + channel] * 4;
+              sum += source[index - 4 + channel] * 2;
+              sum += source[index + 4 + channel] * 2;
+              sum += source[index - cropRect.width * 4 + channel] * 2;
+              sum += source[index + cropRect.width * 4 + channel] * 2;
+              const average = sum / 12;
+              const strength = Math.min(0.35, alpha * 0.35);
+              pixels.data[index + channel] = Math.round(source[index + channel] * (1 - strength) + average * strength);
+            }
+          }
+        }
+        layerCtx.putImageData(pixels, 0, 0);
+      }
+
+      function matchLayerColorToOriginal(layerCtx, imageCtx, blendAlpha, cropRect, width) {
+        const original = imageCtx.getImageData(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
+        const edited = layerCtx.getImageData(0, 0, cropRect.width, cropRect.height);
+        const delta = [0, 0, 0];
+        let samples = 0;
+        for (let y = 0; y < cropRect.height; y += 1) {
+          for (let x = 0; x < cropRect.width; x += 1) {
+            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
+            if (alpha <= 0.05 || alpha >= 0.55) continue;
+            const index = (y * cropRect.width + x) * 4;
+            for (let channel = 0; channel < 3; channel += 1) delta[channel] += original.data[index + channel] - edited.data[index + channel];
+            samples += 1;
+          }
+        }
+        if (!samples) return;
+        for (let channel = 0; channel < 3; channel += 1) delta[channel] = Math.max(-24, Math.min(24, delta[channel] / samples));
+        for (let y = 0; y < cropRect.height; y += 1) {
+          for (let x = 0; x < cropRect.width; x += 1) {
+            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
+            if (alpha <= 0.02) continue;
+            const index = (y * cropRect.width + x) * 4;
+            const strength = Math.min(1, alpha * 1.15);
+            for (let channel = 0; channel < 3; channel += 1) {
+              edited.data[index + channel] = Math.round(Math.max(0, Math.min(255, edited.data[index + channel] + delta[channel] * strength)));
+            }
+          }
+        }
+        layerCtx.putImageData(edited, 0, 0);
+      }
+
+      function compositeMaskedResult(editImage, imageCanvas, imageCtx, blendAlpha, cropRect, width, height) {
+        const output = document.createElement('canvas');
+        output.width = width;
+        output.height = height;
+        const out = output.getContext('2d');
+        out.drawImage(imageCanvas, 0, 0);
+
+        const layer = document.createElement('canvas');
+        layer.width = cropRect.width;
+        layer.height = cropRect.height;
+        const layerCtx = layer.getContext('2d', { willReadFrequently: true });
+        layerCtx.drawImage(editImage, 0, 0, editImage.naturalWidth || editImage.width, editImage.naturalHeight || editImage.height, 0, 0, cropRect.width, cropRect.height);
+        matchLayerColorToOriginal(layerCtx, imageCtx, blendAlpha, cropRect, width);
+        smoothLayerInsideMask(layerCtx, blendAlpha, cropRect, width);
+
+        const maskLayer = document.createElement('canvas');
+        maskLayer.width = cropRect.width;
+        maskLayer.height = cropRect.height;
+        const maskLayerCtx = maskLayer.getContext('2d');
+        const pixels = maskLayerCtx.createImageData(cropRect.width, cropRect.height);
+        for (let y = 0, i = 0; y < cropRect.height; y += 1) {
+          for (let x = 0; x < cropRect.width; x += 1, i += 4) {
+            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
+            pixels.data[i] = 255;
+            pixels.data[i + 1] = 255;
+            pixels.data[i + 2] = 255;
+            pixels.data[i + 3] = Math.round(255 * alpha);
+          }
+        }
+        maskLayerCtx.putImageData(pixels, 0, 0);
+        layerCtx.globalCompositeOperation = 'destination-in';
+        layerCtx.drawImage(maskLayer, 0, 0);
+        layerCtx.globalCompositeOperation = 'source-over';
+        out.drawImage(layer, cropRect.x, cropRect.y);
+        return output;
+      }
+
       async function applyInpaintWithApi() {
         const baseSrc = mainSrc || cutoutURL;
         if (!baseSrc) { alert("Load an image first."); return false; }
@@ -1126,19 +1439,29 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         imageCtx.imageSmoothingQuality = 'high';
         imageCtx.drawImage(img, 0, 0, outW, outH);
 
-        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'openai-alpha');
-        const cloudflareMaskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
-        const imageBlob = await canvasToBlob(imageCanvas, 'image/png', 0.95);
+        const baseSelection = buildRemovalSelection(metrics, outW, outH);
+        const maskRadius = Math.max(12, Math.round(Math.max(outW, outH) / 96));
+        const expanded = dilateSelection(baseSelection, outW, outH, maskRadius);
+        const inpaintAlpha = featheredAlpha(expanded, outW, outH, Math.max(3, Math.round(maskRadius / 3)), 2);
+        const blendAlpha = featheredAlpha(expanded, outW, outH, Math.max(10, Math.round(maskRadius * 0.85)), 2);
+        const cropRect = selectionCropRect(expanded, outW, outH);
+        const apiImageCanvas = cropCanvas(imageCanvas, cropRect);
+        const apiCloudflareInput = cropCanvas(buildCloudflareInput(imageCanvas, expanded, outW, outH), cropRect);
+        const maskCanvasHD = cropCanvas(buildOpenAiMask(inpaintAlpha, outW, outH), cropRect);
+        const cloudflareMaskCanvasHD = cropCanvas(buildCloudflareLumaMask(inpaintAlpha, outW, outH), cropRect);
+        const imageBlob = await canvasToBlob(apiImageCanvas, 'image/png', 0.95);
+        const imageCfBlob = await canvasToBlob(apiCloudflareInput, 'image/png', 0.95);
         const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
         const cloudflareMaskBlob = await canvasToBlob(cloudflareMaskCanvasHD, 'image/png', 0.95);
-        if (!imageBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
+        if (!imageBlob || !imageCfBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
 
         const form = new FormData();
         form.append('image', imageBlob, 'image.png');
+        form.append('image_cf', imageCfBlob, 'image-cf.png');
         form.append('mask', maskBlob, 'mask.png');
         form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
-        form.append('width', String(outW));
-        form.append('height', String(outH));
+        form.append('width', String(cropRect.width));
+        form.append('height', String(cropRect.height));
         form.append('prompt', 'Final image: the same photograph as the input, except the entire object, person, or text inside the transparent mask is completely absent. Fill the whole masked region only with a seamless continuation of the real background immediately surrounding it, matching its perspective, geometry, texture, lighting, colour, focus, grain, shadows, and reflections. Leave every unmasked pixel and every unmasked person, face, object, word, logo, and compositional element unchanged. The masked region must contain no trace, outline, fragment, lettering, duplicate, blur, smearing, patch, or ghost of the removed content. Do not introduce any new subject, object, person, text, or logo.');
 
         setStatus("AI removing selected area…");
@@ -1156,25 +1479,22 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         updateProgress('Finishing image…', 90);
         const resultBlob = await response.blob();
         if (!resultBlob || !resultBlob.type.startsWith('image/')) throw new Error('remove-object-api-invalid-image');
-        const resultURL = URL.createObjectURL(resultBlob);
-        const resultImage = await loadImage(resultURL);
+        const resultImage = await blobToImage(resultBlob);
+        const compositedCanvas = compositeMaskedResult(resultImage, imageCanvas, imageCtx, blendAlpha, cropRect, outW, outH);
 
         ctx.clearRect(0, 0, stageW, stageH);
         if (bgColor) {
           ctx.fillStyle = bgColor;
           ctx.fillRect(0, 0, stageW, stageH);
         }
-        const resultW = resultImage.naturalWidth || resultImage.width || outW;
-        const resultH = resultImage.naturalHeight || resultImage.height || outH;
-        ctx.drawImage(resultImage, 0, 0, resultW, resultH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
+        ctx.drawImage(compositedCanvas, 0, 0, outW, outH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
         const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = resultW;
-        finalCanvas.height = resultH;
-        finalCanvas.getContext('2d').drawImage(resultImage, 0, 0, resultW, resultH);
+        finalCanvas.width = outW;
+        finalCanvas.height = outH;
+        finalCanvas.getContext('2d').drawImage(compositedCanvas, 0, 0, outW, outH);
         mainSrc = finalCanvas.toDataURL('image/png', 0.95);
         if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
-        URL.revokeObjectURL(resultURL);
 
         cancelBrush();
         stampWatermark();

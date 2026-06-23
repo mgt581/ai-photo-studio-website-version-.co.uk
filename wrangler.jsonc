@@ -6,12 +6,6 @@
   "observability": {
     "enabled": true
   },
-  "routes": [
-    {
-      "pattern": "aiphotostudio.co.uk/__/auth/*",
-      "zone_name": "aiphotostudio.co.uk"
-    }
-  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS"

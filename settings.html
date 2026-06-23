@@ -34,40 +34,19 @@
   
   <style>
     /* Reset & Base */
-    body { margin:0; display:flex; justify-content:center; background:#F4FBFF; color:#070B18; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
-    .settings-shell { width:100%; max-width:480px; padding:34px 20px 28px; }
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-    .mini-offer{display:inline-flex;align-items:center;gap:10px;max-width:76%;padding:10px 14px;border:0;border-radius:999px;background:#EAF5FA;color:#667085;font-size:15px;font-weight:750;text-decoration:none}
-    .mini-offer span:first-child{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#67E8F9,#2563EB);display:grid;place-items:center;color:white;font-size:12px}
-    .home-link{width:44px;height:44px;border:0;background:transparent;color:#0B1220;font-size:30px;text-decoration:none;display:grid;place-items:center}
-    .profile{display:flex;align-items:center;gap:18px;margin:18px 0 28px}
-    .avatar{width:92px;height:92px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#67E8F9,#2563EB);display:grid;place-items:center;color:white;font-size:34px;font-weight:900;border:4px solid white;box-shadow:0 12px 28px rgba(15,23,42,.12)}
-    .avatar.initials{line-height:92px;text-align:center}
-    .who{min-width:0}
-    .name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .username{font-size:25px;font-weight:900;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px}
-    .plan-chip{border:1px solid #D8E2EF;color:#94A3B8;border-radius:10px;padding:4px 9px;font-weight:850;font-size:14px}
-    .view-profile{margin-top:6px;color:#667085;font-size:20px;font-weight:750;text-decoration:none;display:inline-block}
-    .offer-card{background:#B9F1FF;border-radius:22px;padding:26px 24px;margin-bottom:26px;box-shadow:0 16px 34px rgba(14,165,233,.14)}
-    .offer-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
-    .offer-title{font-size:24px;font-weight:950;color:#050816}
-    .offer-copy{margin-top:8px;color:#526677;font-size:17px;font-weight:700}
-    .claim{border:0;border-radius:14px;background:#0B0F14;color:white;padding:14px 20px;font-size:16px;font-weight:900;white-space:nowrap;cursor:pointer}
-    .benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px;text-align:center}
-    .benefit-icon{font-size:28px;line-height:1;color:#050816}
-    .benefit-label{margin-top:8px;color:#526677;font-size:13px;font-weight:850}
+    body { display:flex; justify-content:center; }
     
     /* Main Card */
-    .card { width:100%; border-radius:18px; overflow:hidden; display:flex; flex-direction:column; height:fit-content; background:#fff; border:1px solid #E5ECF3; box-shadow:0 12px 28px rgba(15,23,42,.06); }
+    .card { width:100%; max-width:480px; border-radius:16px; overflow:hidden; display: flex; flex-direction: column; height: fit-content; margin-top: 20px; }
     
     /* Header */
-    .header { padding: 24px 24px 14px 24px; border-bottom: 1px solid #E5ECF3; }
-    h1 { margin:0; font-size:26px; font-weight:850; color:#070B18; }
-    .subtitle { font-size:14px; color:#667085; margin-top:4px; }
+    .header { padding: 24px 24px 14px 24px; border-bottom: 1px solid var(--aips-border); }
+    h1 { margin:0; font-size:26px; font-weight:850; color:var(--aips-text); }
+    .subtitle { font-size:14px; color:var(--aips-secondary); margin-top:4px; }
 
     /* List Items */
     .settings-list { list-style:none; padding:0; margin:0; }
-    .item { border-bottom:1px solid #E5ECF3; }
+    .item { border-bottom:1px solid var(--aips-border); }
     .item:last-child { border-bottom:none; }
 
     /* Category Header (Clickable) */
@@ -77,9 +56,9 @@
       background: transparent;
       user-select: none;
     }
-    .cat-head:hover { background: #F8FAFC; }
-    .cat-title { font-weight: 850; font-size: 18px; color: #070B18; display: flex; align-items: center; gap: 12px; }
-    .cat-icon { font-size: 22px; color: #0B1220; width: 30px; text-align: center; }
+    .cat-head:hover { background: rgba(255,255,255,.04); }
+    .cat-title { font-weight: 750; font-size: 16px; color: var(--aips-text); display: flex; align-items: center; gap: 10px; }
+    .cat-icon { font-size: 18px; color: var(--aips-muted); width: 24px; text-align: center; }
     
     /* Chevron Icon */
     .chevron { width: 8px; height: 8px; border-right: 2px solid var(--aips-muted); border-bottom: 2px solid var(--aips-muted); transform: rotate(45deg); transition: transform 0.2s; margin-right: 4px; }
@@ -87,15 +66,15 @@
     .expanded .cat-title { color: #BAE6FD; }
 
     /* Expandable Content */
-    .content { display: none; background:#FBFDFF; padding: 0 24px 20px 24px; border-top: 1px solid #E5ECF3; }
+    .content { display: none; background: rgba(255,255,255,.035); padding: 0 24px 20px 24px; border-top: 1px solid var(--aips-border); }
     .item.expanded .content { display: block; }
-    .item.expanded .cat-head { background:#F8FAFC; }
+    .item.expanded .cat-head { background: rgba(255,255,255,.045); }
 
     /* Content Elements */
-    .info-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #E5ECF3; font-size: 14px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--aips-border); font-size: 14px; }
     .info-row:last-child { border-bottom: none; }
-    .info-label { color: #667085; font-weight: 650; }
-    .info-val { color: #070B18; font-weight: 700; text-align: right; }
+    .info-label { color: var(--aips-muted); font-weight: 650; }
+    .info-val { color: var(--aips-text); font-weight: 700; text-align: right; }
     
     /* Special Styles for Plans */
     .plan-badge { background: rgba(16,185,129,.14); color: #D1FAE5; border:1px solid rgba(16,185,129,.24); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -104,8 +83,8 @@
     /* Buttons */
     .btn { padding: 12px 16px; border-radius: 14px; border: 1px solid var(--aips-border); font-size: 14px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 10px; transition: all 0.2s; }
     .btn:active { opacity: 0.9; transform: scale(0.98); }
-    .btn-subtle { background:#F8FAFC; color:#070B18; }
-    .btn-subtle:hover { background:#EEF5FB; }
+    .btn-subtle { background: rgba(255,255,255,.05); color: var(--aips-text); }
+    .btn-subtle:hover { background: rgba(255,255,255,.09); }
     .btn-primary { background: var(--aips-primary); color: white; box-shadow: 0 16px 34px rgba(37,99,235,.28); }
     .btn-primary:hover { filter: brightness(1.06); }
     .btn-danger { background: var(--aips-danger); color: white; box-shadow: 0 16px 32px rgba(239,68,68,.24); }
@@ -124,51 +103,17 @@
     input:checked + .slider:before { transform: translateX(20px); }
 
     /* Footer */
-    .footer { padding: 24px; text-align: center; background:#FBFDFF; border-top: 1px solid #E5ECF3; }
-    .back-link { text-decoration: none; color:#667085; font-weight: 750; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px; transition: background 0.2s; }
-    .back-link:hover { background:#EEF5FB; color:#070B18; }
-    .about-card { margin-top:16px; padding:14px; border:1px solid #E5ECF3; border-radius:14px; background:white; color:#667085; font-size:13px; line-height:1.6; }
+    .footer { padding: 24px; text-align: center; background: rgba(255,255,255,.035); border-top: 1px solid var(--aips-border); }
+    .back-link { text-decoration: none; color: var(--aips-secondary); font-weight: 750; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px; transition: background 0.2s; }
+    .back-link:hover { background: rgba(255,255,255,.08); color: var(--aips-text); }
+    .about-card { margin-top:16px; padding:14px; border:1px solid var(--aips-border); border-radius:14px; background:rgba(255,255,255,.04); color:var(--aips-secondary); font-size:13px; line-height:1.6; }
     .about-card a { color:#BAE6FD; font-weight:750; text-decoration:none; }
     .about-card a:hover { text-decoration:underline; }
   </style>
 </head>
-<body>
+<body class="aips-page">
 
-<main class="settings-shell">
-  <div class="topbar">
-    <a class="mini-offer" href="index.html?upgrade=1"><span>◆</span><span>Extra value on Pro access</span><span>›</span></a>
-    <a class="home-link" href="index.html" aria-label="Back to Studio">⌾</a>
-  </div>
-
-  <section class="profile">
-    <img id="avatarImg" class="avatar" alt="Profile image" style="display:none">
-    <div id="avatarFallback" class="avatar initials">A</div>
-    <div class="who">
-      <div class="name-row">
-        <div id="uName" class="username">Loading...</div>
-        <span id="profilePlan" class="plan-chip">Standard</span>
-      </div>
-      <a class="view-profile" href="account.html">View profile ›</a>
-    </div>
-  </section>
-
-  <section class="offer-card subscription-section">
-    <div class="offer-head">
-      <div>
-        <div class="offer-title">◆ Pro</div>
-        <div class="offer-copy">Restart Pro for only £1</div>
-      </div>
-      <button class="claim" onclick="claimOffer()">Claim offer</button>
-    </div>
-    <div class="benefits">
-      <div><div class="benefit-icon">▧</div><div class="benefit-label">Edits</div></div>
-      <div><div class="benefit-icon">◇</div><div class="benefit-label">Pro tools</div></div>
-      <div><div class="benefit-icon">✧</div><div class="benefit-label">AI effects</div></div>
-      <div><div class="benefit-icon">◉</div><div class="benefit-label">Retouch</div></div>
-    </div>
-  </section>
-
-<div class="card">
+<div class="card aips-card">
   <div class="header">
     <h1>Settings</h1>
     <div class="subtitle">Manage your preferences and account</div>
@@ -281,7 +226,6 @@
     <a href="index.html" class="back-link">← Back to Studio</a>
   </div>
 </div>
-</main>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -301,17 +245,6 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
-  const STRIPE_DAILY = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
-
-  function checkoutUrl(url, plan) {
-    const success = encodeURIComponent(`https://aiphotostudio.co.uk/?payment=success&plan=${plan}`);
-    const cancel = encodeURIComponent("https://aiphotostudio.co.uk/?payment=cancel");
-    return `${url}?success_url=${success}&cancel_url=${cancel}`;
-  }
-
-  function claimOffer() {
-    window.location.href = checkoutUrl(STRIPE_DAILY, "day");
-  }
 
   // --- 2. UI LOGIC (Accordion) ---
   function toggleSection(id) {
@@ -319,29 +252,10 @@
     item.classList.toggle('expanded');
   }
 
-  function usernameFor(user) {
-    const base = user.displayName || (user.email ? user.email.split("@")[0] : "Creator");
-    return base.replace(/[._-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 24);
-  }
-
-  function setProfileHeader(user, planLabel = "Standard") {
-    const name = usernameFor(user);
-    document.getElementById("uName").textContent = name;
-    document.getElementById("profilePlan").textContent = planLabel;
-    document.getElementById("avatarFallback").textContent = name.trim().charAt(0).toUpperCase() || "A";
-    if (user.photoURL) {
-      const img = document.getElementById("avatarImg");
-      img.src = user.photoURL;
-      img.style.display = "block";
-      document.getElementById("avatarFallback").style.display = "none";
-    }
-  }
-
   // --- 3. AUTH & DATA LOADING ---
   auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = "signin.html"; return; }
 
-    setProfileHeader(user);
     document.getElementById('uEmail').textContent = user.email;
     document.getElementById('uID').textContent = user.uid.substring(0,8) + "..."; 
 
@@ -350,7 +264,6 @@
       const badge = document.getElementById('uPlanBadge');
       const trialRow = document.getElementById('trialRow');
       badge.innerHTML = `<span class="plan-badge">👑 Owner Mode</span>`;
-      setProfileHeader(user, "Owner");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "Full access";
       document.getElementById('uTrial').style.color = '#10B981';
@@ -427,25 +340,21 @@
           const hours = Math.ceil(leftMs / 3600000);
           const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
           badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
-          setProfileHeader(user, planType);
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = timeLeft;
           document.getElementById('uTrial').style.color = '#10B981';
         } else {
           badge.innerHTML = `<span class="plan-badge free">Expired</span>`;
-          setProfileHeader(user, "Expired");
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = "Expired";
           document.getElementById('uTrial').style.color = '#EF4444';
         }
       } else {
         badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
-        setProfileHeader(user, planType);
         trialRow.style.display = 'none';
       }
     } else {
       badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
-      setProfileHeader(user, "Standard");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "No active subscription";
       document.getElementById('uTrial').style.color = '#94A3B8';

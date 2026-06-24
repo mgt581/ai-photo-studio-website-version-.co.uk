@@ -103,30 +103,39 @@
     .premium-strip-chevron{color:#BAE6FD;font-size:22px;line-height:1}
     .paywall{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,23,.72);backdrop-filter:blur(14px)}
     .paywall.open{display:flex}
-    .paywall-panel{width:min(420px,100%);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:radial-gradient(circle at 50% -10%,rgba(124,58,237,.28),transparent 34%),linear-gradient(180deg,#171122,#0B0F14);box-shadow:0 28px 80px rgba(0,0,0,.48);padding:22px;color:white}
+    .paywall-panel{width:min(430px,100%);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:radial-gradient(circle at 50% -12%,rgba(168,85,247,.34),transparent 36%),radial-gradient(circle at 100% 0%,rgba(14,165,233,.15),transparent 34%),linear-gradient(180deg,#171122,#0A0D12);box-shadow:0 28px 80px rgba(0,0,0,.48);padding:20px;color:white}
     .paywall-close{width:36px;height:36px;border:0;border-radius:999px;background:rgba(255,255,255,.08);color:#E5E7EB;font-size:22px;cursor:pointer}
     .paywall-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .paywall-crown{width:56px;height:56px;border-radius:16px;margin:4px auto 12px;display:grid;place-items:center;background:linear-gradient(135deg,#A855F7,#2563EB);box-shadow:0 16px 34px rgba(124,58,237,.34);font-size:30px}
-    .paywall h2{margin:0;text-align:center;font-size:28px;letter-spacing:0}
-    .paywall-sub{text-align:center;color:#CBD5E1;font-size:14px;line-height:1.45;margin:8px 0 18px}
-    .feature-list{display:grid;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:14px}
+    .paywall-crown{width:58px;height:58px;border-radius:18px;margin:0 auto 12px;display:grid;place-items:center;background:linear-gradient(135deg,#D946EF,#2563EB);box-shadow:0 16px 34px rgba(124,58,237,.34);font-size:30px}
+    .paywall-eyebrow{text-align:center;color:#C084FC;text-transform:uppercase;font-size:11px;font-weight:950;letter-spacing:.08em;margin-bottom:6px}
+    .paywall h2{margin:0;text-align:center;font-size:29px;letter-spacing:0;line-height:1.1}
+    .paywall-sub{text-align:center;color:#CBD5E1;font-size:14px;line-height:1.45;margin:9px auto 18px;max-width:310px}
+    .value-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .value-pill{border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.045);padding:9px 7px;text-align:center}
+    .value-pill strong{display:block;font-size:12px}
+    .value-pill span{display:block;color:#94A3B8;font-size:10px;margin-top:2px}
+    .feature-list{display:grid;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;margin-bottom:14px}
     .feature-row{display:flex;gap:12px;align-items:flex-start}
     .feature-icon{width:34px;height:34px;border-radius:10px;background:rgba(168,85,247,.22);display:grid;place-items:center;color:#F5D0FE;flex:0 0 auto}
     .feature-title{font-size:14px;font-weight:850}
     .feature-copy{font-size:12px;color:#94A3B8;line-height:1.35;margin-top:2px}
-    .plan-stack{display:grid;gap:10px}
-    .plan-option{display:flex;align-items:center;gap:12px;width:100%;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.045);padding:13px;color:white;text-align:left;cursor:pointer}
-    .plan-option.featured{border-color:rgba(236,72,153,.65);background:linear-gradient(90deg,rgba(236,72,153,.13),rgba(124,58,237,.1))}
+    .plan-stack{display:grid;gap:9px}
+    .plan-option{display:flex;align-items:center;gap:12px;width:100%;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.045);padding:12px;color:white;text-align:left;cursor:pointer;transition:border-color .18s,background .18s,transform .1s}
+    .plan-option:hover{background:rgba(255,255,255,.07)}
+    .plan-option.selected{border-color:rgba(216,180,254,.85);background:linear-gradient(90deg,rgba(236,72,153,.16),rgba(124,58,237,.12));box-shadow:0 0 0 1px rgba(216,180,254,.2)}
     .plan-dot{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.38);display:grid;place-items:center}
-    .plan-option.featured .plan-dot{background:#7C3AED;border-color:#A78BFA}
+    .plan-option.selected .plan-dot{background:#7C3AED;border-color:#A78BFA}
     .plan-copy{flex:1}
     .plan-name{display:block;font-size:14px;font-weight:900}
     .plan-price{display:block;font-size:12px;color:#CBD5E1;margin-top:2px}
     .plan-save{font-size:11px;font-weight:900;color:#FEF3C7;background:rgba(245,158,11,.22);border:1px solid rgba(245,158,11,.3);padding:4px 7px;border-radius:999px}
-    .btn-price{width:100%;margin-top:12px;padding:13px 12px;border-radius:10px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:14px;font-weight:900;color:white;background:var(--grad);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
+    .plan-price-right{text-align:right;color:#E0F2FE;font-size:12px;font-weight:850}
+    .btn-price{width:100%;margin-top:12px;padding:14px 12px;border-radius:11px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:15px;font-weight:950;color:white;background:linear-gradient(135deg,#D946EF,#7C3AED 48%,#2563EB);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
     .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
     .btn-price:active { transform: scale(0.97); }
-    .paywall-foot{margin-top:12px;text-align:center;color:#94A3B8;font-size:12px}
+    .paywall-foot{margin-top:11px;text-align:center;color:#94A3B8;font-size:12px}
+    .paywall-feature-mode .paywall-panel{align-self:flex-end;border-radius:20px 20px 0 0;width:min(430px,100%);max-height:82vh}
+    .paywall-feature-mode .value-pills{display:none}
 
     /* Upgrade Message */
     #upgradeMsg {
@@ -256,19 +265,25 @@
         <button type="button" class="paywall-close" id="btnPaywallClose" aria-label="Close">×</button>
       </div>
       <div class="paywall-crown">♛</div>
+      <div class="paywall-eyebrow" id="paywallEyebrow">Premium editing</div>
       <h2 id="paywallTitle">Go Pro</h2>
-      <p class="paywall-sub">Unlock every AI editing tool, clean exports and cloud gallery backup.</p>
+      <p class="paywall-sub" id="paywallSub">Unlock every AI editing tool, clean exports and cloud gallery backup.</p>
+      <div class="value-pills">
+        <div class="value-pill"><strong>AI tools</strong><span>all unlocked</span></div>
+        <div class="value-pill"><strong>HD</strong><span>clean export</span></div>
+        <div class="value-pill"><strong>Cloud</strong><span>gallery save</span></div>
+      </div>
       <div class="feature-list">
         <div class="feature-row"><span class="feature-icon">✂</span><div><div class="feature-title">All AI tools unlocked</div><div class="feature-copy">Remove objects, replace backgrounds, retouch and create faster.</div></div></div>
         <div class="feature-row"><span class="feature-icon">⬡</span><div><div class="feature-title">HD exports</div><div class="feature-copy">Export clean images without the free watermark.</div></div></div>
         <div class="feature-row"><span class="feature-icon">☁</span><div><div class="feature-title">Cloud gallery</div><div class="feature-copy">Keep edits synced to your account.</div></div></div>
       </div>
       <div class="plan-stack">
-        <button type="button" class="plan-option featured" data-plan-button="trial"><span class="plan-dot">✓</span><span class="plan-copy"><span class="plan-name">Yearly Pro</span><span class="plan-price">7-day trial, then yearly access</span></span><span class="plan-save">Best</span></button>
-        <button type="button" class="plan-option" data-plan-button="month"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Monthly Pro</span><span class="plan-price">£4.99 / month</span></span></button>
-        <button type="button" class="plan-option" data-plan-button="day"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Day Pass</span><span class="plan-price">£1 for today</span></span></button>
+        <button type="button" class="plan-option selected" data-plan-button="trial"><span class="plan-dot">✓</span><span class="plan-copy"><span class="plan-name">Yearly Pro</span><span class="plan-price">7-day trial, then yearly access</span></span><span class="plan-save">Best</span></button>
+        <button type="button" class="plan-option" data-plan-button="month"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Monthly Pro</span><span class="plan-price">Flexible plan for regular edits</span></span><span class="plan-price-right">£4.99/mo</span></button>
+        <button type="button" class="plan-option" data-plan-button="day"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Day Pass</span><span class="plan-price">One-off access for today</span></span><span class="plan-price-right">£1</span></button>
       </div>
-      <button id="btnTrialStart" class="btn-price">Start Free Trial</button>
+      <button id="btnTrialStart" class="btn-price">Start 7-Day Free Trial</button>
       <button id="btnMonthly" type="button" style="display:none"></button>
       <button id="btnDaily" type="button" style="display:none"></button>
       <div class="paywall-foot">Cancel anytime. Your free credits stay on your account.</div>
@@ -410,8 +425,42 @@ function openStripe(url) {
   window.location.href = url;
 }
 
-function showPaywall() {
+let selectedPaywallPlan = "trial";
+
+function checkoutForSelectedPlan() {
+  if (selectedPaywallPlan === "day") return buildCheckoutUrl(STRIPE_DAILY, "day");
+  if (selectedPaywallPlan === "month") return buildCheckoutUrl(STRIPE_MONTHLY, "month");
+  return buildCheckoutUrl(STRIPE_YEARLY, "trial7");
+}
+
+function updatePaywallPlan(plan) {
+  selectedPaywallPlan = plan || "trial";
+  document.querySelectorAll("[data-plan-button]").forEach((button) => {
+    const isSelected = button.getAttribute("data-plan-button") === selectedPaywallPlan;
+    button.classList.toggle("selected", isSelected);
+    const dot = button.querySelector(".plan-dot");
+    if (dot) dot.textContent = isSelected ? "✓" : "";
+  });
+  if (!btnTrialStart) return;
+  btnTrialStart.textContent =
+    selectedPaywallPlan === "day" ? "Get Day Pass for £1" :
+    selectedPaywallPlan === "month" ? "Continue with Monthly Pro" :
+    "Start 7-Day Free Trial";
+}
+
+function showPaywall(mode = "default") {
   if (!paywallModal) return;
+  const isFeatureMode = mode === "remove-object";
+  paywallModal.classList.toggle("paywall-feature-mode", isFeatureMode);
+  const eyebrow = document.getElementById("paywallEyebrow");
+  const title = document.getElementById("paywallTitle");
+  const sub = document.getElementById("paywallSub");
+  if (eyebrow) eyebrow.textContent = isFeatureMode ? "Premium feature" : "Premium editing";
+  if (title) title.textContent = isFeatureMode ? "Unlock Remove Person" : "Go Pro";
+  if (sub) sub.textContent = isFeatureMode
+    ? "Remove Person uses AI credits. Upgrade for unlimited fair-use object removal and clean exports."
+    : "Unlock every AI editing tool, clean exports and cloud gallery backup.";
+  updatePaywallPlan(isFeatureMode ? "month" : selectedPaywallPlan);
   paywallModal.classList.add("open");
   paywallModal.setAttribute("aria-hidden", "false");
 }
@@ -431,20 +480,18 @@ if (!window.__AIPS_IS_ANDROID_APP__) {
 // Hook up buttons (kept, but now gated)
 if (btnDaily) btnDaily.onclick = () => openStripe(buildCheckoutUrl(STRIPE_DAILY, "day"));
 if (btnMonthly) btnMonthly.onclick = () => openStripe(buildCheckoutUrl(STRIPE_MONTHLY, "month"));
-if (btnTrialStart) btnTrialStart.onclick = () => openStripe(buildCheckoutUrl(STRIPE_YEARLY, "trial7"));
-if (btnPremiumStrip) btnPremiumStrip.onclick = showPaywall;
+if (btnTrialStart) btnTrialStart.onclick = () => openStripe(checkoutForSelectedPlan());
+if (btnPremiumStrip) btnPremiumStrip.onclick = () => showPaywall("default");
 if (btnPaywallClose) btnPaywallClose.onclick = hidePaywall;
 if (paywallModal) paywallModal.addEventListener("click", (event) => {
   if (event.target === paywallModal) hidePaywall();
 });
 document.querySelectorAll("[data-plan-button]").forEach((button) => {
   button.addEventListener("click", () => {
-    const plan = button.getAttribute("data-plan-button");
-    if (plan === "day") openStripe(buildCheckoutUrl(STRIPE_DAILY, "day"));
-    if (plan === "month") openStripe(buildCheckoutUrl(STRIPE_MONTHLY, "month"));
-    if (plan === "trial") openStripe(buildCheckoutUrl(STRIPE_YEARLY, "trial7"));
+    updatePaywallPlan(button.getAttribute("data-plan-button"));
   });
 });
+updatePaywallPlan("trial");
 
 window.onload = function () {
 
@@ -611,7 +658,7 @@ async function canUseRemoveObjectCredit() {
     msg.textContent = "Your free Remove Person credits are used. Upgrade to keep editing with unlimited fair use.";
     msg.style.display = "block";
   }
-  showPaywall();
+  showPaywall("remove-object");
   return false;
 }
 

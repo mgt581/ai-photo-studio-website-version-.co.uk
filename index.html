@@ -93,21 +93,40 @@
     .ghost:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16)}
     .muted{color:var(--muted);font-size:13px}
 
-    /* Pricing */
-    .pricing-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px 24px;background:rgba(13,27,46,.58);border-bottom:1px solid var(--panel-line)}
-    .price-card{position:relative;display:grid;gap:10px;align-content:start;min-height:150px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05)}
-    .price-card.featured{border-color:rgba(14,165,233,.42);box-shadow:0 18px 38px rgba(14,165,233,.16),inset 0 1px 0 rgba(255,255,255,.08)}
-    .price-eyebrow{color:#BAE6FD;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
-    .price-title{font-size:18px;font-weight:900;line-height:1.1}
-    .price-value{font-size:13px;color:var(--secondary);line-height:1.35}
-    .price-note{font-size:12px;color:var(--muted);line-height:1.35}
-    .price-badge{position:absolute;top:12px;right:12px;padding:4px 8px;border-radius:999px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.25);color:#D1FAE5;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
-    .btn-price{width:100%;padding:11px 12px;border-radius:8px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:13px;font-weight:850;color:white;background:var(--grad);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
+    /* Premium CTA + modal */
+    .pricing-row{padding:12px 24px;background:rgba(13,27,46,.58);border-bottom:1px solid var(--panel-line)}
+    .premium-strip{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:50px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:linear-gradient(90deg,rgba(124,58,237,.26),rgba(37,99,235,.18)),rgba(15,23,42,.74);color:var(--text);padding:10px 14px;cursor:pointer;box-shadow:0 14px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.07)}
+    .premium-strip:hover{filter:brightness(1.06)}
+    .premium-strip-main{display:flex;align-items:center;gap:12px;min-width:0}
+    .premium-gem{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#22D3EE,#7C3AED);box-shadow:0 8px 18px rgba(124,58,237,.28);font-size:13px}
+    .premium-strip-text{font-size:15px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .premium-strip-chevron{color:#BAE6FD;font-size:22px;line-height:1}
+    .paywall{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,23,.72);backdrop-filter:blur(14px)}
+    .paywall.open{display:flex}
+    .paywall-panel{width:min(420px,100%);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:radial-gradient(circle at 50% -10%,rgba(124,58,237,.28),transparent 34%),linear-gradient(180deg,#171122,#0B0F14);box-shadow:0 28px 80px rgba(0,0,0,.48);padding:22px;color:white}
+    .paywall-close{width:36px;height:36px;border:0;border-radius:999px;background:rgba(255,255,255,.08);color:#E5E7EB;font-size:22px;cursor:pointer}
+    .paywall-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .paywall-crown{width:56px;height:56px;border-radius:16px;margin:4px auto 12px;display:grid;place-items:center;background:linear-gradient(135deg,#A855F7,#2563EB);box-shadow:0 16px 34px rgba(124,58,237,.34);font-size:30px}
+    .paywall h2{margin:0;text-align:center;font-size:28px;letter-spacing:0}
+    .paywall-sub{text-align:center;color:#CBD5E1;font-size:14px;line-height:1.45;margin:8px 0 18px}
+    .feature-list{display:grid;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:14px}
+    .feature-row{display:flex;gap:12px;align-items:flex-start}
+    .feature-icon{width:34px;height:34px;border-radius:10px;background:rgba(168,85,247,.22);display:grid;place-items:center;color:#F5D0FE;flex:0 0 auto}
+    .feature-title{font-size:14px;font-weight:850}
+    .feature-copy{font-size:12px;color:#94A3B8;line-height:1.35;margin-top:2px}
+    .plan-stack{display:grid;gap:10px}
+    .plan-option{display:flex;align-items:center;gap:12px;width:100%;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.045);padding:13px;color:white;text-align:left;cursor:pointer}
+    .plan-option.featured{border-color:rgba(236,72,153,.65);background:linear-gradient(90deg,rgba(236,72,153,.13),rgba(124,58,237,.1))}
+    .plan-dot{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.38);display:grid;place-items:center}
+    .plan-option.featured .plan-dot{background:#7C3AED;border-color:#A78BFA}
+    .plan-copy{flex:1}
+    .plan-name{display:block;font-size:14px;font-weight:900}
+    .plan-price{display:block;font-size:12px;color:#CBD5E1;margin-top:2px}
+    .plan-save{font-size:11px;font-weight:900;color:#FEF3C7;background:rgba(245,158,11,.22);border:1px solid rgba(245,158,11,.3);padding:4px 7px;border-radius:999px}
+    .btn-price{width:100%;margin-top:12px;padding:13px 12px;border-radius:10px!important;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:14px;font-weight:900;color:white;background:var(--grad);transition:transform .1s,box-shadow .2s,filter .2s;box-shadow:0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16)}
     .btn-price:hover { transform: translateY(-1px); filter:brightness(1.06); box-shadow: 0 18px 36px rgba(0,0,0,.28); }
     .btn-price:active { transform: scale(0.97); }
-    #btnDaily{background:rgba(255,255,255,.05)!important;color:var(--text);border-color:rgba(255,255,255,.1)}
-    #btnMonthly{background:linear-gradient(135deg,#2563EB,#0EA5E9)!important}
-    #btnTrialStart{background:linear-gradient(135deg,#16A34A,#22C55E)!important}
+    .paywall-foot{margin-top:12px;text-align:center;color:#94A3B8;font-size:12px}
 
     /* Upgrade Message */
     #upgradeMsg {
@@ -190,7 +209,7 @@
     .btn{padding:12px 26px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:var(--grad);color:#fff;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 16px 34px rgba(37,99,235,.28),0 0 22px rgba(14,165,233,.12),inset 0 1px 0 rgba(255,255,255,.18);transition:all 0.2s}
     .btn:hover{filter:brightness(1.06);box-shadow:0 20px 42px rgba(37,99,235,.34),0 0 28px rgba(14,165,233,.18),inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
-    @media (max-width:760px){.pricing-row{grid-template-columns:1fr;padding:14px}.price-card{min-height:0}.wrap{padding-top:18px}}
+    @media (max-width:760px){.pricing-row{padding:10px 14px}.premium-strip-text{font-size:14px}.wrap{padding-top:18px}}
   </style>
 </head>
 <body>
@@ -220,28 +239,39 @@
   <div id="payMsg">Please sign in or create an account to start a Pro plan.</div>
   <!-- =========================================================================== -->
 
-  <div class="pricing-row" aria-label="AI Photo Studio plans">
-    <div class="price-card">
-      <div class="price-eyebrow">Starter</div>
-      <div class="price-title">Day Pass</div>
-      <div class="price-value">£1 for quick one-off edits.</div>
-      <div class="price-note">Includes all tools for the day.</div>
-      <button id="btnDaily" class="btn-price">Get Day Pass</button>
-    </div>
-    <div class="price-card featured">
-      <span class="price-badge">Best value</span>
-      <div class="price-eyebrow">Pro</div>
-      <div class="price-title">Monthly</div>
-      <div class="price-value">£4.99/month for regular creators.</div>
-      <div class="price-note">Unlimited fair-use access to background and object tools.</div>
-      <button id="btnMonthly" class="btn-price">Go Monthly</button>
-    </div>
-    <div class="price-card">
-      <div class="price-eyebrow">Trial</div>
-      <div class="price-title">Yearly Pro</div>
-      <div class="price-value">Start with a 7-day free trial.</div>
-      <div class="price-note">For users who want all tools long term.</div>
+  <div class="pricing-row" aria-label="AI Photo Studio premium offer">
+    <button id="btnPremiumStrip" class="premium-strip">
+      <span class="premium-strip-main">
+        <span class="premium-gem">◆</span>
+        <span class="premium-strip-text">Unlock Pro tools and HD exports</span>
+      </span>
+      <span class="premium-strip-chevron">⌕</span>
+    </button>
+  </div>
+
+  <div id="paywallModal" class="paywall" aria-hidden="true">
+    <div class="paywall-panel" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
+      <div class="paywall-top">
+        <span></span>
+        <button type="button" class="paywall-close" id="btnPaywallClose" aria-label="Close">×</button>
+      </div>
+      <div class="paywall-crown">♛</div>
+      <h2 id="paywallTitle">Go Pro</h2>
+      <p class="paywall-sub">Unlock every AI editing tool, clean exports and cloud gallery backup.</p>
+      <div class="feature-list">
+        <div class="feature-row"><span class="feature-icon">✂</span><div><div class="feature-title">All AI tools unlocked</div><div class="feature-copy">Remove objects, replace backgrounds, retouch and create faster.</div></div></div>
+        <div class="feature-row"><span class="feature-icon">⬡</span><div><div class="feature-title">HD exports</div><div class="feature-copy">Export clean images without the free watermark.</div></div></div>
+        <div class="feature-row"><span class="feature-icon">☁</span><div><div class="feature-title">Cloud gallery</div><div class="feature-copy">Keep edits synced to your account.</div></div></div>
+      </div>
+      <div class="plan-stack">
+        <button type="button" class="plan-option featured" data-plan-button="trial"><span class="plan-dot">✓</span><span class="plan-copy"><span class="plan-name">Yearly Pro</span><span class="plan-price">7-day trial, then yearly access</span></span><span class="plan-save">Best</span></button>
+        <button type="button" class="plan-option" data-plan-button="month"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Monthly Pro</span><span class="plan-price">£4.99 / month</span></span></button>
+        <button type="button" class="plan-option" data-plan-button="day"><span class="plan-dot"></span><span class="plan-copy"><span class="plan-name">Day Pass</span><span class="plan-price">£1 for today</span></span></button>
+      </div>
       <button id="btnTrialStart" class="btn-price">Start Free Trial</button>
+      <button id="btnMonthly" type="button" style="display:none"></button>
+      <button id="btnDaily" type="button" style="display:none"></button>
+      <div class="paywall-foot">Cancel anytime. Your free credits stay on your account.</div>
     </div>
   </div>
        
@@ -318,6 +348,9 @@
     const btnDaily      = document.getElementById("btnDaily");
     const btnMonthly    = document.getElementById("btnMonthly");
     const btnTrialStart = document.getElementById("btnTrialStart");
+    const btnPremiumStrip = document.getElementById("btnPremiumStrip");
+    const paywallModal = document.getElementById("paywallModal");
+    const btnPaywallClose = document.getElementById("btnPaywallClose");
 
     const FREE_REMOVE_OBJECT_CREDITS = 3;
     const REMOVE_OBJECT_CREDIT_COST = 1;
@@ -362,8 +395,7 @@ function setPayButtonsEnabled(enabled) {
   ids.forEach(id => {
     const b = document.getElementById(id);
     if (!b) return;
-    b.disabled = !enabled;
-    b.classList.toggle("pay-disabled", !enabled);
+    b.classList.remove("pay-disabled");
   });
   if (enabled) hidePaySignInRequired();
 }
@@ -377,6 +409,18 @@ function openStripe(url) {
   hidePaySignInRequired();
   window.location.href = url;
 }
+
+function showPaywall() {
+  if (!paywallModal) return;
+  paywallModal.classList.add("open");
+  paywallModal.setAttribute("aria-hidden", "false");
+}
+
+function hidePaywall() {
+  if (!paywallModal) return;
+  paywallModal.classList.remove("open");
+  paywallModal.setAttribute("aria-hidden", "true");
+}
 /* ===================================================== */
 
 // Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
@@ -388,6 +432,19 @@ if (!window.__AIPS_IS_ANDROID_APP__) {
 if (btnDaily) btnDaily.onclick = () => openStripe(buildCheckoutUrl(STRIPE_DAILY, "day"));
 if (btnMonthly) btnMonthly.onclick = () => openStripe(buildCheckoutUrl(STRIPE_MONTHLY, "month"));
 if (btnTrialStart) btnTrialStart.onclick = () => openStripe(buildCheckoutUrl(STRIPE_YEARLY, "trial7"));
+if (btnPremiumStrip) btnPremiumStrip.onclick = showPaywall;
+if (btnPaywallClose) btnPaywallClose.onclick = hidePaywall;
+if (paywallModal) paywallModal.addEventListener("click", (event) => {
+  if (event.target === paywallModal) hidePaywall();
+});
+document.querySelectorAll("[data-plan-button]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const plan = button.getAttribute("data-plan-button");
+    if (plan === "day") openStripe(buildCheckoutUrl(STRIPE_DAILY, "day"));
+    if (plan === "month") openStripe(buildCheckoutUrl(STRIPE_MONTHLY, "month"));
+    if (plan === "trial") openStripe(buildCheckoutUrl(STRIPE_YEARLY, "trial7"));
+  });
+});
 
 window.onload = function () {
 
@@ -554,7 +611,7 @@ async function canUseRemoveObjectCredit() {
     msg.textContent = "Your free Remove Person credits are used. Upgrade to keep editing with unlimited fair use.";
     msg.style.display = "block";
   }
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  showPaywall();
   return false;
 }
 

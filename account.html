@@ -7,8 +7,23 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body{display:flex;align-items:flex-start;justify-content:center}
-    .card{width:100%;max-width:420px;margin:28px auto;padding:26px;text-align:center}
-    h1{margin:0 0 18px;color:var(--aips-text);font-size:28px}
+    .card{width:100%;max-width:420px;margin:28px auto;padding:22px;text-align:left}
+    h1{margin:0 0 18px;color:var(--aips-text);font-size:28px;text-align:center}
+    .profile-head{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#22D3EE,#7C3AED);display:grid;place-items:center;color:white;font-size:28px;font-weight:900;box-shadow:0 16px 32px rgba(14,165,233,.18)}
+    .avatar.initials{text-align:center;line-height:76px}
+    .profile-main{min-width:0}
+    .name-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .username{font-size:22px;font-weight:900;color:var(--aips-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+    .plan-chip{font-size:12px;font-weight:900;color:#BAE6FD;border:1px solid rgba(14,165,233,.24);background:rgba(14,165,233,.12);border-radius:999px;padding:4px 8px}
+    .profile-email{color:var(--aips-secondary);font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+    .offer-card{margin:18px 0;padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(124,58,237,.28));border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 34px rgba(0,0,0,.22)}
+    .offer-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+    .offer-title{font-size:21px;font-weight:950;color:var(--aips-text)}
+    .offer-copy{margin-top:6px;color:var(--aips-secondary);font-weight:700;font-size:14px}
+    .claim{border:0;border-radius:10px;background:#050816;color:white;padding:11px 14px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px;text-align:center;color:var(--aips-secondary);font-size:11px;font-weight:800}
+    .benefits span{display:block;color:var(--aips-text);font-size:20px;margin-bottom:5px}
     .val{font-size:15px;color:var(--aips-secondary);font-weight:650;margin-bottom:14px;background:rgba(255,255,255,.05);border:1px solid var(--aips-border);padding:12px;border-radius:12px}
     .btn{display:block;width:100%;padding:13px 16px;border:1px solid var(--aips-border);border-radius:14px;font-weight:800;cursor:pointer;text-decoration:none;margin-top:12px;box-sizing:border-box;transition:all .2s}
     .btn-primary{background:var(--aips-primary);color:#fff;box-shadow:0 16px 34px rgba(37,99,235,.28)}
@@ -22,6 +37,32 @@
 <body class="aips-page">
 <div class="card aips-card">
   <h1>My Profile</h1>
+  <div class="profile-head">
+    <img id="avatarImg" class="avatar" alt="Profile image" style="display:none">
+    <div id="avatarFallback" class="avatar initials">A</div>
+    <div class="profile-main">
+      <div class="name-row">
+        <div id="uName" class="username">Loading...</div>
+        <span id="uPlanChip" class="plan-chip">Standard</span>
+      </div>
+      <div id="uProfileEmail" class="profile-email">Checking account...</div>
+    </div>
+  </div>
+  <div class="offer-card">
+    <div class="offer-top">
+      <div>
+        <div class="offer-title">◆ Pro</div>
+        <div class="offer-copy">Unlock every AI editing tool and HD export.</div>
+      </div>
+      <button class="claim" onclick="window.location.href='index.html?upgrade=1'">View plans</button>
+    </div>
+    <div class="benefits">
+      <div><span>✂</span>AI tools</div>
+      <div><span>◇</span>Retouch</div>
+      <div><span>⬡</span>HD export</div>
+      <div><span>☁</span>Gallery</div>
+    </div>
+  </div>
   <div class="val" id="uEmail">Loading...</div>
   <div class="val" id="uPlan">Checking Plan...</div>
   
@@ -48,14 +89,36 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
+  function usernameFor(user) {
+    const base = user.displayName || (user.email ? user.email.split("@")[0] : "Creator");
+    return base.replace(/[._-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 24);
+  }
+
+  function setProfile(user, planLabel) {
+    const name = usernameFor(user);
+    document.getElementById('uName').textContent = name;
+    document.getElementById('uProfileEmail').textContent = user.email || "Signed in";
+    document.getElementById('uPlanChip').textContent = planLabel;
+    document.getElementById('avatarFallback').textContent = name.charAt(0).toUpperCase() || "A";
+    if (user.photoURL) {
+      const img = document.getElementById('avatarImg');
+      img.src = user.photoURL;
+      img.style.display = "block";
+      document.getElementById('avatarFallback').style.display = "none";
+    }
+  }
+
   auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = "signin.html"; return; }
+    setProfile(user, "Standard");
     document.getElementById('uEmail').textContent = user.email;
     const snap = await db.collection('users').doc(user.uid).get();
     if(snap.exists && (snap.data().isPro || snap.data().tier === 'pro')) {
        document.getElementById('uPlan').textContent = "✅ Pro Active";
+       setProfile(user, "Pro");
     } else {
        document.getElementById('uPlan').textContent = "Free Tier";
+       setProfile(user, "Standard");
     }
   });
 

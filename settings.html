@@ -43,6 +43,20 @@
     .header { padding: 24px 24px 14px 24px; border-bottom: 1px solid var(--aips-border); }
     h1 { margin:0; font-size:26px; font-weight:850; color:var(--aips-text); }
     .subtitle { font-size:14px; color:var(--aips-secondary); margin-top:4px; }
+    .profile-strip{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--aips-border);background:rgba(255,255,255,.025)}
+    .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#22D3EE,#7C3AED);display:grid;place-items:center;color:white;font-size:24px;font-weight:900;box-shadow:0 14px 30px rgba(14,165,233,.16)}
+    .avatar.initials{text-align:center;line-height:64px}
+    .profile-main{min-width:0;flex:1}
+    .name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .username{font-size:20px;font-weight:900;color:var(--aips-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+    .profile-link{color:var(--aips-secondary);text-decoration:none;font-weight:750;font-size:14px;display:inline-block;margin-top:3px}
+    .pro-card{margin:18px 24px;padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(124,58,237,.28));border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 34px rgba(0,0,0,.22)}
+    .pro-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .pro-title{font-size:20px;font-weight:950;color:var(--aips-text)}
+    .pro-copy{margin-top:5px;color:var(--aips-secondary);font-size:13px;font-weight:700;line-height:1.35}
+    .claim{border:0;border-radius:10px;background:#050816;color:white;padding:11px 14px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px;text-align:center;color:var(--aips-secondary);font-size:11px;font-weight:800}
+    .benefits span{display:block;color:var(--aips-text);font-size:20px;margin-bottom:5px}
 
     /* List Items */
     .settings-list { list-style:none; padding:0; margin:0; }
@@ -117,6 +131,32 @@
   <div class="header">
     <h1>Settings</h1>
     <div class="subtitle">Manage your preferences and account</div>
+  </div>
+  <div class="profile-strip">
+    <img id="avatarImg" class="avatar" alt="Profile image" style="display:none">
+    <div id="avatarFallback" class="avatar initials">A</div>
+    <div class="profile-main">
+      <div class="name-row">
+        <div id="uName" class="username">Loading...</div>
+        <span id="profilePlan" class="plan-badge free">Standard</span>
+      </div>
+      <a class="profile-link" href="account.html">View profile ›</a>
+    </div>
+  </div>
+  <div class="pro-card subscription-section">
+    <div class="pro-head">
+      <div>
+        <div class="pro-title">◆ Go Pro</div>
+        <div class="pro-copy">Unlock AI tools, clean exports and cloud gallery backup.</div>
+      </div>
+      <button class="claim" onclick="window.location.href='index.html?upgrade=1'">View plans</button>
+    </div>
+    <div class="benefits">
+      <div><span>✂</span>AI tools</div>
+      <div><span>◇</span>Retouch</div>
+      <div><span>⬡</span>HD export</div>
+      <div><span>☁</span>Gallery</div>
+    </div>
   </div>
 
   <ul class="settings-list">
@@ -252,10 +292,30 @@
     item.classList.toggle('expanded');
   }
 
+  function usernameFor(user) {
+    const base = user.displayName || (user.email ? user.email.split("@")[0] : "Creator");
+    return base.replace(/[._-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 24);
+  }
+
+  function setProfileHeader(user, planLabel = "Standard") {
+    const name = usernameFor(user);
+    document.getElementById("uName").textContent = name;
+    document.getElementById("profilePlan").textContent = planLabel;
+    document.getElementById("profilePlan").classList.toggle("free", planLabel === "Standard" || planLabel === "Expired");
+    document.getElementById("avatarFallback").textContent = name.charAt(0).toUpperCase() || "A";
+    if (user.photoURL) {
+      const img = document.getElementById("avatarImg");
+      img.src = user.photoURL;
+      img.style.display = "block";
+      document.getElementById("avatarFallback").style.display = "none";
+    }
+  }
+
   // --- 3. AUTH & DATA LOADING ---
   auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = "signin.html"; return; }
 
+    setProfileHeader(user);
     document.getElementById('uEmail').textContent = user.email;
     document.getElementById('uID').textContent = user.uid.substring(0,8) + "..."; 
 
@@ -264,6 +324,7 @@
       const badge = document.getElementById('uPlanBadge');
       const trialRow = document.getElementById('trialRow');
       badge.innerHTML = `<span class="plan-badge">👑 Owner Mode</span>`;
+      setProfileHeader(user, "Owner");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "Full access";
       document.getElementById('uTrial').style.color = '#10B981';
@@ -340,21 +401,25 @@
           const hours = Math.ceil(leftMs / 3600000);
           const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
           badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+          setProfileHeader(user, planType);
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = timeLeft;
           document.getElementById('uTrial').style.color = '#10B981';
         } else {
           badge.innerHTML = `<span class="plan-badge free">Expired</span>`;
+          setProfileHeader(user, "Expired");
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = "Expired";
           document.getElementById('uTrial').style.color = '#EF4444';
         }
       } else {
         badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+        setProfileHeader(user, planType);
         trialRow.style.display = 'none';
       }
     } else {
       badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
+      setProfileHeader(user, "Standard");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "No active subscription";
       document.getElementById('uTrial').style.color = '#94A3B8';

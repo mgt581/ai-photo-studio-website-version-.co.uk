@@ -121,8 +121,6 @@
     .back-link { text-decoration: none; color: var(--aips-secondary); font-weight: 750; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px; transition: background 0.2s; }
     .back-link:hover { background: rgba(255,255,255,.08); color: var(--aips-text); }
     .about-card { margin-top:16px; padding:14px; border:1px solid var(--aips-border); border-radius:14px; background:rgba(255,255,255,.04); color:var(--aips-secondary); font-size:13px; line-height:1.6; }
-    .about-card a { color:#BAE6FD; font-weight:750; text-decoration:none; }
-    .about-card a:hover { text-decoration:underline; }
   </style>
 </head>
 <body class="aips-page">
@@ -252,9 +250,9 @@
             </p>
           </div>
           <div class="about-card">
-            AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a>.<br>
+            AI Photo Studio is a product of Bryant Digital Solutions.<br>
             Built for fast, professional image editing.<br>
-            Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>.
+            Part of Bryant Group Holdings Ltd.
           </div>
         </div>
       </div>
@@ -331,62 +329,34 @@
       return;
     }
 
-    // Check Worker API first for premium status
     let isPro = false;
     let planType = "Free";
     let expiresAtMillis = null;
 
     try {
-      const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);      
-      const data = await res.json();
+      const snap = await db.collection('users').doc(user.uid).get();
 
-    if (data && data.premium === true) {
-        const now = Date.now();
-        const expiresAt = Number(data.expiresAt || 0);
-        expiresAtMillis = expiresAt > now ? expiresAt : null;
+      if (snap.exists) {
+        const data = snap.data();
 
-        if (data.plan === "day") planType = "Day Pass";
-        else if (data.plan === "month") planType = "Monthly Pro";
-        else if (data.plan === "trial7") planType = "7-Day Trial";
-        else if (data.plan === "year") planType = "Yearly Pro";
-        else planType = "Pro";
+        if (data.subscription?.expiresAt?.toMillis) {
+          expiresAtMillis = data.subscription.expiresAt.toMillis();
+          const planKey = data.subscription?.type || "pro";
 
-        isPro = true;
+          planType =
+            planKey === "day" ? "Day Pass" :
+            planKey === "month" ? "Monthly Pro" :
+            planKey === "trial7" ? "7-Day Trial" :
+            planKey === "year" ? "Yearly Pro" : "Pro";
+
+          isPro = expiresAtMillis > Date.now();
+        } else if (data.tier === 'pro' || data.isPro) {
+          isPro = true;
+          planType = data.planType || "Pro";
+        }
       }
     } catch (e) {
-      console.error("Worker plan check error:", e);
-    }
-
-    // Fallback to Firestore if Worker check failed
-    if (!isPro) {
-      try {
-        const snap = await db.collection('users').doc(user.uid).get();
-        
-        if (snap.exists) {
-          const data = snap.data();
-          
-          // Check subscription for new format
-          if (data.subscription?.expiresAt?.toMillis) {
-            expiresAtMillis = data.subscription.expiresAt.toMillis();
-            const planKey = data.subscription?.type || "pro";
-            
-            planType = 
-              planKey === "day" ? "Day Pass" :
-              planKey === "month" ? "Monthly Pro" :
-              planKey === "trial7" ? "7-Day Trial" :
-              planKey === "year" ? "Yearly Pro" : "Pro";
-            
-            isPro = expiresAtMillis > Date.now();
-          }
-          // Fallback to old format
-          else if (data.tier === 'pro' || data.isPro) {
-            isPro = true;
-            planType = data.planType || "Pro";
-          }
-        }
-      } catch (e) {
-        console.error("Error loading user data:", e);
-      }
+      console.error("Error loading user data:", e);
     }
 
     // Update UI

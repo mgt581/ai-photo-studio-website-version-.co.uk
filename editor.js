@@ -10,6 +10,8 @@ let uploadedImage = null;
 let editorCanvas = null;
 let editorCtx = null;
 let imageElement = null;
+const FREE_DAILY_REQUEST_LIMIT = 3;
+window.proEnabled = window.proEnabled === true;
 
 // --- Pro / Subscription flag ---
 // Note: proEnabled is defined globally in index.html
@@ -35,13 +37,16 @@ const isAndroidApp = (() => {
 })();
 
 /**
- * Web app: reads pro status from Firestore users/{uid}
- * Android app: stays watermark-free (your current product choice)
+ * Web and Android app: reads pro/trial status where available.
  */
 async function refreshProFlag(user) {
   try {
-    // Android stays watermark-free
-    if (isAndroidApp) {
+    if (!user) {
+      setPro(false);
+      return;
+    }
+
+    if (user.email && user.email.toLowerCase() === "alexbryant3234@gmail.com") {
       setPro(true);
       return;
     }
@@ -53,30 +58,44 @@ async function refreshProFlag(user) {
       return;
     }
 
-    const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
-
-    const now = Math.floor(Date.now() / 1000);
+    const snap = await db.collection("users").doc(user.uid).get();
+    const now = Date.now();
 
     if (!snap.exists()) {
-      setPro(false);
+      try {
+        const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+        const data = await res.json();
+        setPro(data && data.premium === true);
+      } catch (_) {
+        setPro(false);
+      }
       return;
     }
 
     const data = snap.data();
-    let periodEnd = 0;
+    let expiresAtMillis = null;
 
-    if (typeof data.currentPeriodEnd === "number") {
-      periodEnd = data.currentPeriodEnd;
+    if (data.subscription?.expiresAt?.toMillis) {
+      expiresAtMillis = data.subscription.expiresAt.toMillis();
+    } else if (data.trial?.endsAt?.toMillis) {
+      expiresAtMillis = data.trial.endsAt.toMillis();
+    } else if (typeof data.currentPeriodEnd === "number") {
+      expiresAtMillis = data.currentPeriodEnd * 1000;
     } else if (data.currentPeriodEnd?.seconds) {
-      periodEnd = data.currentPeriodEnd.seconds;
+      expiresAtMillis = data.currentPeriodEnd.seconds * 1000;
     }
 
-    window.proEnabled = data.pro === true && periodEnd > now;
+    let isPro = Boolean((expiresAtMillis && expiresAtMillis > now) || data.pro === true || data.isPro === true || data.tier === "pro");
 
-    console.log("✅ proEnabled:", window.proEnabled, data);
+    if (!isPro) {
+      try {
+        const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);
+        const workerData = await res.json();
+        isPro = workerData && workerData.premium === true;
+      } catch (_) {}
+    }
+
+    setPro(isPro);
   } catch (e) {
     console.error("refreshProFlag failed:", e);
     setPro(false);
@@ -110,12 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hook into auth state so proEnabled updates after login (web)
   (async () => {
     try {
-      // Android stays watermark-free
-      if (isAndroidApp) {
-        setPro(true);
-        return;
-      }
-
       // Initialize proEnabled to false for standalone use
       setPro(false);
 
@@ -163,6 +176,69 @@ function initializeEditor() {
     
     // Update active tool label
     updateActiveToolLabel('Select a tool');
+}
+
+function setPro(on) {
+    window.proEnabled = !!on;
+    const watermark = document.getElementById('watermark');
+    if (watermark) watermark.style.display = window.proEnabled ? 'none' : 'block';
+    updateFreeUsageLabel();
+}
+
+function freeUsageDateKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function freeUsageStorageKey() {
+    return `aips-free-requests:editor:${freeUsageDateKey()}`;
+}
+
+function getFreeUsageCount() {
+    return Math.max(0, Number.parseInt(localStorage.getItem(freeUsageStorageKey()) || "0", 10) || 0);
+}
+
+function getFreeRequestsRemaining() {
+    if (window.proEnabled === true) return Number.POSITIVE_INFINITY;
+    return Math.max(0, FREE_DAILY_REQUEST_LIMIT - getFreeUsageCount());
+}
+
+function updateFreeUsageLabel() {
+    const label = document.getElementById('activeToolLabel');
+    if (!label || window.proEnabled === true || currentMode) return;
+    label.textContent = `${getFreeRequestsRemaining()}/${FREE_DAILY_REQUEST_LIMIT} free requests left today`;
+}
+
+function ensureFreeRequestAllowed() {
+    if (window.proEnabled === true) return true;
+    if (getFreeRequestsRemaining() > 0) return true;
+    alert('Free daily limit reached. Upgrade or start a trial for unlimited requests and no watermark.');
+    return false;
+}
+
+function recordFreeRequest() {
+    if (window.proEnabled === true) return;
+    localStorage.setItem(freeUsageStorageKey(), String(getFreeUsageCount() + 1));
+    updateFreeUsageLabel();
+}
+
+function stampWatermarkOnCanvas(ctx, width, height) {
+    if (window.proEnabled === true) return;
+    const text = 'AI Photo Studio - FREE';
+    ctx.save();
+    ctx.font = `bold ${Math.max(24, Math.round(width * 0.045))}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    const textWidth = ctx.measureText(text).width;
+    const padX = 18;
+    const padY = 12;
+    const boxW = textWidth + padX * 2;
+    const boxH = Math.max(46, Math.round(width * 0.065));
+    const x = (width - boxW) / 2;
+    const y = (height - boxH) / 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillRect(x, y, boxW, boxH);
+    ctx.fillStyle = '#111827';
+    ctx.fillText(text, x + padX, y + boxH / 2 + padY / 2);
+    ctx.restore();
 }
 
 /**
@@ -505,6 +581,7 @@ function showRemovePersonControls(container) {
  * Process image with selected operation
  */
 function processImage(operation, file = null) {
+    if (!ensureFreeRequestAllowed()) return;
     const loadingOverlay = document.getElementById('loadingOverlay');
     loadingOverlay.style.display = 'flex';
     
@@ -519,6 +596,7 @@ function processImage(operation, file = null) {
             editorCtx.drawImage(uploadedImage, 0, 0);
             captureTransparentSnapshot();
             updatePreview();
+            recordFreeRequest();
         }
     }, 2000);
 }
@@ -661,6 +739,8 @@ function downloadFinalImage() {
         // Export what user sees on canvas (color bg etc.)
         octx.drawImage(editorCanvas, 0, 0);
     }
+
+    stampWatermarkOnCanvas(octx, out.width, out.height);
 
     out.toBlob(async (blob) => {
         if (!blob) return;

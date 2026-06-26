@@ -173,18 +173,7 @@
     #btnLogout{background:rgba(239,68,68,.12)!important;color:#FECACA!important;border-color:rgba(239,68,68,.28)}
     /* =========================================================================== */
 
-    /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
-    html.android-app .pricing-row,
-    html.android-app #upgradeMsg {
-      display: none !important;
-    }
-
-    /* Android app: hide all authentication UI (sign-in, sign-up, sign-out, status, gallery link) */
-    html.android-app #navSignIn,
-    html.android-app #navSignUp,
-    html.android-app #btnLogout,
-    html.android-app #authStatus,
-    html.android-app #payMsg,
+    /* Android app: use Google Play Billing buttons, but keep the cloud gallery hidden. */
     html.android-app a[href="gallery.html"] {
       display: none !important;
     }
@@ -359,6 +348,12 @@
     const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
     const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
     const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08";
+    const REMOVE_OBJECT_API = "https://aips-gpt-image-2-preview.alexbryant.workers.dev/api/remove-object";
+    const PLAY_BILLING_METHOD = "https://play.google.com/billing";
+    const PLAY_PRODUCTS = {
+      month: { sku: "aips_monthly_pro", plan: "month", fallbackLabel: "Monthly Pro" },
+      year: { sku: "aips_yearly_pro", plan: "year", fallbackLabel: "Yearly Pro + trial if eligible" }
+    };
     
     const btnDaily      = document.getElementById("btnDaily");
     const btnMonthly    = document.getElementById("btnMonthly");
@@ -472,7 +467,7 @@ function hidePaywall() {
 }
 /* ===================================================== */
 
-// Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
+// Set initial state: disabled until auth state is known.
 if (!window.__AIPS_IS_ANDROID_APP__) {
   setPayButtonsEnabled(false);
 }
@@ -493,9 +488,176 @@ document.querySelectorAll("[data-plan-button]").forEach((button) => {
 });
 updatePaywallPlan("trial");
 
+function googlePlaySupported() {
+  return window.__AIPS_IS_ANDROID_APP__ &&
+    "PaymentRequest" in window &&
+    "getDigitalGoodsService" in window;
+}
+
+async function getGooglePlayService() {
+  if (!googlePlaySupported()) {
+    throw new Error("play-billing-unavailable");
+  }
+  return window.getDigitalGoodsService(PLAY_BILLING_METHOD);
+}
+
+function findPlayProductBySku(sku) {
+  return Object.values(PLAY_PRODUCTS).find(product => product.sku === sku) || null;
+}
+
+async function syncGooglePlayPurchase(product, purchaseToken) {
+  const user = auth.currentUser;
+  if (!user) {
+    toast("Please sign in before subscribing.");
+    return false;
+  }
+
+  const res = await fetch("https://premuim-status.alexbryant3234.workers.dev/google-play-purchase", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid: user.uid,
+      email: user.email || "",
+      itemId: product.sku,
+      plan: product.plan,
+      purchaseToken
+    })
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok !== true) {
+    console.warn("Google Play purchase sync failed:", data);
+    toast("Purchase completed, but sync failed. Please use Restore Purchases.");
+    return false;
+  }
+
+  await db.collection("users").doc(user.uid).set({
+    tier: "pro",
+    planType: PLANS[product.plan]?.name || "Pro",
+    subscription: {
+      type: product.plan,
+      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(data.expiresAt || Date.now() + 30 * 86400000),
+      source: "google_play",
+      googlePlayItemId: product.sku
+    }
+  }, { merge: true });
+
+  await refreshUserPlan();
+  return true;
+}
+
+async function buyGooglePlayProduct(product) {
+  if (!auth.currentUser) {
+    showPaySignInRequired();
+    return;
+  }
+
+  let response = null;
+  try {
+    const request = new PaymentRequest([{
+      supportedMethods: PLAY_BILLING_METHOD,
+      data: { sku: product.sku }
+    }], {
+      total: {
+        label: product.fallbackLabel,
+        amount: { currency: "GBP", value: "0" }
+      }
+    });
+
+    response = await request.show();
+    const purchaseToken = response?.details?.token || response?.details?.purchaseToken || "";
+    const service = await getGooglePlayService();
+    if (purchaseToken) await service.acknowledge(purchaseToken, "onetime");
+    await response.complete("success");
+
+    const synced = await syncGooglePlayPurchase(product, purchaseToken);
+    if (synced) toast("Google Play subscription activated.");
+  } catch (err) {
+    console.warn("Google Play purchase failed:", err);
+    if (response) {
+      try { await response.complete("fail"); } catch (_) {}
+    }
+    toast("Google Play purchase was not completed.");
+  }
+}
+
+async function restoreGooglePlayPurchases() {
+  if (!auth.currentUser) {
+    showPaySignInRequired();
+    return;
+  }
+
+  try {
+    const service = await getGooglePlayService();
+    const purchases = await service.listPurchases();
+    const knownPurchases = purchases
+      .map(purchase => ({
+        purchase,
+        product: findPlayProductBySku(purchase.itemId)
+      }))
+      .filter(entry => entry.product);
+
+    if (!knownPurchases.length) {
+      toast("No Google Play subscription found.");
+      return;
+    }
+
+    for (const entry of knownPurchases) {
+      const token = entry.purchase.purchaseToken || entry.purchase.token || "";
+      if (token) {
+        try { await service.acknowledge(token, "onetime"); } catch (_) {}
+      }
+      await syncGooglePlayPurchase(entry.product, token);
+    }
+
+    toast("Google Play purchases restored.");
+  } catch (err) {
+    console.warn("Google Play restore failed:", err);
+    toast("Could not restore Google Play purchases.");
+  }
+}
+
+async function setupGooglePlayBillingButtons() {
+  if (!window.__AIPS_IS_ANDROID_APP__) return;
+
+  if (btnDaily) {
+    btnDaily.textContent = "Restore Purchases";
+    btnDaily.onclick = restoreGooglePlayPurchases;
+  }
+  if (btnMonthly) {
+    btnMonthly.textContent = "Monthly via Google Play";
+    btnMonthly.onclick = () => buyGooglePlayProduct(PLAY_PRODUCTS.month);
+  }
+  if (btnTrialStart) {
+    btnTrialStart.textContent = "Start Trial via Google Play";
+    btnTrialStart.onclick = () => buyGooglePlayProduct(PLAY_PRODUCTS.year);
+  }
+
+  try {
+    const service = await getGooglePlayService();
+    const details = await service.getDetails(Object.values(PLAY_PRODUCTS).map(product => product.sku));
+    details.forEach(item => {
+      const product = findPlayProductBySku(item.itemId);
+      if (!product) return;
+      const label = `${product.fallbackLabel}${item.price ? ` - ${item.price}` : ""}`;
+      if (product === PLAY_PRODUCTS.month && btnMonthly) btnMonthly.textContent = label;
+      if (product === PLAY_PRODUCTS.year && btnTrialStart) btnTrialStart.textContent = label;
+    });
+    setPayButtonsEnabled(!!auth.currentUser);
+  } catch (err) {
+    console.warn("Google Play Billing is not available:", err);
+    setPayButtonsEnabled(false);
+    if (btnMonthly) btnMonthly.textContent = "Google Play unavailable";
+    if (btnTrialStart) btnTrialStart.textContent = "Install from Play Store";
+  }
+}
+
 window.onload = function () {
 
-  // Auth-dependent initialisation: skip entirely in Play Store / Android WebView
+  setupGooglePlayBillingButtons();
+
+  // Web Stripe redirect handling remains web-only.
   if (!window.__AIPS_IS_ANDROID_APP__) {
     // Always refresh plan when page loads
     auth.onAuthStateChanged(async (user) => {
@@ -690,8 +852,9 @@ const elTrialLeft = document.getElementById("trialLeft");
 const navSignIn   = document.getElementById("navSignIn");
 const navSignUp   = document.getElementById("navSignUp");
 
-// IMPORTANT: use one global source of truth
-window.proEnabled = false;
+    // IMPORTANT: use one global source of truth
+    window.proEnabled = false;
+    const FREE_DAILY_REQUEST_LIMIT = 3;
 
 const $status = document.getElementById("status");
 const stage   = document.getElementById("stage");
@@ -736,10 +899,7 @@ function drawChecker() {
 }
 
 function stampWatermark() {
-  // Android app version = never show watermark
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-
-  // Paid web users = no watermark
+  // Paid and trial users get clean exports.
   if (window.proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";
@@ -776,6 +936,52 @@ function stampWatermark() {
   ctx.fillText(text, x, y);
 
   ctx.restore();
+}
+
+function freeUsageDateKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function freeUsageStorageKey() {
+  const uid = auth.currentUser?.uid || "guest";
+  return `aips-free-requests:${uid}:${freeUsageDateKey()}`;
+}
+
+function getFreeUsageCount() {
+  return Math.max(0, Number.parseInt(localStorage.getItem(freeUsageStorageKey()) || "0", 10) || 0);
+}
+
+function getFreeRequestsRemaining() {
+  if (window.proEnabled === true) return Number.POSITIVE_INFINITY;
+  return Math.max(0, FREE_DAILY_REQUEST_LIMIT - getFreeUsageCount());
+}
+
+function updateFreeUsageUI() {
+  if (!elTrialLeft || window.proEnabled === true) return;
+  const remaining = getFreeRequestsRemaining();
+  elTrialLeft.textContent = `${remaining}/${FREE_DAILY_REQUEST_LIMIT} free requests left today`;
+  elTrialLeft.style.display = "inline-block";
+}
+
+async function ensureFreeRequestAllowed(actionLabel = "use this tool") {
+  if (window.proEnabled === true) return true;
+
+  const remaining = getFreeRequestsRemaining();
+  if (remaining > 0) return true;
+
+  const message = `Free daily limit reached. Upgrade or start a trial for unlimited requests and no watermark.`;
+  toast(message);
+  setStatus(message);
+  const elUpgrade = document.getElementById("upgradeMsg");
+  if (elUpgrade) elUpgrade.style.display = "inline-block";
+  return false;
+}
+
+function recordFreeRequest() {
+  if (window.proEnabled === true) return;
+  localStorage.setItem(freeUsageStorageKey(), String(getFreeUsageCount() + 1));
+  updateFreeUsageUI();
 }
 
 const readFileURL = (f) => new Promise((res, rej) => { 
@@ -839,6 +1045,7 @@ function updatePlanUI() {
 function setPro(on) {
   window.proEnabled = !!on;
   updatePlanUI();
+  if (!window.proEnabled) updateFreeUsageUI();
 }
 
 async function refreshUserPlan() {
@@ -846,10 +1053,9 @@ async function refreshUserPlan() {
   const elUpgrade = document.getElementById('upgradeMsg');
 
   if (!user) { 
-    if (elTrialLeft) elTrialLeft.style.display = 'none';
     if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false); 
-    await refreshCreditStatus();
+    updateFreeUsageUI();
     return; 
   }
   
@@ -929,11 +1135,6 @@ async function refreshUserPlan() {
       return;
     }
 
-    if (elTrialLeft) {
-      elTrialLeft.textContent = "Trial ended";
-      elTrialLeft.style.display = "inline-block";
-    }
-
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
     await refreshCreditStatus();
@@ -984,15 +1185,12 @@ async function refreshUserPlan() {
 
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
-    await refreshCreditStatus();
+    updateFreeUsageUI();
   }
 }    
     
 
 auth.onAuthStateChanged(async user => {
-  // Skip all auth UI logic when running inside Play Store / Android WebView
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
   setPayButtonsEnabled(!!user);
   /* ============================================================= */
@@ -1003,7 +1201,7 @@ auth.onAuthStateChanged(async user => {
     if(navSignIn) navSignIn.style.display = 'inline-block';
     if(navSignUp) navSignUp.style.display = 'inline-block';
     setPro(false);
-    await refreshCreditStatus();
+    updateFreeUsageUI();
     return;
   }
 
@@ -1155,6 +1353,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
       async function removeBg(){
         if(!mainSrc) return alert("Upload a photo first.");
+        if (!(await ensureFreeRequestAllowed("remove a background"))) return;
         setBusy(true);
         try{
           setStatus("Removing background… (on your device)");
@@ -1176,6 +1375,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           if (cutoutURL) URL.revokeObjectURL(cutoutURL);
           cutoutURL = URL.createObjectURL(blob);
           await draw({img: cutoutURL, bg: bgSrc});
+          recordFreeRequest();
           setStatus("Background removed. Choose a background, then press Change Background.");
           
           // Auto-save to gallery after background removal
@@ -1296,9 +1496,26 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           0, 0, outW, outH
         );
 
+        const expansion = Math.max(10, Math.round(Math.max(outW, outH) * 0.012));
+        const expanded = document.createElement('canvas');
+        expanded.width = outW;
+        expanded.height = outH;
+        const ex = expanded.getContext('2d', { willReadFrequently: true });
+        ex.filter = `blur(${Math.max(4, Math.round(expansion * 0.35))}px)`;
+        ex.drawImage(maskHD, 0, 0);
+        ex.filter = 'none';
+        ex.globalCompositeOperation = 'source-over';
+        for (let dx = -expansion; dx <= expansion; dx += expansion) {
+          for (let dy = -expansion; dy <= expansion; dy += expansion) {
+            ex.drawImage(maskHD, dx, dy);
+          }
+        }
+        mhd.clearRect(0, 0, outW, outH);
+        mhd.drawImage(expanded, 0, 0);
+
         const imgData = mhd.getImageData(0, 0, outW, outH);
         for (let i = 0; i < imgData.data.length; i += 4) {
-          const selected = imgData.data[i + 3] > 8;
+          const selected = imgData.data[i + 3] > 3;
           if (mode === 'luma') {
             imgData.data[i] = selected ? 255 : 0;
             imgData.data[i + 1] = selected ? 255 : 0;
@@ -1328,319 +1545,6 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         return Math.max(256, Math.min(1536, Math.round(value / 8) * 8));
       }
 
-      function buildRemovalSelection(metrics, outW, outH) {
-        const alphaMask = buildRemovalMaskCanvas(metrics, outW, outH, 'alpha');
-        const data = alphaMask.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, outW, outH);
-        const selection = new Uint8Array(outW * outH);
-        for (let i = 0, p = 0; i < data.data.length; i += 4, p += 1) {
-          if (data.data[i + 3] > 8) selection[p] = 1;
-        }
-        return selection;
-      }
-
-      function dilateSelection(selection, width, height, radius) {
-        if (radius <= 0) return selection;
-        const horizontal = new Uint8Array(width * height);
-        const output = new Uint8Array(width * height);
-        for (let y = 0; y < height; y += 1) {
-          let count = 0;
-          for (let x = -radius; x <= radius; x += 1) {
-            if (x >= 0 && x < width) count += selection[y * width + x];
-          }
-          for (let x = 0; x < width; x += 1) {
-            horizontal[y * width + x] = count > 0 ? 1 : 0;
-            const removeX = x - radius;
-            const addX = x + radius + 1;
-            if (removeX >= 0) count -= selection[y * width + removeX];
-            if (addX < width) count += selection[y * width + addX];
-          }
-        }
-        for (let x = 0; x < width; x += 1) {
-          let count = 0;
-          for (let y = -radius; y <= radius; y += 1) {
-            if (y >= 0 && y < height) count += horizontal[y * width + x];
-          }
-          for (let y = 0; y < height; y += 1) {
-            output[y * width + x] = count > 0 ? 1 : 0;
-            const removeY = y - radius;
-            const addY = y + radius + 1;
-            if (removeY >= 0) count -= horizontal[removeY * width + x];
-            if (addY < height) count += horizontal[addY * width + x];
-          }
-        }
-        return output;
-      }
-
-      function boxBlurValues(values, width, height, radius) {
-        if (radius <= 0) return values;
-        const horizontal = new Float32Array(width * height);
-        const output = new Float32Array(width * height);
-        const size = radius * 2 + 1;
-        for (let y = 0; y < height; y += 1) {
-          let sum = 0;
-          for (let x = -radius; x <= radius; x += 1) {
-            const clampedX = Math.min(width - 1, Math.max(0, x));
-            sum += values[y * width + clampedX];
-          }
-          for (let x = 0; x < width; x += 1) {
-            horizontal[y * width + x] = sum / size;
-            const removeX = Math.min(width - 1, Math.max(0, x - radius));
-            const addX = Math.min(width - 1, Math.max(0, x + radius + 1));
-            sum += values[y * width + addX] - values[y * width + removeX];
-          }
-        }
-        for (let x = 0; x < width; x += 1) {
-          let sum = 0;
-          for (let y = -radius; y <= radius; y += 1) {
-            const clampedY = Math.min(height - 1, Math.max(0, y));
-            sum += horizontal[clampedY * width + x];
-          }
-          for (let y = 0; y < height; y += 1) {
-            output[y * width + x] = sum / size;
-            const removeY = Math.min(height - 1, Math.max(0, y - radius));
-            const addY = Math.min(height - 1, Math.max(0, y + radius + 1));
-            sum += horizontal[addY * width + x] - horizontal[removeY * width + x];
-          }
-        }
-        return output;
-      }
-
-      function featheredAlpha(selection, width, height, featherRadius, passes = 2) {
-        let alpha = new Float32Array(width * height);
-        for (let i = 0; i < selection.length; i += 1) alpha[i] = selection[i] > 0 ? 1 : 0;
-        for (let pass = 0; pass < passes; pass += 1) alpha = boxBlurValues(alpha, width, height, featherRadius);
-        for (let i = 0; i < alpha.length; i += 1) alpha[i] = Math.min(1, Math.max(0, alpha[i]));
-        return alpha;
-      }
-
-      function buildOpenAiMask(maskAlpha, width, height) {
-        const output = document.createElement('canvas');
-        output.width = width;
-        output.height = height;
-        const out = output.getContext('2d');
-        const pixels = out.createImageData(width, height);
-        for (let i = 0, p = 0; i < pixels.data.length; i += 4, p += 1) {
-          const editable = maskAlpha[p];
-          pixels.data[i] = 0;
-          pixels.data[i + 1] = 0;
-          pixels.data[i + 2] = 0;
-          pixels.data[i + 3] = Math.round(255 * (1 - editable));
-        }
-        out.putImageData(pixels, 0, 0);
-        return output;
-      }
-
-      function buildCloudflareLumaMask(maskAlpha, width, height) {
-        const output = document.createElement('canvas');
-        output.width = width;
-        output.height = height;
-        const out = output.getContext('2d');
-        const pixels = out.createImageData(width, height);
-        for (let i = 0, p = 0; i < pixels.data.length; i += 4, p += 1) {
-          const value = Math.round(255 * (1 - maskAlpha[p]));
-          pixels.data[i] = value;
-          pixels.data[i + 1] = value;
-          pixels.data[i + 2] = value;
-          pixels.data[i + 3] = 255;
-        }
-        out.putImageData(pixels, 0, 0);
-        return output;
-      }
-
-      function cropCanvas(source, rect) {
-        const output = document.createElement('canvas');
-        output.width = rect.width;
-        output.height = rect.height;
-        output.getContext('2d').drawImage(source, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
-        return output;
-      }
-
-      function selectionCropRect(selection, width, height) {
-        let minX = width, minY = height, maxX = -1, maxY = -1;
-        for (let y = 0; y < height; y += 1) {
-          for (let x = 0; x < width; x += 1) {
-            if (selection[y * width + x] > 0) {
-              minX = Math.min(minX, x);
-              minY = Math.min(minY, y);
-              maxX = Math.max(maxX, x);
-              maxY = Math.max(maxY, y);
-            }
-          }
-        }
-        if (maxX < minX || maxY < minY) return { x: 0, y: 0, width, height };
-        const selectedW = maxX - minX + 1;
-        const selectedH = maxY - minY + 1;
-        const pad = Math.max(96, Math.round(Math.max(selectedW, selectedH) * 0.5));
-        let x1 = Math.max(0, minX - pad);
-        let y1 = Math.max(0, minY - pad);
-        let x2 = Math.min(width, maxX + pad + 1);
-        let y2 = Math.min(height, maxY + pad + 1);
-        const growTo = (targetW, targetH) => {
-          const addW = Math.max(0, targetW - (x2 - x1));
-          const addH = Math.max(0, targetH - (y2 - y1));
-          x1 = Math.max(0, x1 - Math.floor(addW / 2));
-          x2 = Math.min(width, x2 + Math.ceil(addW / 2));
-          y1 = Math.max(0, y1 - Math.floor(addH / 2));
-          y2 = Math.min(height, y2 + Math.ceil(addH / 2));
-          if (x2 - x1 < targetW) x1 = Math.max(0, x2 - targetW);
-          if (x2 - x1 < targetW) x2 = Math.min(width, x1 + targetW);
-          if (y2 - y1 < targetH) y1 = Math.max(0, y2 - targetH);
-          if (y2 - y1 < targetH) y2 = Math.min(height, y1 + targetH);
-        };
-        growTo(Math.min(width, 320), Math.min(height, 320));
-        growTo(Math.min(width, Math.ceil((x2 - x1) / 16) * 16), Math.min(height, Math.ceil((y2 - y1) / 16) * 16));
-        return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
-      }
-
-      function buildCloudflareInput(imageCanvas, selection, width, height) {
-        const output = document.createElement('canvas');
-        output.width = width;
-        output.height = height;
-        const out = output.getContext('2d', { willReadFrequently: true });
-        out.drawImage(imageCanvas, 0, 0);
-        const pixels = out.getImageData(0, 0, width, height);
-        const original = new Uint8ClampedArray(pixels.data);
-        for (let y = 0; y < height; y += 1) {
-          let x = 0;
-          while (x < width) {
-            while (x < width && selection[y * width + x] === 0) x += 1;
-            if (x >= width) break;
-            const runStart = x;
-            while (x < width && selection[y * width + x] > 0) x += 1;
-            const runEnd = x - 1;
-            const left = runStart > 0 ? runStart - 1 : -1;
-            const right = runEnd + 1 < width ? runEnd + 1 : -1;
-            for (let fillX = runStart; fillX <= runEnd; fillX += 1) {
-              const outIndex = (y * width + fillX) * 4;
-              if (left >= 0 && right >= 0) {
-                const leftWeight = (runEnd - fillX + 1) / (runEnd - runStart + 2);
-                const rightWeight = 1 - leftWeight;
-                const leftIndex = (y * width + left) * 4;
-                const rightIndex = (y * width + right) * 4;
-                for (let channel = 0; channel < 3; channel += 1) {
-                  pixels.data[outIndex + channel] = Math.round(original[leftIndex + channel] * leftWeight + original[rightIndex + channel] * rightWeight);
-                }
-              } else {
-                const source = left >= 0 ? left : right;
-                if (source >= 0) {
-                  const sourceIndex = (y * width + source) * 4;
-                  pixels.data[outIndex] = original[sourceIndex];
-                  pixels.data[outIndex + 1] = original[sourceIndex + 1];
-                  pixels.data[outIndex + 2] = original[sourceIndex + 2];
-                }
-              }
-              pixels.data[outIndex + 3] = 255;
-            }
-          }
-        }
-        out.putImageData(pixels, 0, 0);
-        return output;
-      }
-
-      async function blobToImage(blob) {
-        const url = URL.createObjectURL(blob);
-        try {
-          const image = new Image();
-          image.decoding = 'async';
-          image.src = url;
-          await (image.decode ? image.decode() : new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; }));
-          return image;
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      }
-
-      function smoothLayerInsideMask(layerCtx, blendAlpha, cropRect, width) {
-        const pixels = layerCtx.getImageData(0, 0, cropRect.width, cropRect.height);
-        const source = new Uint8ClampedArray(pixels.data);
-        for (let y = 1; y < cropRect.height - 1; y += 1) {
-          for (let x = 1; x < cropRect.width - 1; x += 1) {
-            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
-            if (alpha < 0.2) continue;
-            const index = (y * cropRect.width + x) * 4;
-            for (let channel = 0; channel < 3; channel += 1) {
-              let sum = 0;
-              sum += source[index + channel] * 4;
-              sum += source[index - 4 + channel] * 2;
-              sum += source[index + 4 + channel] * 2;
-              sum += source[index - cropRect.width * 4 + channel] * 2;
-              sum += source[index + cropRect.width * 4 + channel] * 2;
-              const average = sum / 12;
-              const strength = Math.min(0.35, alpha * 0.35);
-              pixels.data[index + channel] = Math.round(source[index + channel] * (1 - strength) + average * strength);
-            }
-          }
-        }
-        layerCtx.putImageData(pixels, 0, 0);
-      }
-
-      function matchLayerColorToOriginal(layerCtx, imageCtx, blendAlpha, cropRect, width) {
-        const original = imageCtx.getImageData(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
-        const edited = layerCtx.getImageData(0, 0, cropRect.width, cropRect.height);
-        const delta = [0, 0, 0];
-        let samples = 0;
-        for (let y = 0; y < cropRect.height; y += 1) {
-          for (let x = 0; x < cropRect.width; x += 1) {
-            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
-            if (alpha <= 0.05 || alpha >= 0.55) continue;
-            const index = (y * cropRect.width + x) * 4;
-            for (let channel = 0; channel < 3; channel += 1) delta[channel] += original.data[index + channel] - edited.data[index + channel];
-            samples += 1;
-          }
-        }
-        if (!samples) return;
-        for (let channel = 0; channel < 3; channel += 1) delta[channel] = Math.max(-24, Math.min(24, delta[channel] / samples));
-        for (let y = 0; y < cropRect.height; y += 1) {
-          for (let x = 0; x < cropRect.width; x += 1) {
-            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
-            if (alpha <= 0.02) continue;
-            const index = (y * cropRect.width + x) * 4;
-            const strength = Math.min(1, alpha * 1.15);
-            for (let channel = 0; channel < 3; channel += 1) {
-              edited.data[index + channel] = Math.round(Math.max(0, Math.min(255, edited.data[index + channel] + delta[channel] * strength)));
-            }
-          }
-        }
-        layerCtx.putImageData(edited, 0, 0);
-      }
-
-      function compositeMaskedResult(editImage, imageCanvas, imageCtx, blendAlpha, cropRect, width, height) {
-        const output = document.createElement('canvas');
-        output.width = width;
-        output.height = height;
-        const out = output.getContext('2d');
-        out.drawImage(imageCanvas, 0, 0);
-
-        const layer = document.createElement('canvas');
-        layer.width = cropRect.width;
-        layer.height = cropRect.height;
-        const layerCtx = layer.getContext('2d', { willReadFrequently: true });
-        layerCtx.drawImage(editImage, 0, 0, editImage.naturalWidth || editImage.width, editImage.naturalHeight || editImage.height, 0, 0, cropRect.width, cropRect.height);
-        matchLayerColorToOriginal(layerCtx, imageCtx, blendAlpha, cropRect, width);
-        smoothLayerInsideMask(layerCtx, blendAlpha, cropRect, width);
-
-        const maskLayer = document.createElement('canvas');
-        maskLayer.width = cropRect.width;
-        maskLayer.height = cropRect.height;
-        const maskLayerCtx = maskLayer.getContext('2d');
-        const pixels = maskLayerCtx.createImageData(cropRect.width, cropRect.height);
-        for (let y = 0, i = 0; y < cropRect.height; y += 1) {
-          for (let x = 0; x < cropRect.width; x += 1, i += 4) {
-            const alpha = blendAlpha[(cropRect.y + y) * width + cropRect.x + x];
-            pixels.data[i] = 255;
-            pixels.data[i + 1] = 255;
-            pixels.data[i + 2] = 255;
-            pixels.data[i + 3] = Math.round(255 * alpha);
-          }
-        }
-        maskLayerCtx.putImageData(pixels, 0, 0);
-        layerCtx.globalCompositeOperation = 'destination-in';
-        layerCtx.drawImage(maskLayer, 0, 0);
-        layerCtx.globalCompositeOperation = 'source-over';
-        out.drawImage(layer, cropRect.x, cropRect.y);
-        return output;
-      }
-
       async function applyInpaintWithApi() {
         const baseSrc = mainSrc || cutoutURL;
         if (!baseSrc) { alert("Load an image first."); return false; }
@@ -1652,9 +1556,8 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const painted = getPaintedPixelCount();
         if (painted < 50) {
           alert("Paint directly over the person to remove, then Apply again.");
-          return true;
+          return false;
         }
-        if (!(await canUseRemoveObjectCredit())) return false;
 
         const MAX_SIDE = 1536;
         const maxSide = Math.max(img.width, img.height);
@@ -1671,68 +1574,85 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         imageCtx.imageSmoothingQuality = 'high';
         imageCtx.drawImage(img, 0, 0, outW, outH);
 
-        const baseSelection = buildRemovalSelection(metrics, outW, outH);
-        const maskRadius = Math.max(12, Math.round(Math.max(outW, outH) / 96));
-        const expanded = dilateSelection(baseSelection, outW, outH, maskRadius);
-        const inpaintAlpha = featheredAlpha(expanded, outW, outH, Math.max(3, Math.round(maskRadius / 3)), 2);
-        const blendAlpha = featheredAlpha(expanded, outW, outH, Math.max(10, Math.round(maskRadius * 0.85)), 2);
-        const cropRect = selectionCropRect(expanded, outW, outH);
-        const apiImageCanvas = cropCanvas(imageCanvas, cropRect);
-        const apiCloudflareInput = cropCanvas(buildCloudflareInput(imageCanvas, expanded, outW, outH), cropRect);
-        const maskCanvasHD = cropCanvas(buildOpenAiMask(inpaintAlpha, outW, outH), cropRect);
-        const cloudflareMaskCanvasHD = cropCanvas(buildCloudflareLumaMask(inpaintAlpha, outW, outH), cropRect);
-        const imageBlob = await canvasToBlob(apiImageCanvas, 'image/png', 0.95);
-        const imageCfBlob = await canvasToBlob(apiCloudflareInput, 'image/png', 0.95);
+        const maskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'openai-alpha');
+        const cloudflareMaskCanvasHD = buildRemovalMaskCanvas(metrics, outW, outH, 'luma');
+        const imageBlob = await canvasToBlob(imageCanvas, 'image/png', 0.95);
         const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
         const cloudflareMaskBlob = await canvasToBlob(cloudflareMaskCanvasHD, 'image/png', 0.95);
-        if (!imageBlob || !imageCfBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
+        if (!imageBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
 
         const form = new FormData();
         form.append('image', imageBlob, 'image.png');
-        form.append('image_cf', imageCfBlob, 'image-cf.png');
         form.append('mask', maskBlob, 'mask.png');
         form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
-        form.append('width', String(cropRect.width));
-        form.append('height', String(cropRect.height));
-        form.append('provider', 'workers-flux');
-        form.append('prompt', 'Final image: the same photograph as the input, except the entire object, person, or text inside the transparent mask is completely absent. Fill the whole masked region only with a seamless continuation of the real background immediately surrounding it, matching its perspective, geometry, texture, lighting, colour, focus, grain, shadows, and reflections. Leave every unmasked pixel and every unmasked person, face, object, word, logo, and compositional element unchanged. The masked region must contain no trace, outline, fragment, lettering, duplicate, blur, smearing, patch, or ghost of the removed content. Do not introduce any new subject, object, person, text, or logo.');
+        form.append('width', String(outW));
+        form.append('height', String(outH));
+        form.append('prompt', 'realistic clean natural background, remove the selected person or object completely, seamless photo reconstruction, no blur, no smearing, no ghosting');
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
-        const response = await fetch('https://aips-gpt-image-2-preview.alexbryant.workers.dev/api/remove-object', { method: 'POST', body: form });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        let response;
+        try {
+          response = await fetch(REMOVE_OBJECT_API, {
+            method: 'POST',
+            body: form,
+            signal: controller.signal
+          });
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            const timeoutError = new Error('remove-object-api-timeout');
+            timeoutError.apiCode = 'remove-object-api-timeout';
+            throw timeoutError;
+          }
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (!response.ok) {
           let message = `remove-object-api-${response.status}`;
+          let code = message;
+          let requestId = '';
           try {
             const data = await response.json();
-            message = data?.error || message;
+            code = data?.error || message;
+            requestId = data?.requestId ? ` (${data.requestId})` : '';
+            const providerDetails = Array.isArray(data?.providerErrors) ? `: ${data.providerErrors.join(', ')}` : '';
+            message = `${code}${providerDetails}${requestId}`;
           } catch (_) {}
-          throw new Error(message);
+          const error = new Error(message);
+          error.apiStatus = response.status;
+          error.apiCode = code;
+          throw error;
         }
 
         updateProgress('Finishing image…', 90);
         const resultBlob = await response.blob();
         if (!resultBlob || !resultBlob.type.startsWith('image/')) throw new Error('remove-object-api-invalid-image');
-        const resultImage = await blobToImage(resultBlob);
-        const compositedCanvas = compositeMaskedResult(resultImage, imageCanvas, imageCtx, blendAlpha, cropRect, outW, outH);
-        await recordRemoveObjectCreditUse();
+        const resultURL = URL.createObjectURL(resultBlob);
+        const resultImage = await loadImage(resultURL);
 
         ctx.clearRect(0, 0, stageW, stageH);
         if (bgColor) {
           ctx.fillStyle = bgColor;
           ctx.fillRect(0, 0, stageW, stageH);
         }
-        ctx.drawImage(compositedCanvas, 0, 0, outW, outH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
+        const resultW = resultImage.naturalWidth || resultImage.width || outW;
+        const resultH = resultImage.naturalHeight || resultImage.height || outH;
+        ctx.drawImage(resultImage, 0, 0, resultW, resultH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
 
         const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = outW;
-        finalCanvas.height = outH;
-        finalCanvas.getContext('2d').drawImage(compositedCanvas, 0, 0, outW, outH);
+        finalCanvas.width = resultW;
+        finalCanvas.height = resultH;
+        finalCanvas.getContext('2d').drawImage(resultImage, 0, 0, resultW, resultH);
         mainSrc = finalCanvas.toDataURL('image/png', 0.95);
         if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
+        URL.revokeObjectURL(resultURL);
 
         cancelBrush();
         stampWatermark();
-        setStatus("AI edit returned — check that the selected object is gone before saving.");
+        setStatus("Selected area removed with AI.");
         stage.toBlob((b) => {
           if (b) saveToGalleryIfSignedIn(b, "png");
         }, "image/png", 0.95);
@@ -1742,15 +1662,29 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
       }
 
       async function applyInpaint() {
+        if (!(await ensureFreeRequestAllowed("remove a person"))) return;
         try {
           setBusy(true);
-          await applyInpaintWithApi();
+          const completed = await applyInpaintWithApi();
+          if (completed) recordFreeRequest();
         } catch (e) {
-          console.error('AI remove-object API failed:', e);
+          console.warn('AI remove-object API unavailable, using on-device fallback:', e);
           hideProgress();
-          setStatus("AI removal failed. Please try again.");
-          toast("AI removal failed. Please try again.");
+          const providerFailed = e?.apiStatus && e.apiStatus >= 400;
+          const configuredButFailed = providerFailed && e.apiStatus !== 404 && e.apiStatus !== 405;
+          if (configuredButFailed) {
+            const message = e?.apiCode === 'remove-object-provider-failed'
+              ? "AI removal failed. Check Worker secrets/provider logs."
+              : `AI removal failed: ${e.message}`;
+            toast(message);
+            setStatus(message);
+            return;
+          }
+          toast("AI route unavailable. Using device fallback.");
+          const completed = await applyInpaintLocal();
+          if (completed) recordFreeRequest();
         } finally {
+          hideProgress();
           setBusy(false);
         }
       }
@@ -1762,14 +1696,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           await ensureOpenCVReady();
 
           const baseSrc = mainSrc || cutoutURL;
-          if (!baseSrc) { alert("Load an image first."); return; }
+          if (!baseSrc) { alert("Load an image first."); return false; }
 
           const img = await loadImage(baseSrc);
           const stageW = stage.width, stageH = stage.height;
           const metrics = getImageDrawMetrics(img, stageW, stageH);
 
           const painted = getPaintedPixelCount();
-          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return; }
+          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return false; }
 
           const MAX_SIDE = 2048;
           const maxSide  = Math.max(img.width, img.height);
@@ -1835,9 +1769,11 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           stage.toBlob((b) => {
             if (b) saveToGalleryIfSignedIn(b, "png");
           }, "image/png", 0.95);
+          return true;
         } catch (e) {
           console.error('HD inpaint error:', e);
           toast("Removal failed.");
+          return false;
         } finally { setBusy(false); }
       }
 
@@ -1859,118 +1795,6 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           document.head.appendChild(s);
         });
       }
-
-      let _sdPipe = null;
-      async function ensureSDInpaintReady() {
-        if (_sdPipe) return;
-        if (!window.transformers) {
-          showProgress('Loading AI runtime…', 5);
-          await new Promise((res, rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js';
-            s.async = true; s.crossOrigin = 'anonymous';
-            s.onload = res; s.onerror = () => rej(new Error('transformers-load-failed'));
-            document.head.appendChild(s);
-          });
-        }
-        const { pipeline, env } = window.transformers;
-        env.allowLocalModels = false; env.useBrowserCache = true;
-        if ('gpu' in navigator) { env.backends.onnx.wasm = undefined; env.backends.onnx.wasmNumThreads = 1; }
-
-        let lastPct = 10; 
-        showProgress('Downloading HD+ model…', lastPct);
-        _sdPipe = await pipeline('image-to-image', 'Xenova/stable-diffusion-inpainting', {
-          progress_callback: (evt) => {
-            if (evt.progress != null) {
-              lastPct = Math.max(lastPct, Math.round(evt.progress * 80) + 10);
-              updateProgress('Downloading HD+ model…', lastPct);
-            } else if (evt.status === 'ready') { updateProgress('Initializing model…', 95); }
-          }
-        });
-        updateProgress('HD+ model ready', 100); 
-        setTimeout(hideProgress, 400);
-      }
-
-async function applyInpaintHDPlus() {
-    try {
-      setBusy(true); setStatus("HD+ (Beta): preparing…");
-      await ensureSDInpaintReady();
-      if (!_sdPipe) { return await applyInpaintLocal(); }
-
-      const baseSrc = mainSrc || cutoutURL;
-      if (!baseSrc) { alert("Load an image first."); return; }
-
-      const img = await loadImage(baseSrc);
-      const stageW = stage.width, stageH = stage.height;
-      const metrics = getImageDrawMetrics(img, stageW, stageH);
-
-      const painted = getPaintedPixelCount();
-      if (painted < 50) { alert("Paint over the person, then Apply HD+ again."); return; }
-
-      const MAX_SIDE = 2048;
-      const maxSide  = Math.max(img.width, img.height);
-      const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
-      const hdW = Math.max(1, Math.round(img.width * rHD));
-      const hdH = Math.max(1, Math.round(img.height * rHD));
-
-      const off = document.createElement('canvas'); off.width = hdW; off.height = hdH;
-      const oc  = off.getContext('2d', { willReadFrequently:true });
-      oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
-      oc.drawImage(img, 0, 0, hdW, hdH);
-
-      const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'luma');
-
-      const inputImage = await createImageBitmap(off);
-      const maskImage  = await createImageBitmap(fixedMaskHD);
-
-      let pct = 0; showProgress('HD+ inpainting…', pct);
-      const result = await _sdPipe(inputImage, {
-        mask_image: maskImage,
-        prompt: "clean natural background, realistic textures, seamless fill, high quality, photography",
-        negative_prompt: "distortion, blur, artifacts, deformed, extra people, text",
-        strength: 1.0, guidance_scale: 7.5, num_inference_steps: 20,
-        progress_callback: (evt) => { if (evt.progress != null) { pct = Math.round(100 * evt.progress); updateProgress('HD+ inpainting…', pct); } }
-      });
-
-      updateProgress('Finalizing…', 100); setTimeout(hideProgress, 400);
-
-      ctx.clearRect(0,0,stageW,stageH);
-      if (bgColor) {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, stageW, stageH);
-      }
-      let outBitmap = result?.imageBitmap || (result?.images && result.images[0]) || null;
-      if (!outBitmap && result?.toDataURL) {
-        const tmp = new Image(); tmp.src = result.toDataURL();
-        await (tmp.decode ? tmp.decode() : new Promise(r => tmp.onload = r));
-        outBitmap = tmp;
-      }
-      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaintLocal(); }
-      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
-
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = hdW;
-      finalCanvas.height = hdH;
-      const finalCtx = finalCanvas.getContext('2d');
-      finalCtx.drawImage(outBitmap, 0, 0, hdW, hdH);
-      mainSrc = finalCanvas.toDataURL('image/png', 0.95);
-      if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
-
-      cancelBrush(); stampWatermark(); setStatus("Selected area removed (HD+).");
-      
-      // Auto-save to gallery after HD+ person removal
-      stage.toBlob((b) => {
-        if (b) saveToGalleryIfSignedIn(b, "png");
-      }, "image/png", 0.95);
-    } catch (e) {
-      console.error('HD+ inpaint error:', e);
-      hideProgress();
-      try { await applyInpaintLocal(); } catch(_) {
-        alert("HD+ removal failed.");
-        setStatus("Removal failed.");
-      }
-    } finally { setBusy(false); }
-  }
 
   function getPos(e){
     const r = maskCanvas.getBoundingClientRect();
@@ -1995,7 +1819,7 @@ async function applyInpaintHDPlus() {
 
   return {
     onUploadMain, onUploadBg, removeBg, changeBg,
-    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw,
+    handleDrop, startBrush, cancelBrush, applyInpaint, redraw,
     setBgColor
   };
 })();

@@ -1,4 +1,10 @@
 .gradle/
+app/build/
+build/
+.idea/
+local.properties
+*.keystore
+*.jks
 
 # wrangler files
 .wrangler
@@ -6,3 +12,4 @@
 !.dev.vars.example
 .env*
 !.env.example
+node_modules/

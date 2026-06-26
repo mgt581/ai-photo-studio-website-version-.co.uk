@@ -4,3 +4,10 @@ src
 node_modules
 .assetsignore
 wrangler.jsonc
+.gradle/
+app/build/
+build/
+.idea/
+local.properties
+*.keystore
+*.jks

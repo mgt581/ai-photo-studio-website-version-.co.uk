@@ -21,16 +21,10 @@
       const hasAndroidBridge = typeof window.Android !== 'undefined';
 
       const isAndroidApp = forcedApp || isPlatformAndroid || (isAndroid && (isWv || hasAndroidBridge));
+      window.__AIPS_IS_ANDROID_APP__ = isAndroidApp;
       if (isAndroidApp) document.documentElement.classList.add('android-app');
     })();
   </script>
-
-  <style>
-    /* Hide subscription/payment section on Android app */
-    html.android-app .subscription-section {
-      display: none !important;
-    }
-  </style>
   
   <style>
     /* Reset & Base */
@@ -162,7 +156,7 @@
         </div>
         <div style="margin-top:16px; text-align:center;">
           <p style="font-size:13px; color:var(--aips-secondary); margin-bottom:12px; line-height:1.4;">
-            Manage billing, update payment methods, or cancel securely via Stripe.
+            Manage billing, update payment methods, or cancel securely through your payment provider.
           </p>
           <button class="btn btn-primary" onclick="manageSub()">Manage Subscription</button>
         </div>
@@ -365,6 +359,11 @@
   async function manageSub() {
     const user = auth.currentUser;
     if (!user) return;
+
+    if (window.__AIPS_IS_ANDROID_APP__) {
+      window.location.href = "https://play.google.com/store/account/subscriptions?package=com.aiphotostudio.bgremover";
+      return;
+    }
 
     // Try to get Stripe customer info from Firestore
     let stripeCustomerId = null;

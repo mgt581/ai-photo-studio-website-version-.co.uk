@@ -136,18 +136,7 @@
     #btnLogout{background:rgba(239,68,68,.12)!important;color:#FECACA!important;border-color:rgba(239,68,68,.28)}
     /* =========================================================================== */
 
-    /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
-    html.android-app .pricing-row,
-    html.android-app #upgradeMsg {
-      display: none !important;
-    }
-
-    /* Android app: hide all authentication UI (sign-in, sign-up, sign-out, status, gallery link) */
-    html.android-app #navSignIn,
-    html.android-app #navSignUp,
-    html.android-app #btnLogout,
-    html.android-app #authStatus,
-    html.android-app #payMsg,
+    /* Android app: use Google Play Billing buttons, but keep the cloud gallery hidden. */
     html.android-app a[href="gallery.html"] {
       display: none !important;
     }
@@ -284,6 +273,12 @@
     const STRIPE_DAILY   = "https://buy.stripe.com/fZubJ30ki5EbdJNfj8d3i0a";
     const STRIPE_MONTHLY = "https://buy.stripe.com/cNi8wRaYW9UraxB2wmd3i09";
     const STRIPE_YEARLY  = "https://buy.stripe.com/4gM00l8QOfeL7lp9YOd3i08";
+    const REMOVE_OBJECT_API = "https://aips-gpt-image-2-preview.alexbryant.workers.dev/api/remove-object";
+    const PLAY_BILLING_METHOD = "https://play.google.com/billing";
+    const PLAY_PRODUCTS = {
+      month: { sku: "aips_monthly_pro", plan: "month", fallbackLabel: "Monthly Pro" },
+      year: { sku: "aips_yearly_pro", plan: "year", fallbackLabel: "Yearly Pro + trial if eligible" }
+    };
     
     const btnDaily      = document.getElementById("btnDaily");
     const btnMonthly    = document.getElementById("btnMonthly");
@@ -343,7 +338,7 @@ function openStripe(url) {
 }
 /* ===================================================== */
 
-// Set initial state: disabled until auth state is known (web only; in Android app row is hidden anyway)
+// Set initial state: disabled until auth state is known.
 if (!window.__AIPS_IS_ANDROID_APP__) {
   setPayButtonsEnabled(false);
 }
@@ -353,9 +348,176 @@ if (btnDaily) btnDaily.onclick = () => openStripe(STRIPE_DAILY);
 if (btnMonthly) btnMonthly.onclick = () => openStripe(STRIPE_MONTHLY);
 if (btnTrialStart) btnTrialStart.onclick = () => openStripe(STRIPE_YEARLY);
 
+function googlePlaySupported() {
+  return window.__AIPS_IS_ANDROID_APP__ &&
+    "PaymentRequest" in window &&
+    "getDigitalGoodsService" in window;
+}
+
+async function getGooglePlayService() {
+  if (!googlePlaySupported()) {
+    throw new Error("play-billing-unavailable");
+  }
+  return window.getDigitalGoodsService(PLAY_BILLING_METHOD);
+}
+
+function findPlayProductBySku(sku) {
+  return Object.values(PLAY_PRODUCTS).find(product => product.sku === sku) || null;
+}
+
+async function syncGooglePlayPurchase(product, purchaseToken) {
+  const user = auth.currentUser;
+  if (!user) {
+    toast("Please sign in before subscribing.");
+    return false;
+  }
+
+  const res = await fetch("https://premuim-status.alexbryant3234.workers.dev/google-play-purchase", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid: user.uid,
+      email: user.email || "",
+      itemId: product.sku,
+      plan: product.plan,
+      purchaseToken
+    })
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok !== true) {
+    console.warn("Google Play purchase sync failed:", data);
+    toast("Purchase completed, but sync failed. Please use Restore Purchases.");
+    return false;
+  }
+
+  await db.collection("users").doc(user.uid).set({
+    tier: "pro",
+    planType: PLANS[product.plan]?.name || "Pro",
+    subscription: {
+      type: product.plan,
+      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(data.expiresAt || Date.now() + 30 * 86400000),
+      source: "google_play",
+      googlePlayItemId: product.sku
+    }
+  }, { merge: true });
+
+  await refreshUserPlan();
+  return true;
+}
+
+async function buyGooglePlayProduct(product) {
+  if (!auth.currentUser) {
+    showPaySignInRequired();
+    return;
+  }
+
+  let response = null;
+  try {
+    const request = new PaymentRequest([{
+      supportedMethods: PLAY_BILLING_METHOD,
+      data: { sku: product.sku }
+    }], {
+      total: {
+        label: product.fallbackLabel,
+        amount: { currency: "GBP", value: "0" }
+      }
+    });
+
+    response = await request.show();
+    const purchaseToken = response?.details?.token || response?.details?.purchaseToken || "";
+    const service = await getGooglePlayService();
+    if (purchaseToken) await service.acknowledge(purchaseToken, "onetime");
+    await response.complete("success");
+
+    const synced = await syncGooglePlayPurchase(product, purchaseToken);
+    if (synced) toast("Google Play subscription activated.");
+  } catch (err) {
+    console.warn("Google Play purchase failed:", err);
+    if (response) {
+      try { await response.complete("fail"); } catch (_) {}
+    }
+    toast("Google Play purchase was not completed.");
+  }
+}
+
+async function restoreGooglePlayPurchases() {
+  if (!auth.currentUser) {
+    showPaySignInRequired();
+    return;
+  }
+
+  try {
+    const service = await getGooglePlayService();
+    const purchases = await service.listPurchases();
+    const knownPurchases = purchases
+      .map(purchase => ({
+        purchase,
+        product: findPlayProductBySku(purchase.itemId)
+      }))
+      .filter(entry => entry.product);
+
+    if (!knownPurchases.length) {
+      toast("No Google Play subscription found.");
+      return;
+    }
+
+    for (const entry of knownPurchases) {
+      const token = entry.purchase.purchaseToken || entry.purchase.token || "";
+      if (token) {
+        try { await service.acknowledge(token, "onetime"); } catch (_) {}
+      }
+      await syncGooglePlayPurchase(entry.product, token);
+    }
+
+    toast("Google Play purchases restored.");
+  } catch (err) {
+    console.warn("Google Play restore failed:", err);
+    toast("Could not restore Google Play purchases.");
+  }
+}
+
+async function setupGooglePlayBillingButtons() {
+  if (!window.__AIPS_IS_ANDROID_APP__) return;
+
+  if (btnDaily) {
+    btnDaily.textContent = "Restore Purchases";
+    btnDaily.onclick = restoreGooglePlayPurchases;
+  }
+  if (btnMonthly) {
+    btnMonthly.textContent = "Monthly via Google Play";
+    btnMonthly.onclick = () => buyGooglePlayProduct(PLAY_PRODUCTS.month);
+  }
+  if (btnTrialStart) {
+    btnTrialStart.textContent = "Start Trial via Google Play";
+    btnTrialStart.onclick = () => buyGooglePlayProduct(PLAY_PRODUCTS.year);
+  }
+
+  try {
+    const service = await getGooglePlayService();
+    const details = await service.getDetails(Object.values(PLAY_PRODUCTS).map(product => product.sku));
+    details.forEach(item => {
+      const product = findPlayProductBySku(item.itemId);
+      if (!product) return;
+      const label = `${product.fallbackLabel}${item.price ? ` - ${item.price}` : ""}`;
+      if (product === PLAY_PRODUCTS.month && btnMonthly) btnMonthly.textContent = label;
+      if (product === PLAY_PRODUCTS.year && btnTrialStart) btnTrialStart.textContent = label;
+    });
+    setPayButtonsEnabled(!!auth.currentUser);
+  } catch (err) {
+    console.warn("Google Play Billing is not available:", err);
+    setPayButtonsEnabled(false);
+    if (btnMonthly) btnMonthly.textContent = "Google Play unavailable";
+    if (btnTrialStart) btnTrialStart.textContent = "Install from Play Store";
+  }
+}
+
 window.onload = function () {
 
-  // Auth-dependent initialisation: skip entirely in Play Store / Android WebView
+  setupGooglePlayBillingButtons();
+
+  // Web Stripe redirect handling remains web-only.
   if (!window.__AIPS_IS_ANDROID_APP__) {
     // Always refresh plan when page loads
     auth.onAuthStateChanged(async (user) => {
@@ -467,8 +629,9 @@ const elTrialLeft = document.getElementById("trialLeft");
 const navSignIn   = document.getElementById("navSignIn");
 const navSignUp   = document.getElementById("navSignUp");
 
-// IMPORTANT: use one global source of truth
-window.proEnabled = false;
+    // IMPORTANT: use one global source of truth
+    window.proEnabled = false;
+    const FREE_DAILY_REQUEST_LIMIT = 3;
 
 const $status = document.getElementById("status");
 const stage   = document.getElementById("stage");
@@ -513,10 +676,7 @@ function drawChecker() {
 }
 
 function stampWatermark() {
-  // Android app version = never show watermark
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-
-  // Paid web users = no watermark
+  // Paid and trial users get clean exports.
   if (window.proEnabled === true) return;
 
   const text = "AI Photo Studio — FREE";
@@ -553,6 +713,52 @@ function stampWatermark() {
   ctx.fillText(text, x, y);
 
   ctx.restore();
+}
+
+function freeUsageDateKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function freeUsageStorageKey() {
+  const uid = auth.currentUser?.uid || "guest";
+  return `aips-free-requests:${uid}:${freeUsageDateKey()}`;
+}
+
+function getFreeUsageCount() {
+  return Math.max(0, Number.parseInt(localStorage.getItem(freeUsageStorageKey()) || "0", 10) || 0);
+}
+
+function getFreeRequestsRemaining() {
+  if (window.proEnabled === true) return Number.POSITIVE_INFINITY;
+  return Math.max(0, FREE_DAILY_REQUEST_LIMIT - getFreeUsageCount());
+}
+
+function updateFreeUsageUI() {
+  if (!elTrialLeft || window.proEnabled === true) return;
+  const remaining = getFreeRequestsRemaining();
+  elTrialLeft.textContent = `${remaining}/${FREE_DAILY_REQUEST_LIMIT} free requests left today`;
+  elTrialLeft.style.display = "inline-block";
+}
+
+async function ensureFreeRequestAllowed(actionLabel = "use this tool") {
+  if (window.proEnabled === true) return true;
+
+  const remaining = getFreeRequestsRemaining();
+  if (remaining > 0) return true;
+
+  const message = `Free daily limit reached. Upgrade or start a trial for unlimited requests and no watermark.`;
+  toast(message);
+  setStatus(message);
+  const elUpgrade = document.getElementById("upgradeMsg");
+  if (elUpgrade) elUpgrade.style.display = "inline-block";
+  return false;
+}
+
+function recordFreeRequest() {
+  if (window.proEnabled === true) return;
+  localStorage.setItem(freeUsageStorageKey(), String(getFreeUsageCount() + 1));
+  updateFreeUsageUI();
 }
 
 const readFileURL = (f) => new Promise((res, rej) => { 
@@ -616,6 +822,7 @@ function updatePlanUI() {
 function setPro(on) {
   window.proEnabled = !!on;
   updatePlanUI();
+  if (!window.proEnabled) updateFreeUsageUI();
 }
 
 async function refreshUserPlan() {
@@ -623,9 +830,9 @@ async function refreshUserPlan() {
   const elUpgrade = document.getElementById('upgradeMsg');
 
   if (!user) { 
-    if (elTrialLeft) elTrialLeft.style.display = 'none';
     if (elUpgrade) elUpgrade.style.display = 'inline-block';
     setPro(false); 
+    updateFreeUsageUI();
     return; 
   }
   
@@ -703,11 +910,6 @@ async function refreshUserPlan() {
       return;
     }
 
-    if (elTrialLeft) {
-      elTrialLeft.textContent = "Trial ended";
-      elTrialLeft.style.display = "inline-block";
-    }
-
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
 
@@ -756,14 +958,12 @@ async function refreshUserPlan() {
 
     if (elUpgrade) elUpgrade.style.display = "inline-block";
     setPro(false);
+    updateFreeUsageUI();
   }
 }    
     
 
 auth.onAuthStateChanged(async user => {
-  // Skip all auth UI logic when running inside Play Store / Android WebView
-  if (window.__AIPS_IS_ANDROID_APP__) return;
-
   /* ===== ADDED: enable/disable Stripe buttons based on auth ===== */
   setPayButtonsEnabled(!!user);
   /* ============================================================= */
@@ -774,6 +974,7 @@ auth.onAuthStateChanged(async user => {
     if(navSignIn) navSignIn.style.display = 'inline-block';
     if(navSignUp) navSignUp.style.display = 'inline-block';
     setPro(false);
+    updateFreeUsageUI();
     return;
   }
 
@@ -924,6 +1125,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
       async function removeBg(){
         if(!mainSrc) return alert("Upload a photo first.");
+        if (!(await ensureFreeRequestAllowed("remove a background"))) return;
         setBusy(true);
         try{
           setStatus("Removing background… (on your device)");
@@ -946,6 +1148,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           if (cutoutURL) URL.revokeObjectURL(cutoutURL);
           cutoutURL = URL.createObjectURL(blob);
           await draw({img: cutoutURL, bg: bgSrc});
+          recordFreeRequest();
           setStatus("Background removed. Choose a background, then press Change Background.");
           
           // Auto-save to gallery after background removal
@@ -1126,7 +1329,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const painted = getPaintedPixelCount();
         if (painted < 50) {
           alert("Paint directly over the person to remove, then Apply again.");
-          return true;
+          return false;
         }
 
         const MAX_SIDE = 1536;
@@ -1161,7 +1364,25 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
-        const response = await fetch('/api/remove-object', { method: 'POST', body: form });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        let response;
+        try {
+          response = await fetch(REMOVE_OBJECT_API, {
+            method: 'POST',
+            body: form,
+            signal: controller.signal
+          });
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            const timeoutError = new Error('remove-object-api-timeout');
+            timeoutError.apiCode = 'remove-object-api-timeout';
+            throw timeoutError;
+          }
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (!response.ok) {
           let message = `remove-object-api-${response.status}`;
           let code = message;
@@ -1214,9 +1435,11 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
       }
 
       async function applyInpaint() {
+        if (!(await ensureFreeRequestAllowed("remove a person"))) return;
         try {
           setBusy(true);
-          await applyInpaintWithApi();
+          const completed = await applyInpaintWithApi();
+          if (completed) recordFreeRequest();
         } catch (e) {
           console.warn('AI remove-object API unavailable, using on-device fallback:', e);
           hideProgress();
@@ -1231,8 +1454,10 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
             return;
           }
           toast("AI route unavailable. Using device fallback.");
-          await applyInpaintLocal();
+          const completed = await applyInpaintLocal();
+          if (completed) recordFreeRequest();
         } finally {
+          hideProgress();
           setBusy(false);
         }
       }
@@ -1244,14 +1469,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           await ensureOpenCVReady();
 
           const baseSrc = mainSrc || cutoutURL;
-          if (!baseSrc) { alert("Load an image first."); return; }
+          if (!baseSrc) { alert("Load an image first."); return false; }
 
           const img = await loadImage(baseSrc);
           const stageW = stage.width, stageH = stage.height;
           const metrics = getImageDrawMetrics(img, stageW, stageH);
 
           const painted = getPaintedPixelCount();
-          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return; }
+          if (painted < 50) { alert("Paint directly over the person to remove, then Apply again."); return false; }
 
           const MAX_SIDE = 2048;
           const maxSide  = Math.max(img.width, img.height);
@@ -1317,9 +1542,11 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           stage.toBlob((b) => {
             if (b) saveToGalleryIfSignedIn(b, "png");
           }, "image/png", 0.95);
+          return true;
         } catch (e) {
           console.error('HD inpaint error:', e);
           toast("Removal failed.");
+          return false;
         } finally { setBusy(false); }
       }
 
@@ -1357,118 +1584,6 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         });
       }
 
-      let _sdPipe = null;
-      async function ensureSDInpaintReady() {
-        if (_sdPipe) return;
-        if (!window.transformers) {
-          showProgress('Loading AI runtime…', 5);
-          await new Promise((res, rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
-            s.async = true; s.crossOrigin = 'anonymous';
-            s.onload = res; s.onerror = () => rej(new Error('transformers-load-failed'));
-            document.head.appendChild(s);
-          });
-        }
-        const { pipeline, env } = window.transformers;
-        env.allowLocalModels = false; env.useBrowserCache = true;
-        if ('gpu' in navigator) { env.backends.onnx.wasm = undefined; env.backends.onnx.wasmNumThreads = 1; }
-
-        let lastPct = 10; 
-        showProgress('Downloading HD+ model…', lastPct);
-        _sdPipe = await pipeline('image-to-image', 'Xenova/stable-diffusion-inpainting', {
-          progress_callback: (evt) => {
-            if (evt.progress != null) {
-              lastPct = Math.max(lastPct, Math.round(evt.progress * 80) + 10);
-              updateProgress('Downloading HD+ model…', lastPct);
-            } else if (evt.status === 'ready') { updateProgress('Initializing model…', 95); }
-          }
-        });
-        updateProgress('HD+ model ready', 100); 
-        setTimeout(hideProgress, 400);
-      }
-
-async function applyInpaintHDPlus() {
-    try {
-      setBusy(true); setStatus("HD+ (Beta): preparing…");
-      await ensureSDInpaintReady();
-      if (!_sdPipe) { return await applyInpaintLocal(); }
-
-      const baseSrc = mainSrc || cutoutURL;
-      if (!baseSrc) { alert("Load an image first."); return; }
-
-      const img = await loadImage(baseSrc);
-      const stageW = stage.width, stageH = stage.height;
-      const metrics = getImageDrawMetrics(img, stageW, stageH);
-
-      const painted = getPaintedPixelCount();
-      if (painted < 50) { alert("Paint over the person, then Apply HD+ again."); return; }
-
-      const MAX_SIDE = 2048;
-      const maxSide  = Math.max(img.width, img.height);
-      const rHD = maxSide > MAX_SIDE ? (MAX_SIDE / maxSide) : 1;
-      const hdW = Math.max(1, Math.round(img.width * rHD));
-      const hdH = Math.max(1, Math.round(img.height * rHD));
-
-      const off = document.createElement('canvas'); off.width = hdW; off.height = hdH;
-      const oc  = off.getContext('2d', { willReadFrequently:true });
-      oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high';
-      oc.drawImage(img, 0, 0, hdW, hdH);
-
-      const fixedMaskHD = buildRemovalMaskCanvas(metrics, hdW, hdH, 'luma');
-
-      const inputImage = await createImageBitmap(off);
-      const maskImage  = await createImageBitmap(fixedMaskHD);
-
-      let pct = 0; showProgress('HD+ inpainting…', pct);
-      const result = await _sdPipe(inputImage, {
-        mask_image: maskImage,
-        prompt: "clean natural background, realistic textures, seamless fill, high quality, photography",
-        negative_prompt: "distortion, blur, artifacts, deformed, extra people, text",
-        strength: 1.0, guidance_scale: 7.5, num_inference_steps: 20,
-        progress_callback: (evt) => { if (evt.progress != null) { pct = Math.round(100 * evt.progress); updateProgress('HD+ inpainting…', pct); } }
-      });
-
-      updateProgress('Finalizing…', 100); setTimeout(hideProgress, 400);
-
-      ctx.clearRect(0,0,stageW,stageH);
-      if (bgColor) {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, stageW, stageH);
-      }
-      let outBitmap = result?.imageBitmap || (result?.images && result.images[0]) || null;
-      if (!outBitmap && result?.toDataURL) {
-        const tmp = new Image(); tmp.src = result.toDataURL();
-        await (tmp.decode ? tmp.decode() : new Promise(r => tmp.onload = r));
-        outBitmap = tmp;
-      }
-      if (!outBitmap) { console.warn('Unexpected HD+ result; fallback to OpenCV.'); return await applyInpaintLocal(); }
-      ctx.drawImage(outBitmap, 0, 0, hdW, hdH, metrics.drawX, metrics.drawY, metrics.drawW, metrics.drawH);
-
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = hdW;
-      finalCanvas.height = hdH;
-      const finalCtx = finalCanvas.getContext('2d');
-      finalCtx.drawImage(outBitmap, 0, 0, hdW, hdH);
-      mainSrc = finalCanvas.toDataURL('image/png', 0.95);
-      if (cutoutURL) { URL.revokeObjectURL(cutoutURL); cutoutURL = null; }
-
-      cancelBrush(); stampWatermark(); setStatus("Selected area removed (HD+).");
-      
-      // Auto-save to gallery after HD+ person removal
-      stage.toBlob((b) => {
-        if (b) saveToGalleryIfSignedIn(b, "png");
-      }, "image/png", 0.95);
-    } catch (e) {
-      console.error('HD+ inpaint error:', e);
-      hideProgress();
-      try { await applyInpaintLocal(); } catch(_) {
-        alert("HD+ removal failed.");
-        setStatus("Removal failed.");
-      }
-    } finally { setBusy(false); }
-  }
-
   function getPos(e){
     const r = maskCanvas.getBoundingClientRect();
     const x = ((e.touches? e.touches[0].clientX : e.clientX) - r.left) * (maskCanvas.width / r.width);
@@ -1492,7 +1607,7 @@ async function applyInpaintHDPlus() {
 
   return {
     onUploadMain, onUploadBg, removeBg, changeBg,
-    handleDrop, startBrush, cancelBrush, applyInpaint, applyInpaintHDPlus, redraw,
+    handleDrop, startBrush, cancelBrush, applyInpaint, redraw,
     setBgColor
   };
 })();

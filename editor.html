@@ -39,12 +39,18 @@
 
 .watermark {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(17, 24, 39, 0.84);
+    background: rgba(255, 255, 255, 0.82);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 22px;
+    font-weight: 800;
     pointer-events: none;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: none;
+    white-space: nowrap;
 }
 
 .tool-controls {
@@ -211,6 +217,23 @@
     <p>Processing…</p>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
+    authDomain: "ai-photo-studio-24354.firebaseapp.com",
+    projectId: "ai-photo-studio-24354",
+    storageBucket: "ai-photo-studio-24354.firebasestorage.app",
+    messagingSenderId: "411346648650",
+    appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
+    measurementId: "G-R3G160W8BQ"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
 <script src="choose-bg.js"></script>
 <script src="editor.js"></script>
 <script>

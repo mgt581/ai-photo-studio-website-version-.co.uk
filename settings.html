@@ -37,6 +37,20 @@
     .header { padding: 24px 24px 14px 24px; border-bottom: 1px solid var(--aips-border); }
     h1 { margin:0; font-size:26px; font-weight:850; color:var(--aips-text); }
     .subtitle { font-size:14px; color:var(--aips-secondary); margin-top:4px; }
+    .profile-strip{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--aips-border);background:rgba(255,255,255,.025)}
+    .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#22D3EE,#7C3AED);display:grid;place-items:center;color:white;font-size:24px;font-weight:900;box-shadow:0 14px 30px rgba(14,165,233,.16)}
+    .avatar.initials{text-align:center;line-height:64px}
+    .profile-main{min-width:0;flex:1}
+    .name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .username{font-size:20px;font-weight:900;color:var(--aips-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+    .profile-link{color:var(--aips-secondary);text-decoration:none;font-weight:750;font-size:14px;display:inline-block;margin-top:3px}
+    .pro-card{margin:18px 24px;padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(124,58,237,.28));border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 34px rgba(0,0,0,.22)}
+    .pro-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .pro-title{font-size:20px;font-weight:950;color:var(--aips-text)}
+    .pro-copy{margin-top:5px;color:var(--aips-secondary);font-size:13px;font-weight:700;line-height:1.35}
+    .claim{border:0;border-radius:10px;background:#050816;color:white;padding:11px 14px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px;text-align:center;color:var(--aips-secondary);font-size:11px;font-weight:800}
+    .benefits span{display:block;color:var(--aips-text);font-size:20px;margin-bottom:5px}
 
     /* List Items */
     .settings-list { list-style:none; padding:0; margin:0; }
@@ -101,8 +115,6 @@
     .back-link { text-decoration: none; color: var(--aips-secondary); font-weight: 750; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px; transition: background 0.2s; }
     .back-link:hover { background: rgba(255,255,255,.08); color: var(--aips-text); }
     .about-card { margin-top:16px; padding:14px; border:1px solid var(--aips-border); border-radius:14px; background:rgba(255,255,255,.04); color:var(--aips-secondary); font-size:13px; line-height:1.6; }
-    .about-card a { color:#BAE6FD; font-weight:750; text-decoration:none; }
-    .about-card a:hover { text-decoration:underline; }
   </style>
 </head>
 <body class="aips-page">
@@ -111,6 +123,32 @@
   <div class="header">
     <h1>Settings</h1>
     <div class="subtitle">Manage your preferences and account</div>
+  </div>
+  <div class="profile-strip">
+    <img id="avatarImg" class="avatar" alt="Profile image" style="display:none">
+    <div id="avatarFallback" class="avatar initials">A</div>
+    <div class="profile-main">
+      <div class="name-row">
+        <div id="uName" class="username">Loading...</div>
+        <span id="profilePlan" class="plan-badge free">Standard</span>
+      </div>
+      <a class="profile-link" href="account.html">View profile ›</a>
+    </div>
+  </div>
+  <div class="pro-card subscription-section">
+    <div class="pro-head">
+      <div>
+        <div class="pro-title">◆ Go Pro</div>
+        <div class="pro-copy">Unlock AI tools, clean exports and cloud gallery backup.</div>
+      </div>
+      <button class="claim" onclick="window.location.href='index.html?upgrade=1'">View plans</button>
+    </div>
+    <div class="benefits">
+      <div><span>✂</span>AI tools</div>
+      <div><span>◇</span>Retouch</div>
+      <div><span>⬡</span>HD export</div>
+      <div><span>☁</span>Gallery</div>
+    </div>
   </div>
 
   <ul class="settings-list">
@@ -206,9 +244,9 @@
             </p>
           </div>
           <div class="about-card">
-            AI Photo Studio is a product of <a href="https://bryantdigitalsolutions.com" target="_blank" rel="noopener noreferrer">Bryant Digital Solutions</a>.<br>
+            AI Photo Studio is a product of Bryant Digital Solutions.<br>
             Built for fast, professional image editing.<br>
-            Part of <a href="https://bryantgroupholdings.co.uk" target="_blank" rel="noopener noreferrer">Bryant Group Holdings Ltd</a>.
+            Part of Bryant Group Holdings Ltd.
           </div>
         </div>
       </div>
@@ -229,7 +267,7 @@
   // --- 1. FIREBASE CONFIG ---
   const firebaseConfig = {
     apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
-    authDomain: "ai-photo-studio-24354.firebaseapp.com",
+    authDomain: "premuim-status.alexbryant.workers.dev",
     projectId: "ai-photo-studio-24354",
     storageBucket: "ai-photo-studio-24354.firebasestorage.app",
     messagingSenderId: "411346648650",
@@ -246,10 +284,30 @@
     item.classList.toggle('expanded');
   }
 
+  function usernameFor(user) {
+    const base = user.displayName || (user.email ? user.email.split("@")[0] : "Creator");
+    return base.replace(/[._-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 24);
+  }
+
+  function setProfileHeader(user, planLabel = "Standard") {
+    const name = usernameFor(user);
+    document.getElementById("uName").textContent = name;
+    document.getElementById("profilePlan").textContent = planLabel;
+    document.getElementById("profilePlan").classList.toggle("free", planLabel === "Standard" || planLabel === "Expired");
+    document.getElementById("avatarFallback").textContent = name.charAt(0).toUpperCase() || "A";
+    if (user.photoURL) {
+      const img = document.getElementById("avatarImg");
+      img.src = user.photoURL;
+      img.style.display = "block";
+      document.getElementById("avatarFallback").style.display = "none";
+    }
+  }
+
   // --- 3. AUTH & DATA LOADING ---
   auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = "signin.html"; return; }
 
+    setProfileHeader(user);
     document.getElementById('uEmail').textContent = user.email;
     document.getElementById('uID').textContent = user.uid.substring(0,8) + "..."; 
 
@@ -258,68 +316,41 @@
       const badge = document.getElementById('uPlanBadge');
       const trialRow = document.getElementById('trialRow');
       badge.innerHTML = `<span class="plan-badge">👑 Owner Mode</span>`;
+      setProfileHeader(user, "Owner");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "Full access";
       document.getElementById('uTrial').style.color = '#10B981';
       return;
     }
 
-    // Check Worker API first for premium status
     let isPro = false;
     let planType = "Free";
     let expiresAtMillis = null;
 
     try {
-      const res = await fetch(`https://premuim-status.alexbryant3234.workers.dev/check?uid=${encodeURIComponent(user.uid)}`);      
-      const data = await res.json();
+      const snap = await db.collection('users').doc(user.uid).get();
 
-    if (data && data.premium === true) {
-        const now = Date.now();
-        const expiresAt = Number(data.expiresAt || 0);
-        expiresAtMillis = expiresAt > now ? expiresAt : null;
+      if (snap.exists) {
+        const data = snap.data();
 
-        if (data.plan === "day") planType = "Day Pass";
-        else if (data.plan === "month") planType = "Monthly Pro";
-        else if (data.plan === "trial7") planType = "7-Day Trial";
-        else if (data.plan === "year") planType = "Yearly Pro";
-        else planType = "Pro";
+        if (data.subscription?.expiresAt?.toMillis) {
+          expiresAtMillis = data.subscription.expiresAt.toMillis();
+          const planKey = data.subscription?.type || "pro";
 
-        isPro = true;
+          planType =
+            planKey === "day" ? "Day Pass" :
+            planKey === "month" ? "Monthly Pro" :
+            planKey === "trial7" ? "7-Day Trial" :
+            planKey === "year" ? "Yearly Pro" : "Pro";
+
+          isPro = expiresAtMillis > Date.now();
+        } else if (data.tier === 'pro' || data.isPro) {
+          isPro = true;
+          planType = data.planType || "Pro";
+        }
       }
     } catch (e) {
-      console.error("Worker plan check error:", e);
-    }
-
-    // Fallback to Firestore if Worker check failed
-    if (!isPro) {
-      try {
-        const snap = await db.collection('users').doc(user.uid).get();
-        
-        if (snap.exists) {
-          const data = snap.data();
-          
-          // Check subscription for new format
-          if (data.subscription?.expiresAt?.toMillis) {
-            expiresAtMillis = data.subscription.expiresAt.toMillis();
-            const planKey = data.subscription?.type || "pro";
-            
-            planType = 
-              planKey === "day" ? "Day Pass" :
-              planKey === "month" ? "Monthly Pro" :
-              planKey === "trial7" ? "7-Day Trial" :
-              planKey === "year" ? "Yearly Pro" : "Pro";
-            
-            isPro = expiresAtMillis > Date.now();
-          }
-          // Fallback to old format
-          else if (data.tier === 'pro' || data.isPro) {
-            isPro = true;
-            planType = data.planType || "Pro";
-          }
-        }
-      } catch (e) {
-        console.error("Error loading user data:", e);
-      }
+      console.error("Error loading user data:", e);
     }
 
     // Update UI
@@ -334,21 +365,25 @@
           const hours = Math.ceil(leftMs / 3600000);
           const timeLeft = days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : `${hours} hour${hours > 1 ? 's' : ''} left`;
           badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+          setProfileHeader(user, planType);
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = timeLeft;
           document.getElementById('uTrial').style.color = '#10B981';
         } else {
           badge.innerHTML = `<span class="plan-badge free">Expired</span>`;
+          setProfileHeader(user, "Expired");
           trialRow.style.display = 'flex';
           document.getElementById('uTrial').textContent = "Expired";
           document.getElementById('uTrial').style.color = '#EF4444';
         }
       } else {
         badge.innerHTML = `<span class="plan-badge">✅ ${planType}</span>`;
+        setProfileHeader(user, planType);
         trialRow.style.display = 'none';
       }
     } else {
       badge.innerHTML = `<span class="plan-badge free">Free Plan</span>`;
+      setProfileHeader(user, "Standard");
       trialRow.style.display = 'flex';
       document.getElementById('uTrial').textContent = "No active subscription";
       document.getElementById('uTrial').style.color = '#94A3B8';

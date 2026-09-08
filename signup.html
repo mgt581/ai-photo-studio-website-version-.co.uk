@@ -1,95 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Account • AI Photo Studio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <title>Account registration temporarily unavailable | AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    body { display:flex; justify-content:center; align-items:center; }
-    .box { width:100%; max-width:420px; padding:28px; border-radius:16px; text-align:center; }
-    h2 { margin:0; color:var(--aips-text); font-size:28px; }
-    .subtitle { color:var(--aips-secondary); font-size:14px; margin:8px 0 22px; }
-    input { width:100%; padding:13px 14px; margin-bottom:12px; border:1px solid var(--aips-border); border-radius:12px; box-sizing:border-box; font-size:16px; background:rgba(255,255,255,.05); color:var(--aips-text); }
-    input::placeholder { color:var(--aips-muted); }
-    
-    .btn { width:100%; padding:13px; border:1px solid var(--aips-border); border-radius:14px; cursor:pointer; font-size:16px; font-weight:800; margin-bottom:14px; display:flex; align-items:center; justify-content:center; }
-    .btn-primary { background:var(--aips-primary); color:white; box-shadow:0 16px 34px rgba(37,99,235,.28); }
-    .btn-primary:hover { filter:brightness(1.06); }
-    
-    .btn-google { background:rgba(255,255,255,.05); color:var(--aips-text); border:1px solid var(--aips-border); }
-    .btn-google:hover { background:rgba(255,255,255,.09); }
-
-    .or { margin: 16px 0; color:var(--aips-muted); font-size:14px; position: relative; }
-    .or::before, .or::after { content: ""; display: block; height: 1px; background: var(--aips-border); position: absolute; top: 50%; width: 42%; }
-    .or::before { left: 0; }
-    .or::after { right: 0; }
-
-    .links { font-size:14px; margin-top:15px; }
-    .link { color:#93C5FD; text-decoration:none; font-weight:700; cursor:pointer; }
-    .link:hover { text-decoration:underline; }
-    .back { display:block; margin-top:30px; color:var(--aips-muted); text-decoration:none; font-size:14px; }
+    body { display:flex; min-height:100vh; align-items:center; justify-content:center; padding:24px; }
+    .notice { width:100%; max-width:500px; padding:32px; text-align:center; }
+    h1 { margin:0 0 12px; font-size:28px; color:var(--aips-text); }
+    p { margin:0 0 24px; line-height:1.55; color:var(--aips-secondary); }
+    .back { display:inline-block; padding:12px 18px; border-radius:12px; background:var(--aips-primary); color:#fff; font-weight:700; text-decoration:none; }
   </style>
 </head>
 <body class="aips-page">
-
-  <div class="box aips-card">
-    <h2>Create Account</h2>
-    <p class="subtitle">Start your free trial today</p>
-
-    <button class="btn btn-google" onclick="googleLogin()">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" height="20" style="margin-right:8px;">
-      Sign up with Google
-    </button>
-
-    <div class="or">OR</div>
-
-    <input type="email" id="email" placeholder="Email Address" required>
-    <input type="password" id="password" placeholder="Password (Min 6 chars)" required>
-
-    <button class="btn btn-primary" onclick="signUp()">Create Account</button>
-
-    <div class="links">
-      Already have an account? <a href="signin.html" class="link">Sign In</a>
-    </div>
-
-    <a href="index.html" class="back">← Back to Studio</a>
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCM6r66kW9xkBA5rgVcz4sP57N2v2BMbkg",
-      authDomain: "ai-photo-studio-24354.firebaseapp.com",
-      projectId: "ai-photo-studio-24354",
-      // UPDATED BUCKET NAME:
-      storageBucket: "ai-photo-studio-24354.firebasestorage.app",
-      messagingSenderId: "411346648650",
-      appId: "1:411346648650:web:5ecd86ffecd05472fab0b3",
-      measurementId: "G-R3G160W8BQ"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-
-    function signUp() {
-      const e = document.getElementById('email').value;
-      const p = document.getElementById('password').value;
-      if (!e || !p) return alert("Please enter email and password");
-      if (p.length < 6) return alert("Password must be at least 6 characters");
-
-      auth.createUserWithEmailAndPassword(e, p)
-        .then(() => window.location.href = "/")
-        .catch(err => alert("Error: " + err.message));
-    }
-
-    function googleLogin() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then(() => window.location.href = "/")
-        .catch(err => alert("Error: " + err.message));
-    }
-  </script>
-
+  <main class="notice aips-card">
+    <h1>Account registration is temporarily unavailable</h1>
+    <p>We are updating our account service. Please return to AI Photo Studio and try again later.</p>
+    <a class="back" href="index.html">Return to AI Photo Studio</a>
+  </main>
 </body>
 </html>

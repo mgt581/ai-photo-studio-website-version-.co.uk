@@ -1,15 +1,33 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "premuim-status",
-  "main": "worker.js",
+  "name": "premium-status",
+  "main": "src/index.js",
   "compatibility_date": "2026-04-08",
   "observability": {
     "enabled": true
   },
   "assets": {
     "directory": ".",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*",
+      "/check",
+      "/set",
+      "/remove",
+      "/create-checkout-session",
+      "/stripe-webhook",
+      "/google-play-purchase"
+    ]
   },
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PREMIUM_STATUS",
+      "id": "835daf9d99924356a1e070c51a78d17d"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]

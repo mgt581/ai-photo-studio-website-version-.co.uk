@@ -29,31 +29,33 @@
     .link { color:#93C5FD; text-decoration:none; font-weight:700; cursor:pointer; }
     .link:hover { text-decoration:underline; }
     .back { display:block; margin-top:30px; color:var(--aips-muted); text-decoration:none; font-size:14px; }
+    .legal { margin-top:22px; color:var(--aips-muted); font-size:12px; }
+    .legal a { color:#93C5FD; text-decoration:none; margin:0 8px; }
+    .legal a:hover { text-decoration:underline; }
   </style>
 </head>
 <body class="aips-page">
 
   <div class="box aips-card">
-    <h2>Create Account</h2>
+    <h1>AI Photo Studio</h1>
+    <h2>Create your account</h2>
     <p class="subtitle">Start your free trial today</p>
 
-    <button class="btn btn-google" onclick="googleLogin()">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" height="20" style="margin-right:8px;">
-      Sign up with Google
-    </button>
+    <button class="btn btn-google" type="button" onclick="googleLogin()">Continue with Google</button>
 
     <div class="or">OR</div>
 
-    <input type="email" id="email" placeholder="Email Address" required>
-    <input type="password" id="password" placeholder="Password (Min 6 chars)" required>
+    <input type="email" id="email" placeholder="Email Address" autocomplete="email" aria-label="Email address" required>
+    <input type="password" id="password" placeholder="Password (Min 6 chars)" autocomplete="new-password" aria-label="Password" required>
 
-    <button class="btn btn-primary" onclick="signUp()">Create Account</button>
+    <button class="btn btn-primary" type="button" onclick="signUp()">Create Account</button>
 
     <div class="links">
       Already have an account? <a href="signin.html" class="link">Sign In</a>
     </div>
 
     <a href="index.html" class="back">← Back to Studio</a>
+    <p class="legal">By continuing, you agree to the <a href="terms.html">Terms</a> and acknowledge the <a href="privacy.html">Privacy Policy</a>.</p>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>

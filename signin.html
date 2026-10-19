@@ -29,6 +29,8 @@
     .link { color:#93C5FD; text-decoration:none; font-weight:700; cursor:pointer; }
     .link:hover { text-decoration:underline; }
     .back { display:block; margin-top:30px; color:var(--aips-muted); text-decoration:none; font-size:14px; }
+    .auth-message { color:var(--aips-secondary); font-size:14px; }
+    .links button.link { background:none; border:0; padding:0; font:inherit; }
     .legal { margin-top:22px; color:var(--aips-muted); font-size:12px; }
     .legal a { color:#93C5FD; text-decoration:none; margin:0 8px; }
     .legal a:hover { text-decoration:underline; }
@@ -45,14 +47,18 @@
 
     <div class="or">OR</div>
 
+    <form id="authForm" method="post" onsubmit="event.preventDefault(); signIn()">
     <input type="email" id="email" placeholder="Email Address" autocomplete="email" aria-label="Email address" required>
     <input type="password" id="password" placeholder="Password" autocomplete="current-password" aria-label="Password" required>
 
-    <button class="btn btn-primary" type="button" onclick="signIn()">Sign In</button>
+    <button class="btn btn-primary" type="submit">Sign In</button>
+
+    </form>
+    <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
 
     <div class="links">
       <a href="signup.html" class="link">Create Account</a>
-      <span class="link" onclick="forgotPassword()">Forgot Password?</span>
+      <button type="button" class="link" onclick="forgotPassword()">Forgot Password?</button>
     </div>
 
     <a href="index.html" class="back">← Back to Studio</a>
@@ -75,31 +81,76 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
-    function signIn() {
-      const e = document.getElementById('email').value;
-      const p = document.getElementById('password').value;
-      if (!e || !p) return alert("Please enter email and password");
+    let authBusy = false;
 
-      auth.signInWithEmailAndPassword(e, p)
-        .then(() => window.location.href = "/")
-        .catch(err => alert("Error: " + err.message));
+    function showAuthError(error) {
+      const messages = {
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/invalid-login-credentials': 'Email or password is incorrect. Try again or reset your password.',
+        'auth/invalid-credential': 'Email or password is incorrect. Try again or reset your password.',
+        'auth/wrong-password': 'Email or password is incorrect. Try again or reset your password.',
+        'auth/user-not-found': 'Email or password is incorrect. Try again or reset your password.',
+        'auth/email-already-in-use': 'An account already uses this email. Sign in or reset its password instead.',
+        'auth/account-exists-with-different-credential': 'Use your original sign-in method for this email to keep access to your existing account.',
+        'auth/weak-password': 'Please choose a stronger password (at least 6 characters).',
+        'auth/popup-blocked': 'Please allow the Google sign-in popup and try again.',
+        'auth/popup-closed-by-user': 'Google sign-in was cancelled. Please try again.',
+        'auth/cancelled-popup-request': 'Google sign-in was cancelled. Please try again.',
+        'auth/unauthorized-domain': 'Sign-in is not enabled for this website address. Please contact support.',
+        'auth/network-request-failed': 'Could not connect. Check your connection and try again.',
+        'auth/too-many-requests': 'Too many attempts. Please wait before trying again.'
+      };
+      document.getElementById('authMessage').textContent = messages[error.code] || 'Sign-in could not be completed. Please try again or contact support.';
+    }
+
+    function runAuth(action) {
+      if (authBusy) return;
+      authBusy = true;
+      document.getElementById('authMessage').textContent = '';
+      document.querySelectorAll('button').forEach(button => button.disabled = true);
+      // Invoke immediately so Google opens its popup within the user's click gesture.
+      return action()
+        .then(() => window.location.assign('/'))
+        .catch(showAuthError)
+        .finally(() => {
+          authBusy = false;
+          document.querySelectorAll('button').forEach(button => button.disabled = false);
+        });
+    }
+
+    function signIn() {
+      if (!document.getElementById('authForm').reportValidity()) return;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      return runAuth(() => auth.signInWithEmailAndPassword(email, password));
     }
 
     function googleLogin() {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then(() => window.location.href = "/")
-        .catch(err => alert("Error: " + err.message));
+      provider.setCustomParameters({ prompt: 'select_account' });
+      return runAuth(() => auth.signInWithPopup(provider));
     }
 
-    function forgotPassword() {
-      const e = document.getElementById('email').value;
-      const emailToReset = prompt("Please enter your email address to reset your password:", e);
-
-      if (emailToReset) {
-        auth.sendPasswordResetEmail(emailToReset)
-          .then(() => alert("✅ Reset link sent! Check your email inbox."))
-          .catch(err => alert("Error: " + err.message));
+    async function forgotPassword() {
+      if (authBusy) return;
+      const email = prompt('Enter your AI Photo Studio account email to reset its password:', document.getElementById('email').value.trim());
+      if (email === null || !email.trim()) return;
+      const validator = document.createElement('input');
+      validator.type = 'email';
+      validator.value = email.trim();
+      if (!validator.checkValidity()) return showAuthError({ code: 'auth/invalid-email' });
+      authBusy = true;
+      document.querySelectorAll('button').forEach(button => button.disabled = true);
+      try {
+        await auth.sendPasswordResetEmail(email.trim());
+        document.getElementById('authMessage').textContent = 'If an account exists for this email, a reset link has been sent. Check your inbox.';
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          document.getElementById('authMessage').textContent = 'If an account exists for this email, a reset link has been sent. Check your inbox.';
+        } else showAuthError(error);
+      } finally {
+        authBusy = false;
+        document.querySelectorAll('button').forEach(button => button.disabled = false);
       }
     }
   </script>

@@ -173,6 +173,9 @@
     #btnLogout{background:rgba(239,68,68,.12)!important;color:#FECACA!important;border-color:rgba(239,68,68,.28)}
     /* =========================================================================== */
 
+    /* Keep the existing Android control; use Change Background on the website. */
+    html:not(.android-app) #btnChooseBackground { display: none !important; }
+
     /* Android app: hide payment buttons + upgrade CTA, but keep web unchanged */
     html.android-app .pricing-row,
     html.android-app #upgradeMsg {
@@ -303,7 +306,7 @@
 
           <button id="btnRemove" class="pill-btn" disabled onclick="Studio.removeBg()">Remove Background</button>
           <button id="btnChange" class="pill-btn" disabled onclick="Studio.changeBg()">Change Background</button>
-          <button class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
+          <button id="btnChooseBackground" class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
           <button id="btnColorPicker" class="pill-btn" onclick="showColorPicker()">Background Color</button>
 
           <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">

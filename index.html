@@ -1575,13 +1575,26 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         const imageCfBlob = await canvasToBlob(apiCloudflareInput, 'image/png', 0.95);
         const maskBlob = await canvasToBlob(maskCanvasHD, 'image/png', 0.95);
         const cloudflareMaskBlob = await canvasToBlob(cloudflareMaskCanvasHD, 'image/png', 0.95);
-        if (!imageBlob || !imageCfBlob || !maskBlob || !cloudflareMaskBlob) throw new Error('image-export-failed');
+        // Binary mask for the dedicated object-removal engine: white = remove, black = keep.
+        const whiteMaskFull = document.createElement('canvas');
+        whiteMaskFull.width = outW;
+        whiteMaskFull.height = outH;
+        const wmCtx = whiteMaskFull.getContext('2d');
+        const wmPixels = wmCtx.createImageData(outW, outH);
+        for (let p = 0, i = 0; p < expanded.length; p += 1, i += 4) {
+          const v = expanded[p] ? 255 : 0;
+          wmPixels.data[i] = v; wmPixels.data[i + 1] = v; wmPixels.data[i + 2] = v; wmPixels.data[i + 3] = 255;
+        }
+        wmCtx.putImageData(wmPixels, 0, 0);
+        const whiteMaskBlob = await canvasToBlob(cropCanvas(whiteMaskFull, cropRect), 'image/png', 0.95);
+        if (!imageBlob || !imageCfBlob || !maskBlob || !cloudflareMaskBlob || !whiteMaskBlob) throw new Error('image-export-failed');
 
         const form = new FormData();
         form.append('image', imageBlob, 'image.png');
         form.append('image_cf', imageCfBlob, 'image-cf.png');
         form.append('mask', maskBlob, 'mask.png');
         form.append('mask_cf', cloudflareMaskBlob, 'mask-cf.png');
+        form.append('mask_white', whiteMaskBlob, 'mask-white.png');
         form.append('width', String(cropRect.width));
         form.append('height', String(cropRect.height));
         form.append('provider', 'workers-flux');

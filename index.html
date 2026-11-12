@@ -605,24 +605,26 @@ async function activatePro(type) {
   await activatePlan("year", type);
 }
 
-async function ensureRemoveObjectCredits(user) {
-  if (!user || window.proEnabled) return null;
-  const ref = db.collection("users").doc(user.uid);
-  return db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const data = snap.exists ? (snap.data() || {}) : {};
-    let credits = Number(data.usage?.removeObjectCredits);
-    if (!Number.isFinite(credits)) {
-      credits = FREE_REMOVE_OBJECT_CREDITS;
-      tx.set(ref, {
-        usage: {
-          removeObjectCredits: credits,
-          removeObjectCreditsGrantedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }
-      }, { merge: true });
-    }
-    return credits;
+// Remove Person credits are counted by the Remove Object Worker (server-side), not in the browser.
+const REMOVE_OBJECT_API = "https://aips-remove-object-v2.alexbryant.workers.dev";
+
+async function fetchRemoveObjectCredits(user) {
+  if (!user) return null;
+  const res = await fetch(`${REMOVE_OBJECT_API}/api/credits`, {
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` }
   });
+  if (!res.ok) throw new Error(`credits-${res.status}`);
+  return res.json(); // { pro, remaining, limit, period }
+}
+
+function showRemoveObjectPaywall() {
+  toast("Free Remove Person credits used. Choose a Pro plan for unlimited fair use.");
+  const msg = document.getElementById("payMsg");
+  if (msg) {
+    msg.textContent = "Your free Remove Person credits are used. Upgrade to keep editing with unlimited fair use.";
+    msg.style.display = "block";
+  }
+  showPaywall("remove-object");
 }
 
 async function refreshCreditStatus() {
@@ -633,14 +635,11 @@ async function refreshCreditStatus() {
     elCredits.style.display = "none";
     return;
   }
-  if (window.proEnabled) {
-    elCredits.textContent = "Remove Person: unlimited fair use";
-    elCredits.style.display = "inline-block";
-    return;
-  }
   try {
-    const credits = await ensureRemoveObjectCredits(user);
-    elCredits.textContent = `Remove Person: ${credits} free credit${credits === 1 ? "" : "s"}`;
+    const c = await fetchRemoveObjectCredits(user);
+    elCredits.textContent = c.pro
+      ? "Remove Person: unlimited fair use"
+      : `Remove Person: ${c.remaining} free credit${c.remaining === 1 ? "" : "s"}`;
     elCredits.style.display = "inline-block";
   } catch (e) {
     console.warn("Credit status failed:", e);
@@ -649,42 +648,26 @@ async function refreshCreditStatus() {
 }
 
 async function canUseRemoveObjectCredit() {
-  if (window.__AIPS_IS_ANDROID_APP__ || window.proEnabled) return true;
+  if (window.__AIPS_IS_ANDROID_APP__) return true;
   const user = auth.currentUser;
   if (!user) {
     requireSignInOrRedirect("use Remove Person");
     return false;
   }
-  const credits = await ensureRemoveObjectCredits(user);
-  if (credits >= REMOVE_OBJECT_CREDIT_COST) return true;
-  toast("Free Remove Person credits used. Choose a Pro plan for unlimited fair use.");
-  const msg = document.getElementById("payMsg");
-  if (msg) {
-    msg.textContent = "Your free Remove Person credits are used. Upgrade to keep editing with unlimited fair use.";
-    msg.style.display = "block";
+  try {
+    const c = await fetchRemoveObjectCredits(user);
+    if (c.pro || c.remaining >= REMOVE_OBJECT_CREDIT_COST) return true;
+  } catch (e) {
+    // If the check fails, let the request through; the server still enforces the limit.
+    console.warn("Credit check failed:", e);
+    return true;
   }
-  showPaywall("remove-object");
+  showRemoveObjectPaywall();
   return false;
 }
 
 async function recordRemoveObjectCreditUse() {
-  if (window.__AIPS_IS_ANDROID_APP__ || window.proEnabled) return;
-  const user = auth.currentUser;
-  if (!user) return;
-  const ref = db.collection("users").doc(user.uid);
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const data = snap.exists ? (snap.data() || {}) : {};
-    const current = Number.isFinite(Number(data.usage?.removeObjectCredits))
-      ? Number(data.usage.removeObjectCredits)
-      : FREE_REMOVE_OBJECT_CREDITS;
-    tx.set(ref, {
-      usage: {
-        removeObjectCredits: Math.max(0, current - REMOVE_OBJECT_CREDIT_COST),
-        removeObjectLastUsedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }
-    }, { merge: true });
-  });
+  // The server already took the credit; just update the label.
   await refreshCreditStatus();
 }
 
@@ -1655,7 +1638,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           // The Android app signs in natively, so its web view may have no web sign-in.
           throw new Error('sign-in-required');
         }
-        const response = await fetch('https://aips-remove-object-v2.alexbryant.workers.dev/api/remove-object', {
+        const response = await fetch(`${REMOVE_OBJECT_API}/api/remove-object`, {
           method: 'POST',
           headers: removeHeaders,
           body: form
@@ -1709,6 +1692,12 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           console.error('AI remove-object API failed:', e);
           hideProgress();
           const code = String(e && e.message || '');
+          if (code === 'credits-exhausted') {
+            setStatus("Free Remove Person credits used.");
+            if (window.__AIPS_IS_ANDROID_APP__) toast("Daily Remove Person limit reached. Please try again tomorrow.");
+            else showRemoveObjectPaywall();
+            return;
+          }
           const friendly = code === 'sign-in-required' ? "Please sign in again to use Remove Person."
             : code === 'too-many-requests' ? "You're going a bit fast — wait a minute and try again."
             : "AI removal failed. Please try again.";

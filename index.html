@@ -1648,11 +1648,16 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
         const removeUser = auth.currentUser;
-        if (!removeUser) throw new Error('sign-in-required');
-        const idToken = await removeUser.getIdToken();
+        const removeHeaders = {};
+        if (removeUser) {
+          removeHeaders.Authorization = `Bearer ${await removeUser.getIdToken()}`;
+        } else if (!window.__AIPS_IS_ANDROID_APP__) {
+          // The Android app signs in natively, so its web view may have no web sign-in.
+          throw new Error('sign-in-required');
+        }
         const response = await fetch('https://aips-remove-object-v2.alexbryant.workers.dev/api/remove-object', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${idToken}` },
+          headers: removeHeaders,
           body: form
         });
         if (!response.ok) {

@@ -334,26 +334,20 @@
     let expiresAtMillis = null;
 
     try {
-      const snap = await db.collection('users').doc(user.uid).get();
-
-      if (snap.exists) {
-        const data = snap.data();
-
-        if (data.subscription?.expiresAt?.toMillis) {
-          expiresAtMillis = data.subscription.expiresAt.toMillis();
-          const planKey = data.subscription?.type || "pro";
-
-          planType =
-            planKey === "day" ? "Day Pass" :
-            planKey === "month" ? "Monthly Pro" :
-            planKey === "trial7" ? "7-Day Trial" :
-            planKey === "year" ? "Yearly Pro" : "Pro";
-
-          isPro = expiresAtMillis > Date.now();
-        } else if (data.tier === 'pro' || data.isPro) {
-          isPro = true;
-          planType = data.planType || "Pro";
-        }
+      // Pro status comes from the server, which checks Stripe.
+      const res = await fetch("https://aips-remove-object-v2.alexbryant.workers.dev/api/entitlement", {
+        headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+      });
+      if (res.ok) {
+        const ent = await res.json();
+        isPro = !!ent.pro;
+        expiresAtMillis = ent.expiresAt || null;
+        const planKey = ent.plan || "pro";
+        planType =
+          planKey === "day" ? "Day Pass" :
+          planKey === "month" ? "Monthly Pro" :
+          planKey === "trial7" ? "7-Day Trial" :
+          planKey === "year" ? "Yearly Pro" : "Pro";
       }
     } catch (e) {
       console.error("Error loading user data:", e);

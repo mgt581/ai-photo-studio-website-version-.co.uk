@@ -425,7 +425,11 @@ function openStripe(url) {
     return;
   }
   hidePaySignInRequired();
-  window.location.href = url;
+  // Tag the checkout with this user so the server can match the payment to their account.
+  const join = url.includes("?") ? "&" : "?";
+  let tagged = `${url}${join}client_reference_id=${encodeURIComponent(user.uid)}`;
+  if (user.email) tagged += `&prefilled_email=${encodeURIComponent(user.email)}`;
+  window.location.href = tagged;
 }
 
 let selectedPaywallPlan = "trial";
@@ -514,20 +518,27 @@ window.onload = function () {
     const urlParams = new URLSearchParams(window.location.search);
 
     if (urlParams.get("payment") === "success") {
-
-      const plan = (urlParams.get("plan") || "").toLowerCase();
-
+      // Pro is granted by the server once Stripe confirms the payment — this page can't grant it.
+      let handled = false;
       auth.onAuthStateChanged(async (user) => {
-        if (!user) return;
-
-        if (plan === "day" || plan === "month" || plan === "trial7" || plan === "year") {
-          await activatePlan(plan, "Stripe");
-          await refreshUserPlan();
-        } else {
-          toast("Payment success received, but plan missing.");
-        }
-
+        if (!user || handled) return;
+        handled = true;
         window.history.replaceState({}, document.title, "/");
+        toast("Confirming your payment…");
+        for (let attempt = 0; attempt < 6; attempt++) {
+          try {
+            const ent = await fetchEntitlement(user, true);
+            if (ent.pro) {
+              toast("✅ Pro activated! Pro features unlocked.");
+              await refreshUserPlan();
+              return;
+            }
+          } catch (e) {
+            console.warn("Entitlement check failed:", e);
+          }
+          await new Promise((r) => setTimeout(r, 3000));
+        }
+        toast("We couldn't confirm your payment yet. Refresh in a minute, or email info@aiphotostudio.co.uk.");
       });
     }
 
@@ -547,66 +558,28 @@ const PLANS = {
   year: { name: "Yearly Pro", days: 365, label: "Yearly Pro" }
 };
 
+// Pro status and Remove Person credits come from the AI Photo Studio Worker, which checks Stripe.
+// The browser can't grant itself Pro any more.
+const REMOVE_OBJECT_API = "https://aips-remove-object-v2.alexbryant.workers.dev";
+
+async function fetchEntitlement(user, refresh = false) {
+  const res = await fetch(`${REMOVE_OBJECT_API}/api/entitlement${refresh ? "?refresh=1" : ""}`, {
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+  });
+  if (!res.ok) throw new Error(`entitlement-${res.status}`);
+  return res.json(); // { pro, plan, expiresAt, source }
+}
+
 async function verifyPremiumAccess() {
   const user = auth.currentUser;
   if (!user) return false;
-
   try {
-    const snap = await db.collection('users').doc(user.uid).get();
-    const data = snap.exists ? (snap.data() || {}) : {};
-    const expiresAtMillis = data.subscription?.expiresAt?.toMillis
-      ? data.subscription.expiresAt.toMillis()
-      : data.trial?.endsAt?.toMillis
-        ? data.trial.endsAt.toMillis()
-        : null;
-
-    return !!data.isPro || data.tier === "pro" || !!(expiresAtMillis && expiresAtMillis > Date.now());
-
+    return !!(await fetchEntitlement(user)).pro;
   } catch (e) {
     console.warn("Premium verification failed:", e);
     return false;
   }
-}    
-// Activate a specific plan
-async function activatePlan(planKey, source) {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const plan = PLANS[planKey];
-  if (!plan) {
-    console.error("Unknown plan:", planKey);
-    return;
-  }
-
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
-
-  const ref = db.collection("users").doc(user.uid);
-  await ref.set({
-    tier: "pro",
-    planType: plan.name,
-    subscription: {
-      type: planKey,
-      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt: expiresAt,
-      source: source
-    }
-  }, { merge: true });
-
-  // keep global state in sync immediately
-  window.proEnabled = true;
-
-  toast(`✅ ${plan.name} activated! Pro features unlocked.`);
-  await refreshUserPlan();
 }
-
-// Backwards compatibility
-async function activatePro(type) {
-  await activatePlan("year", type);
-}
-
-// Remove Person credits are counted by the Remove Object Worker (server-side), not in the browser.
-const REMOVE_OBJECT_API = "https://aips-remove-object-v2.alexbryant.workers.dev";
 
 async function fetchRemoveObjectCredits(user) {
   if (!user) return null;
@@ -853,25 +826,11 @@ async function refreshUserPlan() {
   }
 
     try {
-    const snap = await db.collection('users').doc(user.uid).get();
-    const d = snap.exists ? (snap.data() || {}) : {};
-
-    let isPro = false;
-    let expiresAtMillis = null;
-    let planKey = "free";
-
-    if (d.subscription?.expiresAt?.toMillis) {
-      expiresAtMillis = d.subscription.expiresAt.toMillis();
-      planKey = d.subscription?.type || "pro";
-    } else if (d.trial?.endsAt?.toMillis) {
-      expiresAtMillis = d.trial.endsAt.toMillis();
-      planKey = "trial7";
-    }
-
+    const ent = await fetchEntitlement(user);
+    const isPro = !!ent.pro;
+    const expiresAtMillis = ent.expiresAt || null;
+    const planKey = ent.plan || "pro";
     const now = Date.now();
-    const hasActiveExpiry = expiresAtMillis && expiresAtMillis > now;
-    const hasProTier = !!d.isPro || d.tier === "pro";
-    isPro = hasActiveExpiry || (hasProTier && !expiresAtMillis);
 
     if (isPro) {
       if (elTrialLeft) {

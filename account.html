@@ -112,8 +112,14 @@
     if (!user) { window.location.href = "signin.html"; return; }
     setProfile(user, "Standard");
     document.getElementById('uEmail').textContent = user.email;
-    const snap = await db.collection('users').doc(user.uid).get();
-    if(snap.exists && (snap.data().isPro || snap.data().tier === 'pro')) {
+    let ent = { pro: false };
+    try {
+      const res = await fetch("https://aips-remove-object-v2.alexbryant.workers.dev/api/entitlement", {
+        headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+      });
+      if (res.ok) ent = await res.json();
+    } catch (e) { console.warn("Plan check failed:", e); }
+    if (ent.pro) {
        document.getElementById('uPlan').textContent = "✅ Pro Active";
        setProfile(user, "Pro");
     } else {

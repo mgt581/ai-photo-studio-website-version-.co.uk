@@ -1622,6 +1622,8 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           try {
             const data = await response.json();
             message = data?.error || message;
+            // Pro users who hit the daily fair-use cap shouldn't be shown the upgrade screen.
+            if (message === 'credits-exhausted' && data?.kind && data.kind !== 'free') message = 'daily-limit';
           } catch (_) {}
           throw new Error(message);
         }
@@ -1666,10 +1668,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           console.error('AI remove-object API failed:', e);
           hideProgress();
           const code = String(e && e.message || '');
+          if (code === 'daily-limit' || (code === 'credits-exhausted' && window.__AIPS_IS_ANDROID_APP__)) {
+            setStatus("Daily Remove Person limit reached.");
+            toast("You've reached today's Remove Person limit. It resets tomorrow.");
+            return;
+          }
           if (code === 'credits-exhausted') {
             setStatus("Free Remove Person credits used.");
-            if (window.__AIPS_IS_ANDROID_APP__) toast("Daily Remove Person limit reached. Please try again tomorrow.");
-            else showRemoveObjectPaywall();
+            showRemoveObjectPaywall();
             return;
           }
           const friendly = code === 'sign-in-required' ? "Please sign in again to use Remove Person."

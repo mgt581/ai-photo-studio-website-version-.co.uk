@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>Sign In • AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
   <style>
@@ -61,7 +62,7 @@
       <button type="button" class="link" onclick="forgotPassword()">Forgot Password?</button>
     </div>
 
-    <a href="index.html" class="back">← Back to Studio</a>
+    <a href="app.html" class="back">← Back to Studio</a>
     <p class="legal">By continuing, you agree to the <a href="terms.html">Terms</a> and acknowledge the <a href="privacy.html">Privacy Policy</a>.</p>
   </div>
 
@@ -110,7 +111,7 @@
       document.querySelectorAll('button').forEach(button => button.disabled = true);
       // Invoke immediately so Google opens its popup within the user's click gesture.
       return action()
-        .then(() => window.location.assign('/'))
+        .then(() => window.location.assign('/app'))
         .catch(showAuthError)
         .finally(() => {
           authBusy = false;

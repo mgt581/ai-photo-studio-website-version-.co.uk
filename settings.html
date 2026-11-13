@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>Settings • AI Photo Studio</title>
   <link rel="stylesheet" href="style.css">
   
@@ -147,7 +148,7 @@
         <div class="pro-title">◆ Go Pro</div>
         <div class="pro-copy">Unlock AI tools, clean exports and cloud gallery backup.</div>
       </div>
-      <button class="claim" onclick="window.location.href='index.html?upgrade=1'">View plans</button>
+      <button class="claim" onclick="window.location.href='app.html?upgrade=1'">View plans</button>
     </div>
     <div class="benefits">
       <div><span>✂</span>AI tools</div>
@@ -261,7 +262,7 @@
   </ul>
 
   <div class="footer">
-    <a href="index.html" class="back-link">← Back to Studio</a>
+    <a href="app.html" class="back-link">← Back to Studio</a>
   </div>
 </div>
 
@@ -435,7 +436,7 @@
     if(confirm("⚠️ ARE YOU SURE?\n\nThis will permanently delete your account and all saved data. This action cannot be undone.")) {
       user.delete().then(() => {
         alert("Account successfully deleted.");
-        window.location.href = "index.html";
+        window.location.href = "app.html";
       }).catch((error) => {
         if(error.code === 'auth/requires-recent-login') {
             alert("Security Alert: Please Sign Out and Sign In again to verify your identity before deleting your account.");

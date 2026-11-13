@@ -564,9 +564,36 @@ const PLANS = {
 // The browser can't grant itself Pro any more.
 const REMOVE_OBJECT_API = "https://aips-remove-object-v2.alexbryant.workers.dev";
 
+// Login token for the Worker: the website's Firebase user, or (inside the Android app, version 126+)
+// the app's own Firebase login handed over through the Android bridge.
+function appBridge() {
+  try { return window.Android || null; } catch (_) { return null; }
+}
+async function getApiToken() {
+  const u = auth.currentUser;
+  if (u) return u.getIdToken();
+  const bridge = appBridge();
+  try {
+    if (bridge && typeof bridge.getIdToken === "function") {
+      const t = bridge.getIdToken();
+      if (t && String(t).split(".").length === 3) return String(t);
+    }
+  } catch (_) {}
+  return null;
+}
+function openAppShop() {
+  const bridge = appBridge();
+  try {
+    if (bridge && typeof bridge.openShop === "function") { bridge.openShop(); return true; }
+  } catch (_) {}
+  return false;
+}
+
 async function fetchEntitlement(user, refresh = false) {
+  const token = await getApiToken();
+  if (!token) throw new Error("sign-in-required");
   const res = await fetch(`${REMOVE_OBJECT_API}/api/entitlement${refresh ? "?refresh=1" : ""}`, {
-    headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+    headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error(`entitlement-${res.status}`);
   return res.json(); // { pro, plan, expiresAt, source }
@@ -584,9 +611,10 @@ async function verifyPremiumAccess() {
 }
 
 async function fetchRemoveObjectCredits(user) {
-  if (!user) return null;
+  const token = await getApiToken();
+  if (!token) return null;
   const res = await fetch(`${REMOVE_OBJECT_API}/api/credits`, {
-    headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+    headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error(`credits-${res.status}`);
   return res.json(); // { pro, remaining, limit, period }
@@ -604,17 +632,18 @@ function showRemoveObjectPaywall() {
 
 async function refreshCreditStatus() {
   const elCredits = document.getElementById("creditStatus");
-  if (!elCredits || window.__AIPS_IS_ANDROID_APP__) return;
+  if (!elCredits) return;
   const user = auth.currentUser;
-  if (!user) {
+  if (!user && !(window.__AIPS_IS_ANDROID_APP__ && (await getApiToken()))) {
     elCredits.style.display = "none";
     return;
   }
   try {
     const c = await fetchRemoveObjectCredits(user);
+    if (!c) { elCredits.style.display = "none"; return; }
     elCredits.textContent = c.pro
       ? "Remove Person: unlimited fair use"
-      : `Remove Person: ${c.remaining} free credit${c.remaining === 1 ? "" : "s"}`;
+      : `Remove Person: ${c.remaining} credit${c.remaining === 1 ? "" : "s"} left`;
     elCredits.style.display = "inline-block";
   } catch (e) {
     console.warn("Credit status failed:", e);
@@ -623,8 +652,19 @@ async function refreshCreditStatus() {
 }
 
 async function canUseRemoveObjectCredit() {
-  if (window.__AIPS_IS_ANDROID_APP__) return true;
   const user = auth.currentUser;
+  if (window.__AIPS_IS_ANDROID_APP__ && !user) {
+    // Older app versions can't hand over their login; the server applies its own daily limit for them.
+    if (!(await getApiToken())) return true;
+    try {
+      const c = await fetchRemoveObjectCredits(null);
+      if (!c || c.pro || c.remaining >= REMOVE_OBJECT_CREDIT_COST) return true;
+    } catch (e) {
+      return true;
+    }
+    if (!openAppShop()) toast("Your Remove Person credits are used. Get more in the app's shop.");
+    return false;
+  }
   if (!user) {
     requireSignInOrRedirect("use Remove Person");
     return false;
@@ -1604,10 +1644,10 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
         setStatus("AI removing selected area…");
         showProgress('AI removing object…', 15);
-        const removeUser = auth.currentUser;
+        const removeToken = await getApiToken();
         const removeHeaders = {};
-        if (removeUser) {
-          removeHeaders.Authorization = `Bearer ${await removeUser.getIdToken()}`;
+        if (removeToken) {
+          removeHeaders.Authorization = `Bearer ${removeToken}`;
         } else if (!window.__AIPS_IS_ANDROID_APP__) {
           // The Android app signs in natively, so its web view may have no web sign-in.
           throw new Error('sign-in-required');
@@ -1668,6 +1708,10 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           console.error('AI remove-object API failed:', e);
           hideProgress();
           const code = String(e && e.message || '');
+          if (code === 'credits-exhausted' && window.__AIPS_IS_ANDROID_APP__ && openAppShop()) {
+            setStatus("Remove Person credits used.");
+            return;
+          }
           if (code === 'daily-limit' || (code === 'credits-exhausted' && window.__AIPS_IS_ANDROID_APP__)) {
             setStatus("Daily Remove Person limit reached.");
             toast("You've reached today's Remove Person limit. It resets tomorrow.");

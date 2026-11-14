@@ -654,8 +654,17 @@ async function refreshCreditStatus() {
 async function canUseRemoveObjectCredit() {
   const user = auth.currentUser;
   if (window.__AIPS_IS_ANDROID_APP__ && !user) {
-    // Older app versions can't hand over their login; the server applies its own daily limit for them.
-    if (!(await getApiToken())) return true;
+    if (!(await getApiToken())) {
+      // App 126+ can open its own sign-in screen; signed-in users get the best engine and their credits.
+      const bridge = appBridge();
+      if (bridge && typeof bridge.openSignIn === "function") {
+        toast("Sign in to use Remove Person.");
+        try { bridge.openSignIn(); } catch (_) {}
+        return false;
+      }
+      // Older app versions can't hand over their login; the server applies its own daily limit for them.
+      return true;
+    }
     try {
       const c = await fetchRemoveObjectCredits(null);
       if (!c || c.pro || c.remaining >= REMOVE_OBJECT_CREDIT_COST) return true;

@@ -224,6 +224,97 @@
     .btn:hover{filter:brightness(1.06);box-shadow:0 20px 42px rgba(37,99,235,.34),0 0 28px rgba(14,165,233,.18),inset 0 1px 0 rgba(255,255,255,.2)}
     .btn:active{transform:scale(0.97)}
     @media (max-width:760px){.pricing-row{padding:10px 14px}.premium-strip-text{font-size:14px}.wrap{padding-top:18px}}
+
+    /* ===== Editor redesign (2026-11) ===== */
+    header{padding:14px 24px}
+    .brand-img{width:32px;height:32px;border-radius:9px}
+    .brand-text{font-size:18px;letter-spacing:-.01em}
+    .ghost{border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px}
+    #navSignUp{background:var(--grad);border-color:transparent;box-shadow:0 8px 20px rgba(37,99,235,.3)}
+    #navSignUp:hover{filter:brightness(1.08)}
+
+    .pricing-row{background:transparent;border-bottom:0;padding:16px 24px 0}
+    .premium-strip{max-width:1120px;margin:0 auto;min-height:0;padding:10px 12px 10px 14px;border-radius:14px;border-color:rgba(167,139,250,.22);background:linear-gradient(90deg,rgba(124,58,237,.18),rgba(14,165,233,.08) 70%),rgba(13,27,46,.6);box-shadow:none}
+    .premium-strip-text{font-weight:600;font-size:14px;color:var(--secondary)}
+    .premium-strip-text strong{color:var(--text);font-weight:800}
+    .premium-strip-chevron{font-size:13px;font-weight:800;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:999px;white-space:nowrap}
+
+    .wrap.editor{max-width:1120px;padding:20px 24px 40px;grid-template-columns:340px minmax(0,1fr);grid-template-areas:"tools stage" "tools save";align-items:start;gap:20px}
+    .tools-card{grid-area:tools;padding:20px;position:sticky;top:16px}
+    #stageWrap{grid-area:stage}
+    .save-card{grid-area:save}
+
+    .tools-head{margin-bottom:16px}
+    .tools-title{margin:0 0 4px;font-size:20px;font-weight:850;letter-spacing:-.01em}
+    .tools-card .status{margin:0;color:var(--muted);font-size:13.5px;font-weight:500;line-height:1.4}
+
+    .choose-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 16px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:var(--grad);color:#fff;font:inherit;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 14px 30px rgba(37,99,235,.3),inset 0 1px 0 rgba(255,255,255,.2);transition:filter .15s,transform .1s}
+    .choose-btn:hover{filter:brightness(1.07)}
+    body.has-photo .choose-btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);box-shadow:none;font-weight:700;padding:11px 16px}
+    .choose-btn:active{transform:scale(.98)}
+    .choose-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+    .tools-label{margin:20px 2px 8px;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+    .tool-list{display:flex;flex-direction:column;gap:6px}
+    .tool{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:1px solid transparent;border-radius:13px;background:rgba(255,255,255,.035);color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+    .tool:hover:not(:disabled){background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.1)}
+    .tool:active:not(:disabled){transform:scale(.985)}
+    .tool:disabled{cursor:default}
+    .tool:disabled .tool-ico{filter:saturate(.35);opacity:.6}
+    .tool:disabled .tool-name{color:var(--secondary)}
+    .tool-ico{flex:0 0 auto;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff}
+    .tool-ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .ico-violet{background:linear-gradient(135deg,#8B5CF6,#6D28D9);box-shadow:0 6px 16px rgba(124,58,237,.35)}
+    .ico-blue{background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 6px 16px rgba(37,99,235,.35)}
+    .ico-cyan{background:linear-gradient(135deg,#22D3EE,#0284C7);box-shadow:0 6px 16px rgba(14,165,233,.35)}
+    .ico-pink{background:linear-gradient(135deg,#EC4899,#9333EA);box-shadow:0 6px 16px rgba(219,39,119,.35)}
+    .tool-txt{display:flex;flex-direction:column;min-width:0}
+    .tool-name{font-size:14.5px;font-weight:750;display:flex;align-items:center}
+    .tool-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+    .tool .tag-beta{font-size:9px;padding:2px 5px;border-radius:5px}
+    .brush-actions{display:flex;gap:8px;margin-top:6px}
+    .brush-actions .pill-btn{flex:1;padding:11px 12px;font-size:14px;border-radius:12px}
+    .brush-actions .pill-btn.warn{background:var(--grad);border-color:transparent}
+
+    .stage{min-height:260px}
+    .dropzone{position:absolute;inset:16px;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed rgba(148,163,184,.35);border-radius:12px;background:radial-gradient(circle at 50% 40%,rgba(37,99,235,.18),transparent 60%),linear-gradient(180deg,#0F2138,#0B1A2D);color:var(--text);font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+    .dropzone:hover{border-color:rgba(56,189,248,.6)}
+    .dz-ico{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;margin-bottom:8px;background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(14,165,233,.3));border:1px solid rgba(255,255,255,.12)}
+    .dz-ico svg{width:28px;height:28px;fill:none;stroke:#E0F2FE;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .dz-title{font-size:18px;font-weight:800}
+    .dz-sub{font-size:13.5px;color:var(--muted)}
+    .dz-touch{display:none}
+    .dz-chip{margin-top:12px;padding:9px 18px;border-radius:999px;background:var(--grad);font-size:14px;font-weight:800;box-shadow:0 10px 24px rgba(37,99,235,.3)}
+    body.has-photo .dropzone{display:none}
+
+    .save-card{padding:18px}
+    .save-card .btn{width:100%}
+
+    @media (max-width:900px){
+      .wrap.editor{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "tools" "save";padding:14px 14px 32px;gap:14px}
+      .tools-card{position:static}
+      .pricing-row{padding:12px 14px 0}
+      header{padding:12px 14px}
+    }
+    @media (max-width:600px){
+      .premium-strip-detail{display:none}
+      .stage{padding:10px}
+      .stage::before,.dropzone{inset:10px}
+      .dz-desktop{display:none}.dz-touch{display:inline}
+      .tool-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .tool{flex-direction:column;align-items:flex-start;gap:10px;padding:12px}
+      .tool-sub{display:none}
+      .brush-actions{grid-column:1 / -1}
+      .brush-actions:empty,.brush-actions:not(:has(.pill-btn:not([style*="none"]))){display:none}
+      #btnBrush{grid-column:1 / -1;flex-direction:row;align-items:center}
+      body:not(.has-photo) .choose-btn{display:none}
+      .brush-actions:has(#btnApply:not([style*="none"])){position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:50;margin:0;padding:10px;border-radius:16px;background:rgba(13,27,46,.94);border:1px solid var(--panel-line);backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+      .brush-actions .pill-btn{padding:13px 12px;font-size:15px}
+      body:not(.has-photo) .tools-label{margin-top:4px}
+      .tools-head{margin-bottom:12px}
+      .tools-title{display:none}
+    }
+    @media (hover:none){.dz-desktop{display:none}.dz-touch{display:inline}}
   </style>
 </head>
 <body>
@@ -257,9 +348,9 @@
     <button id="btnPremiumStrip" class="premium-strip">
       <span class="premium-strip-main">
         <span class="premium-gem">◆</span>
-        <span class="premium-strip-text">Unlock Pro tools and HD exports</span>
+        <span class="premium-strip-text"><strong>Go Pro</strong><span class="premium-strip-detail"> · HD exports, no watermark, 20 removals a day</span></span>
       </span>
-      <span class="premium-strip-chevron">⌕</span>
+      <span class="premium-strip-chevron">See plans</span>
     </button>
   </div>
 
@@ -295,28 +386,47 @@
     </div>
   </div>
        
-  <div class="wrap" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
-    <div class="card">
-      <p class="status" id="status">Upload a photo to begin.</p>
-      <div class="actions">
-        <div class="toolbar">
-          <button class="pill-btn pill-btn-primary" onclick="document.getElementById('mainInput').click()">Choose Photo</button>
-          
-          <input id="mainInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadMain(this.files[0]); this.value=''" />
-          
-          <input id="bgInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadBg(this.files[0]); this.value=''" />
+  <div class="wrap editor" ondragover="event.preventDefault()" ondrop="Studio.handleDrop(event)">
+    <div class="card tools-card">
+      <div class="tools-head">
+        <h1 class="tools-title">Photo editor</h1>
+        <p class="status" id="status">Upload a photo to begin.</p>
+      </div>
 
-          <button id="btnRemove" class="pill-btn" disabled onclick="Studio.removeBg()">Remove Background</button>
-          <button id="btnChange" class="pill-btn" disabled onclick="Studio.changeBg()">Change Background</button>
-          <button id="btnChooseBackground" class="pill-btn" onclick="document.getElementById('bgInput').click()">Choose Background</button>
-          <button id="btnColorPicker" class="pill-btn" onclick="showColorPicker()">Background Color</button>
+      <input id="mainInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadMain(this.files[0]); this.value=''" />
+      <input id="bgInput" type="file" accept="image/*" style="display:none" onchange="Studio.onUploadBg(this.files[0]); this.value=''" />
 
-          <button id="btnBrush" class="pill-btn" disabled onclick="Studio.startBrush()">
-            Remove Person <span class="tag-beta">Beta</span>
-          </button>
+      <button class="choose-btn" type="button" onclick="document.getElementById('mainInput').click()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <span class="choose-label">Choose photo</span>
+      </button>
 
-          <button id="btnApply" class="pill-btn warn" style="display:none" onclick="Studio.applyInpaint()">Apply Removal</button>
-          <button id="btnCancel" class="pill-btn" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
+      <div class="tools-label">AI tools</div>
+      <div class="toolbar tool-list">
+        <button id="btnRemove" class="tool" type="button" disabled onclick="Studio.removeBg()">
+          <span class="tool-ico ico-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v12a3 3 0 0 0 3 3h12M3 6h12a3 3 0 0 1 3 3v12"/></svg></span>
+          <span class="tool-txt"><span class="tool-name">Remove background</span><span class="tool-sub">Cut out the subject in one tap</span></span>
+        </button>
+        <button id="btnChange" class="tool" type="button" disabled onclick="Studio.changeBg()">
+          <span class="tool-ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></svg></span>
+          <span class="tool-txt"><span class="tool-name">Change background</span><span class="tool-sub">Put your cut-out on a new scene</span></span>
+        </button>
+        <button id="btnChooseBackground" class="tool" type="button" onclick="document.getElementById('bgInput').click()">
+          <span class="tool-ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 9v6m-3-3h6"/></svg></span>
+          <span class="tool-txt"><span class="tool-name">Choose background</span><span class="tool-sub">Use one of your own photos</span></span>
+        </button>
+        <button id="btnColorPicker" class="tool" type="button" onclick="showColorPicker()">
+          <span class="tool-ico ico-cyan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5C21 6.4 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span>
+          <span class="tool-txt"><span class="tool-name">Background colour</span><span class="tool-sub">White, transparent or any colour</span></span>
+        </button>
+        <button id="btnBrush" class="tool" type="button" disabled onclick="Studio.startBrush()">
+          <span class="tool-ico ico-pink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5-9.5 9.5a2.1 2.1 0 0 1-3 0l-2-2a2.1 2.1 0 0 1 0-3L15 4Z"/><path d="M9 20h11"/></svg></span>
+          <span class="tool-txt"><span class="tool-name">Remove person <span class="tag-beta">Beta</span></span><span class="tool-sub">Paint over a whole person or object</span></span>
+        </button>
+
+        <div class="brush-actions">
+          <button id="btnApply" class="pill-btn warn" type="button" style="display:none" onclick="Studio.applyInpaint()">Apply removal</button>
+          <button id="btnCancel" class="pill-btn" type="button" style="display:none" onclick="Studio.cancelBrush()">Cancel</button>
         </div>
       </div>
     </div>
@@ -325,9 +435,16 @@
     <div class="stage card" id="stageWrap">
       <canvas id="stage" width="960" height="600"></canvas>
       <canvas id="mask" width="960" height="600"></canvas>
+      <button type="button" class="dropzone" onclick="document.getElementById('mainInput').click()">
+        <span class="dz-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></svg></span>
+        <span class="dz-title">Add a photo to start</span>
+        <span class="dz-sub dz-desktop">Drag it here, or click to browse</span>
+        <span class="dz-sub dz-touch">Tap to choose from your gallery</span>
+        <span class="dz-chip">Choose photo</span>
+      </button>
     </div>
 
-    <div class="card actions">
+    <div class="card actions save-card">
       <div class="toolbar">
         <button class="btn" id="btnSaveGallery">Save to Gallery</button>
       </div>
@@ -1019,14 +1136,14 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
 
       function setBusy(b){
         busy = b;
-        btnRemove.disabled = b || !mainSrc;
-        btnChange.disabled = b || !cutoutURL;
-        btnBrush.disabled  = b || (!mainSrc && !cutoutURL);
+        updateButtons();
       }
       function updateButtons(){
         btnRemove.disabled = busy || !mainSrc;
         btnChange.disabled = busy || !cutoutURL;
         btnBrush.disabled  = busy || (!mainSrc && !cutoutURL);
+        // Swap the empty-state drop zone for the photo once one is loaded.
+        document.body.classList.toggle('has-photo', !!(mainSrc || cutoutURL));
       }
 
       async function downscaleToMax(dataUrl, maxSide = 1400){
@@ -1710,8 +1827,12 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
       }
 
       async function applyInpaint() {
+        // One removal at a time: a second tap while one is running would spend another credit.
+        if (busy) return;
+        const applyBtn = document.getElementById('btnApply');
         try {
           setBusy(true);
+          if (applyBtn) applyBtn.disabled = true;
           await applyInpaintWithApi();
         } catch (e) {
           console.error('AI remove-object API failed:', e);
@@ -1738,6 +1859,7 @@ if(btnLogout) btnLogout.onclick = () => auth.signOut();
           toast(friendly);
         } finally {
           setBusy(false);
+          if (applyBtn) applyBtn.disabled = false;
         }
       }
 
@@ -2090,4 +2212,3 @@ function showColorPicker() {
 </script>
 </body>
 </html>
-]
